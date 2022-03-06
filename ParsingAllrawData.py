@@ -16,50 +16,57 @@ import re
 import pandas as pd
 import argparse
 import alive_progress as ap
-import CheckingFeatures_final as CF
+import numpy as np
+import QC
+import time
 #%% Command line interface
 if __name__ == "__main__":
         
     parser = argparse.ArgumentParser(description='Parser of all MR files: Description:\
          This code will parse through every possible folder after a defined initial path,\
     looking for MR data files of any type. Then it will extract the wanted files \
-    and eliminiate the duplicates.')
+    and eliminate the duplicates.')
     parser.add_argument('initial_path', help='initial path to start the parsing (ending with "/" )')
-    parser.add_argument('saving_path', help='Path where the results should be saved (ending with "/" )')
-    parser.add_argument('-f','--forward',action='store_true',help='if this argument is used then the second stage of calculation will start right\
-                        after the first stage automaticaly. The second stage checks\
-                        the features from every path found in the first stage according to its nature: for T2w and DTI:\
-                        SNR and resolution homogenity & for rsfmri tSNR, resoltion homogenity, Movement Severity based on mutual\
-                            information and Movement type. Movement type can be local or local & general. local movement happens ALWAYS.\
-                        if there is general movement detected, it indicates that the movement between the fmri images have a trend over time\
-                        , and are not just spontanious which means that the animal/patient/subject might has moved slowly in a specific direction.\
-                            \nWith kind regrads RFKS')                    
-    parser.add_argument('-k', '--keyfolder', help='Definition keyfolder: A folder name which \
-                        you are sure that every file has that folder in its path. You might ask: Why not state it \
-                        in the initial path? The reason is that this is not always possible, see the following example:\
-                        Initial path is "/Volumes/AG_Aswendt_Projects/ keyfolder is "MRI/" What the program does:\
-                        /Volumes/AG_Aswendt_Projects/**/MRI/**/method" which means the program will start parsing every folder \
-                        everything after AG_Aswendt_Progect AND it wont search for the method file unless it gets\
-                        to a folder that is called MRI and after that it will parse for the file method. Note that \
-                        if the keyfolder is not defined, the result will be the same, it just takes more TIME.\
-                        ')                    
+    parser.add_argument('saving_path', help='Set the path where the results should be saved (ending with "/" )')
+    parser.add_argument('-f','--forward',action='store_true',help='Set this parameter if you JUST want to parse the databank without the\
+                        the quality measurement (Just creates an excel table with all existing MR files addresses relating to DTI, T2w and fMRI sequences)')                                       
+    parser.add_argument('-e','--exclude',type=str, choices=['T2w', 'fMRI', 'DTI'],help='Set this parameter if you want to \
+                        exclude a specific type of sequence between the three types of T2w, fMRI and DTI. Example use \
+                            in terminal: python ParsingAllrawData.py <inital_path>/ <saving_path>/ -e fMRI')
     args = parser.parse_args()
     initial_path = args.initial_path
     saving_path = args.saving_path
-    keyfolder = args.keyfolder
     forward = args.forward
+    exclude = args.exclude
     #%% User Input: Main Path/folder where the program schould start to parse 
-    
     #path = "/Volumes/AG_Aswendt_Projects/"
-    Types = ['Dti*','EPI','RARE']
     
+    Types = ['Dti*','EPI','RARE']
+    Types_new = ['DTI','rsfMRI','T2w']
+    
+    if exclude == 'DTI':
+        Types.remove('Dti*')
+        Types_new.remove('DTI')
+        
+    if exclude == 'fMRI':
+        Types.remove('EPI')
+        Types_new.remove('rsfMRI')
+        
+    if exclude == 'T2w':
+        Types.remove('RARE')
+        Types_new.remove('T2w')
+    QC.tic()
+    print("Hello!")
+    print('------------------------------------------------------------')
+    print('Thank you for using our Code. For questions please contact us over:')
+    print('aref.kalantari-sarcheshmeh@uk-koeln.de or markus.aswendt@uk-koeln.de')
+    print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
+    print('Web: https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
+    print('------------------------------------------------------------')
+        
     
     #%% Parsing
-    if not keyfolder:
-        PathALL = initial_path + "**/method"
-    else:
-        PathALL = initial_path + "**/"+keyfolder+"**/method"
-    
+    PathALL = initial_path + "**/method"
     with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
         text_files = glob.glob(PathALL, recursive = True)
         kall = len(text_files)
@@ -124,7 +131,8 @@ if __name__ == "__main__":
     saving_path2 = saving_path + 'QuiC_Data_Result.xlsx'
     writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
     
-    Types_new = ['DTI','rsfMRI','T2w']
+    #ABook.keys()
+    
     for i,T in enumerate(Types_new):
         globals()['df'+ str(i)].to_excel(writer,sheet_name=T, index = False)
     
@@ -136,8 +144,17 @@ if __name__ == "__main__":
     print('\n\nExcel file was created:' + str(saving_path2))
     print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
     if forward == True:
+        print("***")
+    else:
         print('\nStarting Stage two ...'.upper())
         print('\nCalculating features...\n'.upper())
         print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
-        CF.CheckingFeatures(saving_path2)
+        QC.CheckingFeatures(saving_path2)
+        QC.toc()
+        print('------------------------------------------------------------')
+        print('Thank you for using our Code. For questions please contact us over:')
+        print('aref.kalantari-sarcheshmeh@uk-koeln.de or markus.aswendt@uk-koeln.de')
+        print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
+        print('Web:https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
+        print('------------------------------------------------------------')
         

@@ -372,7 +372,10 @@ def read_param_file(filename):
             print("Warning: The parsing of the LDR %s failed." % (label,), file=sys.stderr)
         elif value.startswith('( '): # A single string, an array of strings or structs or a simple array
             sizes = [int(x) for x in value.strip('( )').split(',')]
-            params[label] = get_array_values(label, sizes, data)
+            try:
+                params[label] = get_array_values(label, sizes, data)
+            except ValueError:
+                pass
         elif value.startswith('('): # A struct
             data = ''.join([value, data])
             params[label] = get_array_values(label, [1], data)[0]
