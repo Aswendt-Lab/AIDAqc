@@ -223,15 +223,18 @@ def QCPlot(Path):
                 for dd,DD in enumerate(Data):
                     if DD == np.inf:
                         Data[dd] = np.nan
-                    
-                y, x, bars = plt.hist(Data, bins= 50, histtype= 'bar',edgecolor='white')
-                plt.xlabel(N+':'+C)
+                
+                q75, q25 = np.nanpercentile(Data, [75 ,25])
+                iqr = q75 - q25
+                B = round((max(Data)-min(Data)) / (2 * iqr / (len(Data)**(1/3))))
+               
+                y, x, bars = plt.hist(Data, bins= B, histtype= 'bar',edgecolor='white')
+                plt.xlabel(N+': '+C + ' [a.u.]')
                 plt.ylabel("Frequency")
                 ax2.spines['right'].set_visible(False)
                 ax2.spines['top'].set_visible(False)
                 #calculate interquartile range of values in the 'points' column
-                q75, q25 = np.percentile(Data, [75 ,25])
-                iqr = q75 - q25
+                
                 if C == 'Local Movement Variability':
                     ll = q75+1.5*iqr
                     plt.text(1.07*ll,2*max(y)/3,'Q3 + 1.5*IQ',color='grey')
@@ -248,11 +251,11 @@ def QCPlot(Path):
                             bar.set_facecolor("red")
                             
                 plt.axvline(ll,color = 'grey',linestyle='--')
-                plt.suptitle('Quality Feature Statistic',weight="bold")
+                plt.suptitle(N+': '+C,weight="bold")
                 hh = hh + 1
                 
     
-                red_patch = mpatches.Patch(color='red', label='Discard!')
+                red_patch = mpatches.Patch(color='red', label='Discard')
                 blue_patch = mpatches.Patch(color='tab:blue', label='Keep')
                 plt.legend(handles=[blue_patch,red_patch])
                    # plt.savefig(os.path.dirname(Path) + "\ResHomogenity.png",dpi=300)
@@ -275,7 +278,7 @@ def QCPlot(Path):
                 ax1 = plt.subplot(len(Names),3,rr)           
                 ax1.pie(sizes, labels=labels2, autopct='%1.0f%%', startangle=90)
                 ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-                ax1.set_title(N+':'+C+ ' [a.u.]')
+                ax1.set_title(N+':'+C)
                 plt.suptitle('Resolution homogeneity between data',weight="bold")
                 rr = rr+1
     
@@ -283,7 +286,6 @@ def QCPlot(Path):
     for fig in range(1, plt.figure().number): ## will open an empty extra figure :(
         pdf.savefig( fig )
     pdf.close()
-
 
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
@@ -312,7 +314,12 @@ def QCtable(Path):
         
             
             if C == 'SNR Chang' or C == 'tSNR Chang':
-                q75, q25 = np.percentile(D, [75 ,25])
+                
+                for dd,DD in enumerate(D):
+                    if DD == np.inf:
+                        D[dd] = np.nan
+                
+                q75, q25 = np.nanpercentile(D, [75 ,25])
                 iqr = q75 - q25
                 ll = q25-1.5*iqr #lower limit
                 Index = D<ll
@@ -333,7 +340,7 @@ def QCtable(Path):
                 
                 
             if C == 'Local Movement Variability':
-                q75, q25 = np.percentile(D, [75 ,25])
+                q75, q25 = np.nanpercentile(D, [75 ,25])
                 iqr = q75 - q25
                 ul = q75+1.5*iqr #upper limit
                 Index = D>ul
