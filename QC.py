@@ -226,7 +226,8 @@ def QCPlot(Path):
                 
                 q75, q25 = np.nanpercentile(Data, [75 ,25])
                 iqr = q75 - q25
-                B = round((max(Data)-min(Data)) / (2 * iqr / (len(Data)**(1/3))))
+                
+                B = round((np.nanmax(Data)-np.nanmin(Data)) / (2 * iqr / (len(Data)**(1/3))))
                
                 y, x, bars = plt.hist(Data, bins= B, histtype= 'bar',edgecolor='white')
                 plt.xlabel(N+': '+C + ' [a.u.]')
