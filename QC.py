@@ -446,7 +446,11 @@ def CheckingFeatures(Path):
                     CP_a = tf + '/acqp' # Check Parameter: acqp
                     
                     if os.path.isfile(CP_v) and os.path.isfile(CP_a):
-                        pv.read_2dseq( map_raw=False, map_pv6=False, roll_fg=False, squeeze=False, compact=False, swap_vd=False, scale=1.0)
+                        try:
+                            pv.read_2dseq( map_raw=False, map_pv6=False, roll_fg=False, squeeze=False, compact=False, swap_vd=False, scale=1.0)
+                        except SystemExit:
+                            ErorrList.append(tf)
+                            continue
                         input_file = nii.squeeze_image(pv.nifti_image)
                     else:
                         ErorrList.append(tf)

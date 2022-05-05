@@ -261,6 +261,7 @@ class ParaVision:
             fid = open(path_2dseq, 'rb')
         except IOError as V:
             if V.errno == 2:
+                print("Cannot open 2dseq file %s" % (path_2dseq,))
                 sys.exit("Cannot open 2dseq file %s" % (path_2dseq,))
             else:
                 raise
