@@ -1,12 +1,16 @@
-# An automated and simple tool for fast qualtiy analysis of animal MRI
+<img align="left" src="https://github.com/maswendt/AIDAmri/blob/master/AIDA_Logo.png" width="120">
+<h1>AIDA<i>qc</i></h1>
 
+*An automated and simple tool for fast qualtiy analysis of animal MRI*
+<br/>
+<br/>
 <h3>Features</h3> 
  
 - **Input:** Bruker raw data or NIFTY (T2-weighted MRI, diffusion weighted MRI or DTI, and rs-fMRI)
 - **Calculations:** SNR, tSNR, movement variability, data quality categorization (finds bad quality outlier)
 - **Output Format:** Excel sheets & pdf
 
-[<h3>Overview poster</h3>](https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_Poster_Summary.pdf) 
+[**See the poster for all details**](https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_Poster_Summary.pdf) 
 
 <h3>The story behind this tool</h3> 
 
