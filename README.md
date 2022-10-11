@@ -14,8 +14,8 @@ It can be challenging to acquire MR images of consistent quality or to decide fo
 <h3>Download test dataset</h3>
 https://gin.g-node.org/arefks/AIDAqc_test_data
 
-<h3><b>LICENSE/CITATION</h3></b>
-GNU General Public License v3.0
-
 [<h3><b>CONTACT</h3></b>](https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/)
 Aref Kalantari (arefks@gmail.com) and Markus Aswendt (markus.aswendt@uk-koeln.de)
+
+<h3><b>LICENSE</h3></b>
+GNU General Public License v3.0
