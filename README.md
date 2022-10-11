@@ -5,10 +5,15 @@
 <br/>
 <br/>
 <h3>Features</h3> 
-<img align="center" src="https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_workflow.pdf>
+
 - **Input:** Bruker raw data or NIFTY (T2-weighted MRI, diffusion weighted MRI or DTI, and rs-fMRI)
 - **Calculations:** SNR, tSNR, movement variability, data quality categorization (finds bad quality outlier)
 - **Output Format:** Excel sheets & pdf
+
+<img align="left" src="https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_workflow.png">
+
+<br/>
+<br/>
 
 [**See the poster for all details**](https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_Poster_Summary.pdf) 
 
