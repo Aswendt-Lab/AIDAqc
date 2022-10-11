@@ -23,4 +23,5 @@ https://gin.g-node.org/arefks/AIDAqc_test_data
 Aref Kalantari (arefks@gmail.com) and Markus Aswendt (markus.aswendt@uk-koeln.de)
 
 <h3><b>LICENSE</h3></b>
-GNU General Public License v3.0
+
+[GNU General Public License v3.0](https://github.com/aswendtlab/AIDAqc/blob/main/LICENSE)
