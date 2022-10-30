@@ -18,7 +18,7 @@ import changSNR as ch
 from matplotlib.pyplot import imshow
 import os
 import pandas as pd
-
+import glob
 from openpyxl import load_workbook
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
@@ -26,6 +26,7 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 import numpy as np
 import openpyxl
+import nibabel as nib
 
 import pv_reader as pr
 import openpyxl
@@ -41,15 +42,20 @@ def ResCalculator(input_file):
     Spati_Res = HDR['pixdim'][1:4]
     
     return Spati_Res
+
+
+
 #%% SNR function
 def snrCalclualtor(input_file):
 
     imgData = input_file
+    #print("img",imgData)
     ns = imgData.shape[2]  # Number of slices
     nd = imgData.ndim
+    
     ns_lower = int(np.floor(ns/2) - 2)
     ns_upper = int(np.floor(ns/2) + 2)
-    
+
     noiseChSNR = np.zeros(ns)
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.ndarray.astype(IM, 'float64')
@@ -61,7 +67,7 @@ def snrCalclualtor(input_file):
         # Decision if the input data is DTI type or T2w
         if nd == 3:
             slice = imgData[:, :, slc]
-        
+           
         if nd == 4:
             slice = imgData[:, :, slc,1]
             
@@ -71,6 +77,40 @@ def snrCalclualtor(input_file):
     snrCh = 20 * np.log10(np.mean(imgData) / np.mean(noiseChSNR))
 
     return snrCh
+
+#%% SNR function
+def snrCalclualtor_nifti(input_file):
+
+    imgData = input_file
+    #print("img",imgData)
+    ns = imgData.shape[2]  # Number of slices
+    nd = imgData.ndim
+    
+    ns_lower = int(np.floor(ns/2) - 2)
+    ns_upper = int(np.floor(ns/2) + 2)
+
+    noiseChSNR = np.zeros(ns)
+    IM = np.asanyarray(imgData.dataobj)
+    imgData = np.ndarray.astype(IM, 'float64')
+    #print('/NewData/',end=" ")
+    for slc in range(ns_lower,ns_upper):
+        #   Print % of progress
+        #print('S' + str(slc + 1), end=",")
+
+        # Decision if the input data is DTI type or T2w
+        if nd == 3:
+            slice = imgData[:, :, slc]
+           
+        if nd == 4:
+            slice = imgData[:, :, slc]
+            
+        curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(slice, 0, 1)
+        noiseChSNR[slc] = estStdChang
+
+    snrCh = 20 * np.log10(np.mean(imgData) / np.mean(noiseChSNR))
+
+    return snrCh
+
 
 #%% TSNR function
 
@@ -386,7 +426,8 @@ def QCtable(Path):
     writer.save()
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline
      
-def CheckingFeatures(Path):   
+def CheckingrawFeatures(Path):
+      
     
   
     Names = []
@@ -430,13 +471,16 @@ def CheckingFeatures(Path):
             kk = 0
             i=1
             
-            with ap.alive_bar(len(text_files),spinner='wait',refresh_secs = 0) as bar:
+            with ap.alive_bar(len(text_files),spinner='wait') as bar:
                 for tf in text_files:
+                    #print("tf",tf)
                     
-                    path_split = tf.split('/')
+                    
+                    path_split = tf.split('\\')
                     
                     procno = str(1)
                     expno = path_split[-1]
+                    
                     study = path_split[-2]
                     raw_folder = '/'.join(path_split[:-2])
                     proc_folder = raw_folder+ '/proc_data' #Here still adjustment is needed
@@ -452,15 +496,17 @@ def CheckingFeatures(Path):
                             ErorrList.append(tf)
                             continue
                         input_file = nii.squeeze_image(pv.nifti_image)
+                        
                     else:
                         ErorrList.append(tf)
                         kk = kk+1
                         continue
                    
                     # Resoultution
+                    #print(input_file)
                     SpatRes = ResCalculator(input_file)
                     
-                    
+                    #print("N",N)
                     if N == 'T2w' or N == 'DTI':
                         # Signal 2 noise ratio
                         try:
@@ -496,6 +542,169 @@ def CheckingFeatures(Path):
                     
             # Saving parsed files to excel sheets
             AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]
+            print("ar",AR)
+            
+            # using the savetxt 
+            # from the numpy module
+            
+            df = pd.DataFrame()
+            df['FileAddress'] = AR[0]
+            df['SpatRx'] = AR[1][:,0]
+            print("sp", AR[1][:,0])
+            df['SpatRy'] = AR[1][:,1]
+            df['Slicethick'] = AR[1][:,2]
+            
+            if N == 'T2w' or N == 'DTI':
+                 df['SNR Chang'] = AR[2]
+                 
+            else:
+                 df['tSNR Chang'] = AR[2]
+                 df['Local Movement Variability']=AR[3]
+                 df['Movement Type']=AR[4]
+                 
+            
+            
+             
+            df.to_excel(writer,sheet_name=N, index = False)
+        
+        else:
+            df = pd.DataFrame()
+            df['ErorrList'] = ErorrList
+            df.to_excel(writer,sheet_name=N, index = False)
+        
+    writer.save()
+    print('\n\nExcel file was created:' + str(saving_path2))
+    
+    print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
+    print('Plotting quality features...\n'.upper())
+    
+    QCPlot(saving_path2)
+    QCtable(saving_path2)
+    print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
+
+
+
+
+#exact above function but this time for nifti format
+def CheckingNiftiFeatures(Path):   
+    
+  
+    Names = []
+    ErorrList = []
+    #Path = "/Users/kalantaria/Desktop/Res/QuiC_Data_Result2.xlsx" 
+    #Path= "C:\\BME\\aida\\raw_data\\QuiC_Data_Result_nifti.xlsx"
+    xls = pd.ExcelFile(Path,engine= 'openpyxl')
+    Names = xls.sheet_names
+    saving_path = os.path.dirname(Path) 
+    
+    if 'ErrorData' in Names:
+        Names.remove('ErrorData')
+    
+    Abook = []
+    for n in Names:
+        Abook.append(pd.read_excel(Path,engine= 'openpyxl',sheet_name = n))
+    
+    C = np.array([not Check.empty for Check in Abook])
+    Names = np.array(Names)[C].tolist()
+    Names.append('ErrorData')
+    Abook = np.array(Abook,dtype=object)[C].tolist()
+    #% Calculate all the SNR for all the data that was found 
+    # in the last step and saving it into a vector
+    # Load Bruker data from each address 
+    saving_path2 = saving_path + '/QuiC_Data_Result_Processed_featurs.xlsx'
+    writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
+    kk =0
+    
+    for ii,N in enumerate(Names):
+        
+        if N != 'ErrorData':
+            if kk > 0:
+                print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
+            
+            print(N+' processing... \n')
+            text_files = Abook[ii][0]
+            snrCh_vec =[]
+            SpatRes_vec = []
+            MI_vec_all = []
+            LMV_all = []
+            TypeMov_all = []
+            text_files_new = []
+            kk = 0
+            i=1
+            
+            with ap.alive_bar(len(text_files),spinner='wait') as bar:
+                for tf in text_files:
+                    if "DTI" in tf :
+                        N= "DTI"
+                    if  "T2w" in tf:
+                        N="T2w"
+                    if  "fMRI" in tf:
+                        N="fMRI"
+
+                    path_split = tf.split('\\')
+                    
+                    procno = str(1)
+                    expno = path_split[-1]
+                    #print("ex",expno)
+                    study = path_split[-2]
+                    raw_folder = '/'.join(path_split[:-2])
+                    proc_folder = raw_folder+ '/proc_data' #Here still adjustment is needed
+                    #pv = pr.ParaVision(proc_folder, raw_folder, study, expno, procno)
+                    
+                    CP_v = tf + '/pdata/1/visu_pars' # Check Parameter: Visu_pars
+                    CP_a = tf + '/acqp' # Check Parameter: acqp
+                    
+
+                   
+                    input_file= nib.load(tf)
+                    #print("input",input_file)
+                    # Resoultution
+                    SpatRes = ResCalculator(input_file)
+                    
+                    
+                    
+                    
+                    if N == 'T2w' or N == 'DTI':
+                        # Signal 2 noise ratio
+                        
+                        
+                        snrCh = snrCalclualtor_nifti(input_file)
+                           
+                        
+                            
+                            
+                        
+                            
+                        LMV_all = np.nan
+                        TypeMov_all = np.nan
+                        
+                    if N == 'fMRI':
+                        #temporal signal 2 noise ratio
+                        
+                        snrCh = TsnrCalclualtor(input_file)
+                        
+                            
+                        
+                        # movement severity with the help of mutual information
+                        Final,GMV,LMV,TypeMov = Ismovement(input_file)
+                        TypeMov_all.append(TypeMov)
+                        LMV_all.append(LMV)
+                        MI_vec_all.append(Final)
+
+
+                    snrCh_vec.append(snrCh)
+                    print("snr",snrCh_vec)
+                    i=i+1
+                    text_files_new.append(tf)
+                    bar()
+                    SpatRes_vec.append(SpatRes) 
+                    print("SpatRes_vec",SpatRes_vec)    
+                print("snr",snrCh_vec)
+                     
+                     
+            # Saving parsed files to excel sheets
+            AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]
+            print("ar",AR)
             
             # using the savetxt 
             # from the numpy module
@@ -530,10 +739,9 @@ def CheckingFeatures(Path):
     print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
     print('Plotting quality features...\n'.upper())
     
-    QCPlot(saving_path2)
+    #QCPlot(saving_path2)
     QCtable(saving_path2)
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
-    
 #%% Tic Toc Timer
 
 
