@@ -349,26 +349,32 @@ def QCtable(Path):
     for nn,N in enumerate(Names):
         
         Abook = (pd.read_excel(Path,engine= 'openpyxl',sheet_name = N))
+        
         COL = Abook.columns
         for cc,C in enumerate(COL):
             D = Abook[C]
-        
+           
             
             if C == 'SNR Chang' or C == 'tSNR Chang':
                 
                 for dd,DD in enumerate(D):
+                    
                     if DD == np.inf:
                         D[dd] = np.nan
+                        
                 
                 q75, q25 = np.nanpercentile(D, [75 ,25])
+                
                 iqr = q75 - q25
                 ll = q25-1.5*iqr #lower limit
                 Index = D<ll
+                
                 P = Abook[COL[0]][Index]
                 M = D.mean()
                 Me = D.median()
                 Mi = D.min()
                 Ma = D.max()
+              
          
                 Pathes.extend(P)
                 ST.extend([N]*len(P))
@@ -473,10 +479,10 @@ def CheckingrawFeatures(Path):
             
             with ap.alive_bar(len(text_files),spinner='wait') as bar:
                 for tf in text_files:
-                    #print("tf",tf)
                     
-                    
-                    path_split = tf.split('\\')
+                    tf = os.path.normpath(tf)
+                   
+                    path_split = tf.split(os.sep)
                     
                     procno = str(1)
                     expno = path_split[-1]
@@ -503,10 +509,10 @@ def CheckingrawFeatures(Path):
                         continue
                    
                     # Resoultution
-                    #print(input_file)
+                    
                     SpatRes = ResCalculator(input_file)
                     
-                    #print("N",N)
+                    
                     if N == 'T2w' or N == 'DTI':
                         # Signal 2 noise ratio
                         try:
@@ -542,7 +548,7 @@ def CheckingrawFeatures(Path):
                     
             # Saving parsed files to excel sheets
             AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]
-            print("ar",AR)
+            
             
             # using the savetxt 
             # from the numpy module
@@ -550,7 +556,7 @@ def CheckingrawFeatures(Path):
             df = pd.DataFrame()
             df['FileAddress'] = AR[0]
             df['SpatRx'] = AR[1][:,0]
-            print("sp", AR[1][:,0])
+            
             df['SpatRy'] = AR[1][:,1]
             df['Slicethick'] = AR[1][:,2]
             
@@ -578,7 +584,7 @@ def CheckingrawFeatures(Path):
     print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
     print('Plotting quality features...\n'.upper())
     
-    QCPlot(saving_path2)
+    #QCPlot(saving_path2)
     QCtable(saving_path2)
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
 
@@ -640,12 +646,12 @@ def CheckingNiftiFeatures(Path):
                         N="T2w"
                     if  "fMRI" in tf:
                         N="fMRI"
-
-                    path_split = tf.split('\\')
+                    tf = os.path.normpath(tf)
+                    path_split = tf.split(os.sep)
                     
                     procno = str(1)
                     expno = path_split[-1]
-                    #print("ex",expno)
+                    
                     study = path_split[-2]
                     raw_folder = '/'.join(path_split[:-2])
                     proc_folder = raw_folder+ '/proc_data' #Here still adjustment is needed
@@ -693,18 +699,18 @@ def CheckingNiftiFeatures(Path):
 
 
                     snrCh_vec.append(snrCh)
-                    print("snr",snrCh_vec)
+                    
                     i=i+1
                     text_files_new.append(tf)
                     bar()
                     SpatRes_vec.append(SpatRes) 
-                    print("SpatRes_vec",SpatRes_vec)    
-                print("snr",snrCh_vec)
+                     
+                
                      
                      
             # Saving parsed files to excel sheets
             AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]
-            print("ar",AR)
+            
             
             # using the savetxt 
             # from the numpy module

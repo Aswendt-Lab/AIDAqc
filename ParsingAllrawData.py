@@ -18,6 +18,7 @@ import alive_progress as ap
 import numpy as np
 import QC
 import time
+from openpyxl import Workbook
 #%% Command line interface
 if __name__ == "__main__":
         
@@ -121,7 +122,7 @@ if __name__ == "__main__":
         M = dict.fromkeys(CheckDates)
         print(' '+str(C)+' files were extracted! %%%'.upper())
         print((' ' + str(len(CheckDates)-len(M))+ ' Duplicates were Eliminated! %%%').upper())
-    
+        
         #%% Saving parsed files to excel sheets
     
     
@@ -153,18 +154,51 @@ if __name__ == "__main__":
 
     if format_type=="nifti":
 
-        PathALL = initial_path + "**\*1.nii"
+        PathALL = initial_path + "**\*1.nii.gz"
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
         
         print(( 'Total number of '+ str(kall) + ' files were found:'+'Parsing finished! '.upper()).upper())
+        ABook={}
+        for i in range(len(Types)):         #Creation of Adress Book
+            ABook[Types_new[i]] = []
     
-        df = pd.DataFrame(text_files)
-        print("df",df)
-        saving_path2 = saving_path + 'QuiC_Data_Result_nifti.xlsx'
-        df.to_excel(saving_path2,index=False)#must be edited in saving shape(must not make 0,1,2,... in exel file)
 
+        for i,T in enumerate(Types_new):
+            globals()['df'+ str(i)] = pd.DataFrame(ABook[T])        
+        for i in text_files :
+
+            if "DTI"in i :
+                ABook["DTI"].append(i)
+            elif "rsfMRI"  in i :
+                ABook["rsfMRI"].append(i)
+            elif "fMRI" in i :
+                ABook["rsfMRI"].append(i)
+            elif "T2w"in i :
+                ABook["T2w"].append(i)
+
+              
+        for i,T in enumerate(Types_new):
+            globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
+    
+    
+
+    
+        
+        saving_path2 = saving_path + 'QuiC_Data_Result_nifti.xlsx'
+        writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
+    
+        #ABook.keys()
+    
+        for i,T in enumerate(Types_new):
+            globals()['df'+ str(i)].to_excel(writer,sheet_name=T, index = False)
+    
+    
+        
+    
+        writer.save()
+        
         #df.to_csv(saving_path2, sep=',',index=False)
         #np.savetxt("C:\\BME\\aida\\nifti\\QuiC_Data_Result_nifti.csv", df, delimiter=", ", fmt="% s")
         #%% Saving parsed files to excel sheets
@@ -195,3 +229,23 @@ if __name__ == "__main__":
         print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
         print('Web:https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
         print('------------------------------------------------------------')
+
+
+
+
+
+
+
+
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
