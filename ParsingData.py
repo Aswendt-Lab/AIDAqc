@@ -19,21 +19,22 @@ import numpy as np
 import QC
 import time
 from openpyxl import Workbook
+import test2
 #%% Command line interface
 if __name__ == "__main__":
         
     parser = argparse.ArgumentParser(description='Parser of all MR files: Description:\
-         This code will parse through every possible folder after a defined initial path,\
-    looking for MR data files of any type. Then it will extract the wanted files \
-    and eliminate the duplicates.')
+          This code will parse through every possible folder after a defined initial path,\
+     looking for MR data files of any type. Then it will extract the wanted files \
+     and eliminate the duplicates.')
     parser.add_argument('initial_path', help='initial path to start the parsing (ending with "/" )')
     parser.add_argument('saving_path', help='Set the path where the results should be saved (ending with "/" )')
     parser.add_argument('-f','--forward',action='store_true',help='Set this parameter if you JUST want to parse the databank without the\
-                        the quality measurement (Just creates an excel table with all existing MR files addresses relating to DTI, T2w and fMRI sequences)')                                       
+                         the quality measurement (Just creates an excel table with all existing MR files addresses relating to DTI, T2w and fMRI sequences)')                                       
     parser.add_argument('-e','--exclude',type=str, choices=['T2w', 'fMRI', 'DTI'],help='Set this parameter if you want to \
-                        exclude a specific type of sequence between the three types of T2w, fMRI and DTI. Example use \
-                            in terminal: python ParsingAllrawData.py <inital_path>/ <saving_path>/ -e fMRI \
-                                python ParsingAllrawData.py C:\BME\aida\raw_data\ C:\BME\aida\raw_data\  raw')
+                         exclude a specific type of sequence between the three types of T2w, fMRI and DTI. Example use \
+                             in terminal: python ParsingAllrawData.py <inital_path>/ <saving_path>/ -e fMRI \
+                                 python ParsingAllrawData.py C:\BME\aida\raw_data\ C:\BME\aida\raw_data\  raw')
 
     parser.add_argument("format_type",help="you need to tell what kind of format your images are : nifti or raw",type=str,choices=["nifti","raw"])  
                       
@@ -50,17 +51,17 @@ if __name__ == "__main__":
     Types = ['Dti*','EPI','RARE']
     Types_new = ['DTI','rsfMRI','T2w']
     
-    if exclude == 'DTI':
-        Types.remove('Dti*')
-        Types_new.remove('DTI')
+    # if exclude == 'DTI':
+    #     Types.remove('Dti*')
+    #     Types_new.remove('DTI')
         
-    if exclude == 'fMRI':
-        Types.remove('EPI')
-        Types_new.remove('rsfMRI')
+    # if exclude == 'fMRI':
+    #     Types.remove('EPI')
+    #     Types_new.remove('rsfMRI')
         
-    if exclude == 'T2w':
-        Types.remove('RARE')
-        Types_new.remove('T2w')
+    # if exclude == 'T2w':
+    #     Types.remove('RARE')
+    #     Types_new.remove('T2w')
     QC.tic()
     print("Hello!")
     print('------------------------------------------------------------')
@@ -120,35 +121,67 @@ if __name__ == "__main__":
                 CheckDates.append(DateTemp)
                 bar()
         M = dict.fromkeys(CheckDates)
+        
         print(' '+str(C)+' files were extracted! %%%'.upper())
         print((' ' + str(len(CheckDates)-len(M))+ ' Duplicates were Eliminated! %%%').upper())
+        print("a",ABook)
+        #%% Saving parsed files 
+       
+        #saving in csv file
+
+
+
+
+
+
+        dti_addreses= pd.DataFrame(ABook["Dti*"])
+        dti_path= os.path.join(saving_path,"raw_data_addreses_DTI.csv")
+        dti_addreses.to_csv(dti_path, sep=',',index=False)
+
+        t2w_addreses= pd.DataFrame(ABook["RARE"])
+        t2w_path= os.path.join(saving_path,"raw_data_addreses_T2w.csv")
+        t2w_addreses.to_csv(t2w_path, sep=',',index=False)
+
+        rsfmri_addreses= pd.DataFrame(ABook["EPI"])
+        rsfmri_path= os.path.join(saving_path,"raw_data_addreses_fMRI.csv")
+        rsfmri_addreses.to_csv(rsfmri_path, sep=',',index=False)
+
+
+        print('\n\ncsv files were created:' + str(saving_path))
+        print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
+
+
+
+
+
+
+
+
+
+        # to make exel file as an output you can uncomment below lines
+        # for i,T in enumerate(Types):
+        #     globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
+    
+    
+        # dfError = pd.DataFrame()
+        # dfError['ErrorData'] = ErrorList
+    
+       
+        # saving_path2 = saving_path + 'QuiC_Data_Result_raw.xlsx'
+        # writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
+    
         
-        #%% Saving parsed files to excel sheets
+    
+        # for i,T in enumerate(Types_new):
+        #     globals()['df'+ str(i)].to_excel(writer,sheet_name=T, index = False)
     
     
-        for i,T in enumerate(Types):
-            globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
+        # dfError.to_excel(writer, sheet_name='ErrorData',index = False)
     
+        # writer.save()
     
-        dfError = pd.DataFrame()
-        dfError['ErrorData'] = ErrorList
-    
-        #saving_path_temp = '/Volumes/AG_Aswendt_Share/Scratch/Aref/Results/AGAswendtMRData.xlsx'
-        saving_path2 = saving_path + 'QuiC_Data_Result_raw.xlsx'
-        writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
-    
-        #ABook.keys()
-    
-        for i,T in enumerate(Types_new):
-            globals()['df'+ str(i)].to_excel(writer,sheet_name=T, index = False)
-    
-    
-        dfError.to_excel(writer, sheet_name='ErrorData',index = False)
-    
-        writer.save()
-    
-        print('\n\nExcel file was created:' + str(saving_path2))
-        print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())        
+        # print('\n\nExcel file was created:' + str(saving_path2))
+        # print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())        
     
     #%% Parsing nifti format
 
@@ -178,36 +211,52 @@ if __name__ == "__main__":
             elif "T2w"in i :
                 ABook["T2w"].append(i)
 
-              
-        for i,T in enumerate(Types_new):
-            globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
+        #saving in csv file
+        dti_addreses= pd.DataFrame(ABook["DTI"])
+        dti_path= os.path.join(saving_path,"nifti_data_addreses_DTI.csv")
+        dti_addreses.to_csv(dti_path, sep=',',index=False)
+
+        t2w_addreses= pd.DataFrame(ABook["T2w"])
+        t2w_path= os.path.join(saving_path,"nifti_data_addreses_T2w.csv")
+        t2w_addreses.to_csv(t2w_path, sep=',',index=False)
+
+        rsfmri_addreses= pd.DataFrame(ABook["rsfMRI"])
+        rsfmri_path= os.path.join(saving_path,"nifti_data_addreses_fMRI.csv")
+        rsfmri_addreses.to_csv(rsfmri_path, sep=',',index=False)
+
+
+        print('\n\ncsv files were created:' + str(saving_path))
+        print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
+       
+       
+        
+        # to make exel file as an output you can uncomment below lines
+
+
+        # for i,T in enumerate(Types_new):
+        #     globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
     
     
 
     
         
         saving_path2 = saving_path + 'QuiC_Data_Result_nifti.xlsx'
-        writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
+        # writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
     
-        #ABook.keys()
+       
     
-        for i,T in enumerate(Types_new):
-            globals()['df'+ str(i)].to_excel(writer,sheet_name=T, index = False)
+        # for i,T in enumerate(Types_new):
+        #     globals()['df'+ str(i)].to_excel(writer,sheet_name=T, index = False)
     
     
         
     
-        writer.save()
+        # writer.save()
         
-        #df.to_csv(saving_path2, sep=',',index=False)
-        #np.savetxt("C:\\BME\\aida\\nifti\\QuiC_Data_Result_nifti.csv", df, delimiter=", ", fmt="% s")
-        #%% Saving parsed files to excel sheets
-    
-    
+        #print('\n\nExcel file was created:' + str(saving_path2))
 
-    
-        print('\n\nExcel file was created:' + str(saving_path2))
-        print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
+
+        
     if forward == True:
         print("***")
     else:
@@ -216,11 +265,13 @@ if __name__ == "__main__":
         print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
         if format_type=="raw":
 
-            QC.CheckingrawFeatures(saving_path2)
+            QC.CheckingrawFeatures(saving_path,dti_addreses,rsfmri_addreses,t2w_addreses)
             QC.toc()
         elif format_type=="nifti":
-            QC.CheckingNiftiFeatures(saving_path2)
+            QC.CheckingNiftiFeatures(saving_path,dti_path,rsfmri_path,t2w_path)
             QC.toc()
+
+            
 
 
         print('------------------------------------------------------------')
