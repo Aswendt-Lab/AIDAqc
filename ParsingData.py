@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
     if format_type=="nifti":
 
-        PathALL = initial_path + "**\*1.nii.gz"
+        PathALL = initial_path + os.path.join("**","*1.nii.gz")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
