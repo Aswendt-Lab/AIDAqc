@@ -330,12 +330,12 @@ def QCPlot(Path):
 
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
-def QCtable(dti_path,fmri_path,t2w_path):
+def QCtable(Path,dti_path,fmri_path,t2w_path):
     Names = []
-    #Path = "/Users/kalantaria/Desktop/Res/QuiC_Data_Result2.xlsx" 
-    dti_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_DTI.csv"
-    fmri_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_fMRI.csv"
-    t2w_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_T2w.csv"
+    # Path = r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5" 
+    # dti_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_DTI.csv"
+    # fmri_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_fMRI.csv"
+    # t2w_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_T2w.csv"
     
     dti_result= pd.read_csv(dti_path)
     fmri_result= pd.read_csv(fmri_path)
@@ -344,7 +344,7 @@ def QCtable(dti_path,fmri_path,t2w_path):
     
     
     Abook = []
-    Abook.append(dti_result)
+    Abook.append(dti_result)  
     Abook.append(fmri_result)
     Abook.append(t2w_result)    
     ST = []
@@ -354,15 +354,17 @@ def QCtable(dti_path,fmri_path,t2w_path):
     Pathes = []
     Med = []
     MaX = []
-    MiN = []
+    MiN= []
     for nn,N in enumerate(Names):
-        
 
-        
-        COL = Abook.columns
+            
+        d= Abook[nn]
+        COL = Abook[nn].columns
+        #print("col",COL)
         for cc,C in enumerate(COL):
-            D = Abook[C]
-           
+            
+            D = d[C]
+            #print("DD",D)
             
             if C == 'SNR Chang' or C == 'tSNR Chang':
                 
@@ -378,7 +380,8 @@ def QCtable(dti_path,fmri_path,t2w_path):
                 ll = q25-1.5*iqr #lower limit
                 Index = D<ll
                 
-                P = Abook[COL[0]][Index]
+                P = d[COL[1]][Index]
+                print("P",P)
                 M = D.mean()
                 Me = D.median()
                 Mi = D.min()
@@ -400,7 +403,7 @@ def QCtable(dti_path,fmri_path,t2w_path):
                 iqr = q75 - q25
                 ul = q75+1.5*iqr #upper limit
                 Index = D>ul
-                P = Abook[COL[0]][Index]
+                P = d[COL[1]][Index]
                 M = D.mean()
                 Me = D.median()
                 Mi = D.min()
@@ -430,35 +433,35 @@ def QCtable(dti_path,fmri_path,t2w_path):
     List = {"Pathes":Pathes,"Sequence Type":ST, "Problematic Quality Feature":COE,"Value":V,"Mean":AvV,"Median":Med,"Min":MiN,"Max":MaX}
     
     df = pd.DataFrame(List)
-    book = load_workbook(Path)
+    final_result = os.path.join(Path,"unaccountable_data.csv")
+    df.to_csv( final_result)    
     
-    writer = pd.ExcelWriter(Path, engine = 'openpyxl')
-    writer.book = book
+
     
     
-    df.to_excel(writer, sheet_name='Final Result', index = False)
-    
-    writer.save()
+
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline
      
-def CheckingrawFeatures(Path):
+def CheckingrawFeatures(Path,dti_path,fmri_path,t2w_path):   
       
     
   
     Names = []
     ErorrList = []
-    #Path = "/Users/kalantaria/Desktop/Res/QuiC_Data_Result2.xlsx" 
-    #Path= r"Z:\Student_projects\14_Aref_Kalantari_2021\Projects\CRC\QualityControl\Datasets\Aswendt\QC\QuiC_Data_Result.xlsx"
-    xls = pd.ExcelFile(Path,engine= 'openpyxl')
-    Names = xls.sheet_names
+    dti_addreses= pd.read_csv(dti_path)
+    fmri_addreses= pd.read_csv(r"C:\BME\aida\raw_data\P7\raw_data_addreses_fMRI.csv", na_filter= False)
+    t2w_path_addreses= pd.read_csv(t2w_path)
+    
+    Names =["DTI","rsfMRI","T2w"]
     saving_path = os.path.dirname(Path) 
-    
-    if 'ErrorData' in Names:
-        Names.remove('ErrorData')
-    
     Abook = []
-    for n in Names:
-        Abook.append(pd.read_excel(Path,engine= 'openpyxl',sheet_name = n))
+    
+    Abook.append(dti_addreses)
+    Abook.append(fmri_addreses)
+    Abook.append(t2w_path_addreses)
+    
+    
+
     
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
@@ -467,8 +470,7 @@ def CheckingrawFeatures(Path):
     #% Calculate all the SNR for all the data that was found 
     # in the last step and saving it into a vector
     # Load Bruker data from each address 
-    saving_path2 = saving_path + '/QuiC_Data_Result_Processed_featurs.xlsx'
-    writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
+
     kk =0
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
@@ -476,7 +478,8 @@ def CheckingrawFeatures(Path):
                 print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
             
             print(N+' processing... \n')
-            text_files = Abook[ii][0]
+            text_files = Abook[ii]
+            text_files =text_files.squeeze()
             snrCh_vec =[]
             SpatRes_vec = []
             MI_vec_all = []
@@ -577,24 +580,37 @@ def CheckingrawFeatures(Path):
                  df['Local Movement Variability']=AR[3]
                  df['Movement Type']=AR[4]
                  
+            if N=="T2w":
+
             
-            
-             
-            df.to_excel(writer,sheet_name=N, index = False)
+                print("df",df) 
+                t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
+                df.to_csv( t2w_result)
+
+            elif N=="DTI":    
+                dti_result= os.path.join(Path,"caculated_features_DTI.csv")
+                df.to_csv( dti_result)   
+
+
+
+            elif N=="fMRI":
+                fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
+                df.to_csv( fmri_result)                              
+            else:
+                df = pd.DataFrame()
+                
+                df['ErorrList'] = ErorrList
+                ErorrList_result= os.path.join(Path,"eror_list.csv")
+                df.to_csv(ErorrList_result)
         
-        else:
-            df = pd.DataFrame()
-            df['ErorrList'] = ErorrList
-            df.to_excel(writer,sheet_name=N, index = False)
-        
-    writer.save()
-    print('\n\nExcel file was created:' + str(saving_path2))
+    
+    print('\n\nExcel file was created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
     print('Plotting quality features...\n'.upper())
     
     #QCPlot(saving_path2)
-    QCtable(saving_path2)
+    QCtable(Path,dti_result,fmri_result,t2w_result)
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
 
 
@@ -777,9 +793,9 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
     
     print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
     print('Plotting quality features...\n'.upper())
-    
+    QCtable(Path,dti_result,fmri_result,t2w_result)
     #QCPlot(dti_result,fmri_result,t2w_result)
-    #QCtable(saving_path2)
+    
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
 #%% Tic Toc Timer
 
