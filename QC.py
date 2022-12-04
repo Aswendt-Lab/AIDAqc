@@ -27,7 +27,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 import openpyxl
 import nibabel as nib
-
+import glob
 import pv_reader as pr
 import openpyxl
 import nibabel as nii
@@ -49,7 +49,7 @@ def ResCalculator(input_file):
 def snrCalclualtor(input_file):
 
     imgData = input_file
-    #print("img",imgData)
+    
     ns = imgData.shape[2]  # Number of slices
     nd = imgData.ndim
     
@@ -82,7 +82,7 @@ def snrCalclualtor(input_file):
 def snrCalclualtor_nifti(input_file):
 
     imgData = input_file
-    #print("img",imgData)
+    
     ns = imgData.shape[2]  # Number of slices
     nd = imgData.ndim
     
@@ -330,23 +330,32 @@ def QCPlot(Path):
 
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
-def QCtable(Path,dti_path,fmri_path,t2w_path):
-    Names = []
-    # Path = r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5" 
-    # dti_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_DTI.csv"
-    # fmri_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_fMRI.csv"
-    # t2w_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\caculated_features_T2w.csv"
+def QCtable(Path):
     
-    dti_result= pd.read_csv(dti_path)
-    fmri_result= pd.read_csv(fmri_path)
-    t2w_result= pd.read_csv(t2w_path)    
-    Names = ["DTI","fMRI",'T2w']
-    
-    
+
     Abook = []
-    Abook.append(dti_result)  
-    Abook.append(fmri_result)
-    Abook.append(t2w_result)    
+    Names =[]
+    for file in glob.glob(Path+ '*caculated_features*.csv') :
+        
+        if "DTI" in file:
+            dti_path= file
+            dti_features= pd.read_csv(dti_path)
+            Abook.append(dti_features)
+            Names.append("DTI")
+        elif "fMRI" in file :
+            fmri_path= file
+            fmri_features= pd.read_csv(fmri_path)
+            Abook.append(fmri_features)
+            Names.append("rsfMRI")
+        elif "T2w" in file :    
+             t2w_path= file
+             t2w_features= pd.read_csv(t2w_path)
+             Abook.append(t2w_features)
+             Names.append("T2w")    
+
+    
+    
+  
     ST = []
     COE = []
     AvV = []
@@ -360,11 +369,11 @@ def QCtable(Path,dti_path,fmri_path,t2w_path):
             
         d= Abook[nn]
         COL = Abook[nn].columns
-        #print("col",COL)
+        
         for cc,C in enumerate(COL):
             
             D = d[C]
-            #print("DD",D)
+            
             
             if C == 'SNR Chang' or C == 'tSNR Chang':
                 
@@ -381,7 +390,7 @@ def QCtable(Path,dti_path,fmri_path,t2w_path):
                 Index = D<ll
                 
                 P = d[COL[1]][Index]
-                print("P",P)
+                
                 M = D.mean()
                 Me = D.median()
                 Mi = D.min()
@@ -442,27 +451,35 @@ def QCtable(Path,dti_path,fmri_path,t2w_path):
 
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline
      
-def CheckingrawFeatures(Path,dti_path,fmri_path,t2w_path):   
+def CheckingrawFeatures(Path):   
+    #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
+    Abook = []
+    Names =[]
+    for file in glob.glob(Path+ '*addreses*.csv') :
+        
+        if "DTI" in file:
+            dti_path= file
+            dti_addreses= pd.read_csv(dti_path)
+            Abook.append(dti_addreses)
+            Names.append("DTI")
+        elif "fMRI" in file :
+            fmri_path= file
+            fmri_addreses= pd.read_csv(fmri_path)
+            Abook.append(fmri_addreses)
+            Names.append("rsfMRI")
+        elif "T2w" in file :    
+             t2w_path= file
+             t2w_addreses= pd.read_csv(t2w_path)
+             Abook.append(t2w_addreses)
+             Names.append("T2w")
       
     
-  
-    Names = []
     ErorrList = []
-    dti_addreses= pd.read_csv(dti_path)
-    fmri_addreses= pd.read_csv(r"C:\BME\aida\raw_data\P7\raw_data_addreses_fMRI.csv", na_filter= False)
-    t2w_path_addreses= pd.read_csv(t2w_path)
+ 
     
-    Names =["DTI","rsfMRI","T2w"]
     saving_path = os.path.dirname(Path) 
-    Abook = []
-    
-    Abook.append(dti_addreses)
-    Abook.append(fmri_addreses)
-    Abook.append(t2w_path_addreses)
-    
     
 
-    
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
@@ -478,8 +495,9 @@ def CheckingrawFeatures(Path,dti_path,fmri_path,t2w_path):
                 print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
             
             print(N+' processing... \n')
+            
             text_files = Abook[ii]
-            text_files =text_files.squeeze()
+            
             snrCh_vec =[]
             SpatRes_vec = []
             MI_vec_all = []
@@ -488,16 +506,21 @@ def CheckingrawFeatures(Path,dti_path,fmri_path,t2w_path):
             text_files_new = []
             kk = 0
             i=1
-            
+           
             with ap.alive_bar(len(text_files),spinner='wait') as bar:
                 for tf in text_files:
                     
+                    tf = str(tf)
+                    tf=tf.translate({ord(']'): None})
+                    tf=tf.translate({ord('['): None})
+                    tf=tf.translate({ord("'"): None})
+                   
                     tf = os.path.normpath(tf)
                    
                     path_split = tf.split(os.sep)
                     
                     procno = str(1)
-                    expno = path_split[-1]
+                    expno =path_split[-1]
                     
                     study = path_split[-2]
                     raw_folder = '/'.join(path_split[:-2])
@@ -583,7 +606,7 @@ def CheckingrawFeatures(Path,dti_path,fmri_path,t2w_path):
             if N=="T2w":
 
             
-                print("df",df) 
+                 
                 t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
                 df.to_csv( t2w_result)
 
@@ -604,51 +627,56 @@ def CheckingrawFeatures(Path,dti_path,fmri_path,t2w_path):
                 df.to_csv(ErorrList_result)
         
     
-    print('\n\nExcel file was created:' + str(Path))
+    print('\n\noutput files was created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
     print('Plotting quality features...\n'.upper())
     
     #QCPlot(saving_path2)
-    QCtable(Path,dti_result,fmri_result,t2w_result)
+    QCtable(Path)
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
 
 
 
 
 #exact above function but this time for nifti format
-def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):   
+def CheckingNiftiFeatures(Path):   
     
-    # dti_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\Sham\nifti_data_addreses_DTI.csv"
-    # fmri_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\Sham\nifti_data_addreses_fMRI.csv"
-    # t2w_path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\Sham\nifti_data_addreses_T2w.csv"
-    Names = []
-    ErorrList = []
-    dti_addreses= pd.read_csv(dti_path)
-    fmri_addreses= pd.read_csv(fmri_path)
-    t2w_path_addreses= pd.read_csv(t2w_path)
     
-    Names =["DTI","rsfMRI","T2w"]
-    saving_path = os.path.dirname(Path) 
     Abook = []
+    Names =[]
+    for file in glob.glob(Path+ '*addreses*.csv') :
+       
+        if "DTI" in file:
+            dti_path= file
+            dti_addreses= pd.read_csv(dti_path)
+            Abook.append(dti_addreses)
+            Names.append("DTI")
+        elif "fMRI" in file :
+            fmri_path= file
+            fmri_addreses= pd.read_csv(fmri_path)
+            Abook.append(fmri_addreses)
+            Names.append("rsfMRI")
+        elif "T2w" in file :    
+             t2w_path= file
+             t2w_addreses= pd.read_csv(t2w_path)
+             Abook.append(t2w_addreses)
+             Names.append("T2w")
     
+    ErorrList = []
+ 
     
-    Abook.append(dti_addreses)
-    Abook.append(fmri_addreses)
-    Abook.append(t2w_path_addreses)
-    
+    saving_path = os.path.dirname(Path) 
     
 
-    
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
     Abook = np.array(Abook,dtype=object)[C].tolist()
-    # for p in Abook :
-    #     print(p)
+    
+   
 
-    # #print("A",Abook[0],"\n",Abook[1],"\n",Abook[2])
-    # print("A",type(Abook[0]))
+
     #% Calculate all the SNR for all the data that was found 
     # in the last step and saving it into a vector
     # Load Bruker data from each address 
@@ -663,7 +691,9 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
             
             print(N+' processing... \n')
             text_files = Abook[ii]
-            text_files =text_files.squeeze()
+            text_files= text_files.values.tolist()
+            
+            
             snrCh_vec =[]
             SpatRes_vec = []
             MI_vec_all = []
@@ -672,9 +702,17 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
             text_files_new = []
             kk = 0
             i=1
-            print("t",text_files)
+            
+            
             with ap.alive_bar(len(text_files),spinner='wait') as bar:
+
                 for tf in text_files:
+
+                    tf = str(tf)
+                    tf=tf.translate({ord(']'): None})
+                    tf=tf.translate({ord('['): None})
+                    tf=tf.translate({ord("'"): None})
+
                     if "DTI" in tf :
                         N= "DTI"
                     if  "T2w" in tf:
@@ -682,7 +720,7 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
                     if  "fMRI" in tf:
                         N="fMRI"
                     tf = os.path.normpath(tf)
-                    print("tf",tf)
+                    
                     path_split = tf.split(os.sep)
                     
                     procno = str(1)
@@ -696,11 +734,10 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
                     CP_v = tf + '/pdata/1/visu_pars' # Check Parameter: Visu_pars
                     CP_a = tf + '/acqp' # Check Parameter: acqp
                     
-
-                   
+                  
 
                     input_file= nib.load(tf)
-                    #print("input",input_file)
+                   
                     # Resoultution
                     SpatRes = ResCalculator(input_file)
                     
@@ -747,7 +784,7 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
                      
             # Saving parsed files to excel sheets
             AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]
-            
+          
             
             # using the savetxt 
             # from the numpy module
@@ -769,7 +806,7 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
             if N=="T2w":
 
             
-                print("df",df) 
+                
                 t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
                 df.to_csv( t2w_result)
 
@@ -793,7 +830,7 @@ def CheckingNiftiFeatures(Path,dti_path,fmri_path,t2w_path):
     
     print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
     print('Plotting quality features...\n'.upper())
-    QCtable(Path,dti_result,fmri_result,t2w_result)
+    QCtable(Path)
     #QCPlot(dti_result,fmri_result,t2w_result)
     
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
