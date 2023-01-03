@@ -19,7 +19,6 @@ import numpy as np
 import QC
 import time
 from openpyxl import Workbook
-import test2
 #%% Command line interface
 if __name__ == "__main__":
         
