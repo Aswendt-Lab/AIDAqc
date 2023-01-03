@@ -231,7 +231,6 @@ def getrange(numbers):
 
 def QCPlot(Path):
     Names = []
-    #Path = "/Users/kalantaria/Desktop/Res/QuiC_Data_Result2.xlsx" 
     xls = pd.ExcelFile(Path,engine= 'openpyxl')
     Names = xls.sheet_names
     saving_path = os.path.dirname(Path) 
