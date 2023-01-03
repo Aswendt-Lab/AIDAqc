@@ -188,35 +188,26 @@ if __name__ == "__main__":
                  addreses.to_csv(csv_path, sep=',',index=False)
 
 
-        print('\n\ncsv files were created:' + str(saving_path))
-        print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
-       
+    print('\n\ncsv files were created:' + str(saving_path))
+    print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
+    print('\nStarting Stage two ...'.upper())
+    print('\nEnterd Sequences are: ')
+    print(sequence_types)
+    print('\nCalculating features...\n'.upper())
+    print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
+    if format_type=="raw":
+        QC.CheckingrawFeatures(saving_path)
+        QC.toc()
+    elif format_type=="nifti":
+        QC.CheckingNiftiFeatures(saving_path)
+        QC.toc()
 
-     
-    if forward == True:
-        print("***")
-    else:
-        print('\nStarting Stage two ...'.upper())
-        print('\nEnterd Sequences are: ')
-        print(sequence_types)
-        print('\nCalculating features...\n'.upper())
-        print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
-        if format_type=="raw":
-            QC.CheckingrawFeatures(saving_path)
-            QC.toc()
-        elif format_type=="nifti":
-            QC.CheckingNiftiFeatures(saving_path)
-            QC.toc()
-
-            
-
-
-        print('------------------------------------------------------------')
-        print('Thank you for using our Code. For questions please contact us over:')
-        print('aref.kalantari-sarcheshmeh@uk-koeln.de or markus.aswendt@uk-koeln.de')
-        print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
-        print('Web:https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
-        print('------------------------------------------------------------')
+    print('------------------------------------------------------------')
+    print('Thank you for using our Code. For questions please contact us over:')
+    print('aref.kalantari-sarcheshmeh@uk-koeln.de or markus.aswendt@uk-koeln.de')
+    print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
+    print('Web:https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
+    print('------------------------------------------------------------')
 
 
 
