@@ -100,13 +100,11 @@ if __name__ == "__main__":
                 
                     for i,t in enumerate(Types):
                     
-                        typ = re.search(t,MN)
-                        if typ != None:
-                            Ans = i
-                
-                    if Ans != []:
-                        ABook[Types[Ans]].append(os.path.dirname(p))
-                        C = C+1
+                        typ = re.search(t,MN,flags=re.IGNORECASE)
+                        typ_add = re.search(t,p,flags=re.IGNORECASE)
+                        if typ != None or typ_add != None:
+                            ABook[Types[i]].append(os.path.dirname(p))
+                            C = C+1
                     
                 CheckDates.append(DateTemp)
                 bar()
