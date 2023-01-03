@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parser of all MR files: Description:\
           This code will parse through every possible folder after a defined initial path,\
      looking for MR data files of any type. Then it will extract the wanted files \
-     and eliminate the duplicates.')
+     and eliminate any duplicates.')
     parser.add_argument('initial_path', help='initial path to start the parsing (ending with "/" )')
     parser.add_argument('saving_path', help='Set the path where the results should be saved (ending with "/" )')
     parser.add_argument('-f','--forward',action='store_true',help='Set this parameter if you JUST want to parse the databank without the\
