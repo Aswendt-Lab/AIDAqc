@@ -27,9 +27,9 @@ if __name__ == "__main__":
      looking for MR data files of any type. Then it will extract the wanted files \
      and eliminate any duplicates.')
     parser.add_argument('-i','--initial_path',required=True \
-                        help='initial path to start the parsing (ending with "/" )')
+                        help='initial path to start the parsing')
     parser.add_argument('-o','--output_path',required=True,\
-                        help='Set the path where the results should be saved (ending with "/" )')
+                        help='Set the path where the results should be saved')
     parser.add_argument('-f','--format_type',\
                         help="you need to tell what kind of format your images are :\
                             nifti or raw",type=str,required=True,choices=["nifti","raw"])  
@@ -40,11 +40,8 @@ if __name__ == "__main__":
     parser.add_argument('-s','--suffix',\
                         help="If necessery you can specify what kind of sufix the data to look for should have :\
                             for example: -s test , this means it will only look for data that have this\
-                                suffix befor the .nii.gz, meaing test.nii.gz",type=str,required=False, Default=None)  
+                                suffix befor the .nii.gz, meaing test.nii.gz",type=str, required=False, Default=None)  
                                                   
-    
-    
-    
     
     
     args = parser.parse_args()
@@ -53,23 +50,8 @@ if __name__ == "__main__":
     format_type= args.format_type
     sequence_types = args.sequence_types
     suffix = args.suffix
-    #%% User Input: Main Path/folder where the program schould start to parse 
-    #path = "/Volumes/AG_Aswendt_Projects/"
+    #%% Information for the user 
     
-    Types = ['Dti*','EPI','RARE']
-    Types_new = ['DTI','rsfMRI','T2w']
-    
-    # if exclude == 'DTI':
-    #     Types.remove('Dti*')
-    #     Types_new.remove('DTI')
-        
-    # if exclude == 'fMRI':
-    #     Types.remove('EPI')
-    #     Types_new.remove('rsfMRI')
-        
-    # if exclude == 'T2w':
-    #     Types.remove('RARE')
-    #     Types_new.remove('T2w')
     QC.tic()
     print("Hello!")
     print('------------------------------------------------------------')
@@ -80,8 +62,12 @@ if __name__ == "__main__":
     print('------------------------------------------------------------')
 
     #%% Parsing
+    
+    Types = ['Dti*','EPI','RARE']
+    Types_new = ['DTI','rsfMRI','T2w']
+  
     if format_type== "raw":
-        PathALL = initial_path + "**/method"
+        PathALL = os.path.join(initial_path,"**","method")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
@@ -103,12 +89,8 @@ if __name__ == "__main__":
                 try:
                 
                     NameTemp = par.read_param_file(p)
-                    MN = NameTemp[1]["Method"]
-                    DateTemp = NameTemp[0]['Date']
-                
-                #  NameTemp = par.read_param_file(p+'/acqp')
-                #  MN2 = NameTemp[1]["ACQ_scan_name"]
-                
+                    MN = NameTemp[1]["Method"]  #Here we check what the name of the sequence is
+                    DateTemp = NameTemp[0]['Date'] #Here we check the date of the measurement
                     Ans = []
                 except SystemExit:
                     ErrorList.append(p)
@@ -132,14 +114,9 @@ if __name__ == "__main__":
         
         print(' '+str(C)+' files were extracted! %%%'.upper())
         print((' ' + str(len(CheckDates)-len(M))+ ' Duplicates were Eliminated! %%%').upper())
-        print("a",ABook)
         #%% Saving parsed files 
        
         #saving in csv file
-
-
-
-
 
 
         dti_addreses= pd.DataFrame(ABook["Dti*"])
@@ -157,13 +134,6 @@ if __name__ == "__main__":
 
         print('\n\ncsv files were created:' + str(saving_path))
         print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
-
-
-
-
-
-
-
 
 
         # to make exel file as an output you can uncomment below lines
@@ -195,7 +165,7 @@ if __name__ == "__main__":
 
     if format_type=="nifti":
 
-        PathALL = initial_path + os.path.join("**","*1.nii.gz")
+        PathALL = os.path.join(initial_path,"**","*1.nii.gz")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
