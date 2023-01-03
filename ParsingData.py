@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('-s','--suffix',\
                         help="If necessery you can specify what kind of sufix the data to look for should have :\
                             for example: -s test , this means it will only look for data that have this\
-                                suffix befor the .nii.gz, meaing test.nii.gz",type=str, required=False, Default=None)  
+                                suffix befor the .nii.gz, meaing test.nii.gz",type=str, required=False, Default="")  
                                                   
     
     
@@ -117,24 +117,18 @@ if __name__ == "__main__":
         #%% Saving parsed files 
        
         #saving in csv file
+        for n,type in enumerate(Types):
+             if len(ABook[type]) !=0:
+                 addreses= pd.DataFrame(ABook[type])
+                 csv_path= "raw_data_addreses_"+Types_new[n]+".csv"
+                 csv_path= os.path.join(saving_path,csv_path)
+                 addreses.to_csv(csv_path, sep=',',index=False)
 
 
-        dti_addreses= pd.DataFrame(ABook["Dti*"])
-        dti_path= os.path.join(saving_path,"raw_data_addreses_DTI.csv")
-        dti_addreses.to_csv(dti_path, sep=',',index=False)
-
-        t2w_addreses= pd.DataFrame(ABook["RARE"])
-        t2w_path= os.path.join(saving_path,"raw_data_addreses_T2w.csv")
-        t2w_addreses.to_csv(t2w_path, sep=',',index=False)
-
-        rsfmri_addreses= pd.DataFrame(ABook["EPI"])
-        rsfmri_path= os.path.join(saving_path,"raw_data_addreses_fMRI.csv")
-        rsfmri_addreses.to_csv(rsfmri_path, sep=',',index=False)
 
 
         print('\n\ncsv files were created:' + str(saving_path))
         print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
-
 
         # to make exel file as an output you can uncomment below lines
         # for i,T in enumerate(Types):
@@ -165,7 +159,7 @@ if __name__ == "__main__":
 
     if format_type=="nifti":
 
-        PathALL = os.path.join(initial_path,"**","*1.nii.gz")
+        PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii.gz")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
@@ -182,71 +176,38 @@ if __name__ == "__main__":
 
             if "DTI"in i :
                 ABook["DTI"].append(i)
-            elif "rsfMRI"  in i :
-                ABook["rsfMRI"].append(i)
             elif "fMRI" in i :
                 ABook["rsfMRI"].append(i)
             elif "T2w"in i :
                 ABook["T2w"].append(i)
 
         #saving in csv file
-        dti_addreses= pd.DataFrame(ABook["DTI"])
-        dti_path= os.path.join(saving_path,"nifti_data_addreses_DTI.csv")
-        dti_addreses.to_csv(dti_path, sep=',',index=False)
-
-        t2w_addreses= pd.DataFrame(ABook["T2w"])
-        t2w_path= os.path.join(saving_path,"nifti_data_addreses_T2w.csv")
-        t2w_addreses.to_csv(t2w_path, sep=',',index=False)
-
-        rsfmri_addreses= pd.DataFrame(ABook["rsfMRI"])
-        rsfmri_path= os.path.join(saving_path,"nifti_data_addreses_fMRI.csv")
-        rsfmri_addreses.to_csv(rsfmri_path, sep=',',index=False)
+        for n,type in enumerate(Types_new):
+             if len(ABook[type]) !=0:
+                 addreses= pd.DataFrame(ABook[type])
+                 csv_path= "raw_data_addreses_"+type+".csv"
+                 csv_path= os.path.join(saving_path,csv_path)
+                 addreses.to_csv(csv_path, sep=',',index=False)
 
 
         print('\n\ncsv files were created:' + str(saving_path))
         print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
        
-       
-        
-        # to make exel file as an output you can uncomment below lines
 
-
-        # for i,T in enumerate(Types_new):
-        #     globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
-    
-    
-
-    
-        
-        saving_path2 = saving_path + 'QuiC_Data_Result_nifti.xlsx'
-        # writer = pd.ExcelWriter(saving_path2, engine='xlsxwriter')
-    
-       
-    
-        # for i,T in enumerate(Types_new):
-        #     globals()['df'+ str(i)].to_excel(writer,sheet_name=T, index = False)
-    
-    
-        
-    
-        # writer.save()
-        
-        #print('\n\nExcel file was created:' + str(saving_path2))
-
-
-        
+     
     if forward == True:
         print("***")
     else:
         print('\nStarting Stage two ...'.upper())
+        print('\nEnterd Sequences are: ')
+        print(sequence_types)
         print('\nCalculating features...\n'.upper())
         print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
         if format_type=="raw":
-
-            QC.CheckingrawFeatures(saving_path,dti_addreses,rsfmri_addreses,t2w_addreses)
+            QC.CheckingrawFeatures(saving_path)
             QC.toc()
         elif format_type=="nifti":
-            QC.CheckingNiftiFeatures(saving_path,dti_path,rsfmri_path,t2w_path)
+            QC.CheckingNiftiFeatures(saving_path)
             QC.toc()
 
             
@@ -258,9 +219,6 @@ if __name__ == "__main__":
         print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
         print('Web:https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
         print('------------------------------------------------------------')
-
-
-
 
 
 
