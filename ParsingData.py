@@ -26,24 +26,33 @@ if __name__ == "__main__":
           This code will parse through every possible folder after a defined initial path,\
      looking for MR data files of any type. Then it will extract the wanted files \
      and eliminate any duplicates.')
-    parser.add_argument('initial_path', help='initial path to start the parsing (ending with "/" )')
-    parser.add_argument('saving_path', help='Set the path where the results should be saved (ending with "/" )')
-    parser.add_argument('-f','--forward',action='store_true',help='Set this parameter if you JUST want to parse the databank without the\
-                         the quality measurement (Just creates an excel table with all existing MR files addresses relating to DTI, T2w and fMRI sequences)')                                       
-    parser.add_argument('-e','--exclude',type=str, choices=['T2w', 'fMRI', 'DTI'],help='Set this parameter if you want to \
-                         exclude a specific type of sequence between the three types of T2w, fMRI and DTI. Example use \
-                             in terminal: python ParsingAllrawData.py <inital_path>/ <saving_path>/ -e fMRI \
-                                 python ParsingAllrawData.py C:\BME\aida\raw_data\ C:\BME\aida\raw_data\  raw')
-
-    parser.add_argument("format_type",help="you need to tell what kind of format your images are : nifti or raw",type=str,choices=["nifti","raw"])  
-                      
+    parser.add_argument('-i','--initial_path',required=True \
+                        help='initial path to start the parsing (ending with "/" )')
+    parser.add_argument('-o','--output_path',required=True,\
+                        help='Set the path where the results should be saved (ending with "/" )')
+    parser.add_argument('-f','--format_type',\
+                        help="you need to tell what kind of format your images are :\
+                            nifti or raw",type=str,required=True,choices=["nifti","raw"])  
+    parser.add_argument('-t','--sequence_types',\
+                        help="you need to tell what kind of Sequences should be used in \
+                             for processing the dataset:\
+                            T2w, DTI, fmri",type=str,required=False,choices=["T2w","DTI","fMRI"],default=["T2w","DTI","fMRI"])  
+    parser.add_argument('-s','--suffix',\
+                        help="If necessery you can specify what kind of sufix the data to look for should have :\
+                            for example: -s test , this means it will only look for data that have this\
+                                suffix befor the .nii.gz, meaing test.nii.gz",type=str,required=False, Default=None)  
+                                                  
+    
+    
+    
+    
+    
     args = parser.parse_args()
     initial_path = args.initial_path
-    saving_path = args.saving_path
-    forward = args.forward
-    exclude = args.exclude
+    saving_path = args.output_path
     format_type= args.format_type
-    
+    sequence_types = args.sequence_types
+    suffix = args.suffix
     #%% User Input: Main Path/folder where the program schould start to parse 
     #path = "/Volumes/AG_Aswendt_Projects/"
     
