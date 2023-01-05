@@ -28,7 +28,7 @@ import numpy as np
 import openpyxl
 import nibabel as nib
 import glob
-import pv_reader as pr
+import pv_conv2Nifti as pr
 import openpyxl
 import nibabel as nii
 import os
@@ -454,7 +454,7 @@ def CheckingrawFeatures(Path):
     #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
     Abook = []
     Names =[]
-    for file in glob.glob(Path+ '*addreses*.csv') :
+    for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
         
         if "DTI" in file:
             dti_path= file
@@ -476,13 +476,13 @@ def CheckingrawFeatures(Path):
     ErorrList = []
  
     
-    saving_path = os.path.dirname(Path) 
+    saving_path = Path
     
 
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
-    Abook = np.array(Abook,dtype=object)[C].tolist()
+    Abook2 = [a.values.tolist() for a in Abook]
     #% Calculate all the SNR for all the data that was found 
     # in the last step and saving it into a vector
     # Load Bruker data from each address 
@@ -490,12 +490,12 @@ def CheckingrawFeatures(Path):
     kk =0
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
-            if kk > 0:
-                print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
             
             print(N+' processing... \n')
             
-            text_files = Abook[ii]
+            text_files0 = Abook2[ii]
+            text_files = [i[0] for i in text_files0]
+            
             
             snrCh_vec =[]
             SpatRes_vec = []
@@ -510,10 +510,6 @@ def CheckingrawFeatures(Path):
                 for tf in text_files:
                     
                     tf = str(tf)
-                    tf=tf.translate({ord(']'): None})
-                    tf=tf.translate({ord('['): None})
-                    tf=tf.translate({ord("'"): None})
-                   
                     tf = os.path.normpath(tf)
                    
                     path_split = tf.split(os.sep)
@@ -522,20 +518,19 @@ def CheckingrawFeatures(Path):
                     expno =path_split[-1]
                     
                     study = path_split[-2]
-                    raw_folder = '/'.join(path_split[:-2])
-                    proc_folder = raw_folder+ '/proc_data' #Here still adjustment is needed
-                    pv = pr.ParaVision(proc_folder, raw_folder, study, expno, procno)
-                    
-                    CP_v = tf + '/pdata/1/visu_pars' # Check Parameter: Visu_pars
-                    CP_a = tf + '/acqp' # Check Parameter: acqp
+                    raw_folder = os.sep.join(path_split[:-2])
+                    proc_folder = os.path.join(raw_folder,'proc_data') #Here still adjustment is needed
+                    pv = pr.Bruker2Nifti(study, expno, procno, raw_folder, proc_folder, ftype='NIFTI_GZ')
+                    CP_v = os.path.join(tf ,'pdata','1','visu_pars') # Check Parameter: Visu_pars
+                    CP_a = os.path.join(tf , 'acqp') # Check Parameter: acqp
                     
                     if os.path.isfile(CP_v) and os.path.isfile(CP_a):
                         try:
-                            pv.read_2dseq( map_raw=False, map_pv6=False, roll_fg=False, squeeze=False, compact=False, swap_vd=False, scale=1.0)
+                            pv.read_2dseq(map_raw=False, pv6=False)
                         except SystemExit:
                             ErorrList.append(tf)
                             continue
-                        input_file = nii.squeeze_image(pv.nifti_image)
+                        input_file = nii.squeeze_image(pv.nim)
                         
                     else:
                         ErorrList.append(tf)
@@ -644,7 +639,7 @@ def CheckingNiftiFeatures(Path):
     
     Abook = []
     Names =[]
-    for file in glob.glob(Path+ '*addreses*.csv') :
+    for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
        
         if "DTI" in file:
             dti_path= file
@@ -671,9 +666,7 @@ def CheckingNiftiFeatures(Path):
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
-    Abook = np.array(Abook,dtype=object)[C].tolist()
-    
-   
+    Abook2 = [a.values.tolist() for a in Abook]
 
 
     #% Calculate all the SNR for all the data that was found 
@@ -689,8 +682,9 @@ def CheckingNiftiFeatures(Path):
                 print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
             
             print(N+' processing... \n')
-            text_files = Abook[ii]
-            text_files= text_files.values.tolist()
+            
+            text_files0 = Abook2[ii]
+            text_files = [i[0] for i in text_files0]
             
             
             snrCh_vec =[]
@@ -708,10 +702,7 @@ def CheckingNiftiFeatures(Path):
                 for tf in text_files:
 
                     tf = str(tf)
-                    tf=tf.translate({ord(']'): None})
-                    tf=tf.translate({ord('['): None})
-                    tf=tf.translate({ord("'"): None})
-
+                   
                     if "DTI" in tf :
                         N= "DTI"
                     if  "T2w" in tf:
@@ -720,20 +711,7 @@ def CheckingNiftiFeatures(Path):
                         N="fMRI"
                     tf = os.path.normpath(tf)
                     
-                    path_split = tf.split(os.sep)
                     
-                    procno = str(1)
-                    #expno = path_split[-1]
-                    
-                    #study = path_split[-2]
-                    raw_folder = '/'.join(path_split[:-2])
-                    proc_folder = raw_folder+ '/proc_data' #Here still adjustment is needed
-                    #pv = pr.ParaVision(proc_folder, raw_folder, study, expno, procno)
-                    
-                    CP_v = tf + '/pdata/1/visu_pars' # Check Parameter: Visu_pars
-                    CP_a = tf + '/acqp' # Check Parameter: acqp
-                    
-                  
 
                     input_file= nib.load(tf)
                    
