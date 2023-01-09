@@ -26,7 +26,7 @@ if __name__ == "__main__":
           This code will parse through every possible folder after a defined initial path,\
      looking for MR data files of any type. Then it will extract the wanted files \
      and eliminate any duplicates.')
-    parser.add_argument('-i','--initial_path',required=True \
+    parser.add_argument('-i','--initial_path',required=True, \
                         help='initial path to start the parsing')
     parser.add_argument('-o','--output_path',required=True,\
                         help='Set the path where the results should be saved')
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('-s','--suffix',\
                         help="If necessery you can specify what kind of sufix the data to look for should have :\
                             for example: -s test , this means it will only look for data that have this\
-                                suffix befor the .nii.gz, meaing test.nii.gz",type=str, required=False, Default="")  
+                                suffix befor the .nii.gz, meaning test.nii.gz",type=str, required=False, default="")  
                                                   
     
     
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
     if format_type=="nifti":
 
-        PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii.gz")
+        PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
@@ -176,7 +176,7 @@ if __name__ == "__main__":
                 ABook["DTI"].append(i)
             elif "fMRI" in i :
                 ABook["rsfMRI"].append(i)
-            elif "T2w"in i :
+            elif "T2"in i or "T1" in i:
                 ABook["T2w"].append(i)
 
         #saving in csv file
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     print('\n\ncsv files were created:' + str(saving_path))
     print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
     print('\nStarting Stage two ...'.upper())
-    print('\nEnterd Sequences are: ')
+    print('\nChosen Sequences are: ')
     print(sequence_types)
     print('\nCalculating features...\n'.upper())
     print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')

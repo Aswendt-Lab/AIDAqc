@@ -188,14 +188,14 @@ def getNiftiHeader(params, sc=10):
     dX = sc * float(extent[0]) / nX
     dY = sc * float(extent[1]) / nY
     VisuCoreSlicePacksSliceDist = params.get('VisuCoreSlicePacksSliceDist')
-    print("VisuCoreSlicePacksSliceDist",VisuCoreSlicePacksSliceDist)
-    print("VisuCoreFrameThickness", params['VisuCoreFrameThickness'])
+    #print("VisuCoreSlicePacksSliceDist",VisuCoreSlicePacksSliceDist)
+    #print("VisuCoreFrameThickness", params['VisuCoreFrameThickness'])
     if VisuCoreSlicePacksSliceDist is None:
         dZ = sc * float(params['VisuCoreFrameThickness'])
     else:
         # Slice thickness inclusive gap (PV6)
         VisuCoreSlicePacksSliceDist=VisuCoreSlicePacksSliceDist.split()[0]
-        print("VisuCoreSlicePacksSliceDist",VisuCoreSlicePacksSliceDist)
+        #print("VisuCoreSlicePacksSliceDist",VisuCoreSlicePacksSliceDist)
         dZ = sc * float(VisuCoreSlicePacksSliceDist)
 
     if 'VisuAcqRepetitionTime' in params:

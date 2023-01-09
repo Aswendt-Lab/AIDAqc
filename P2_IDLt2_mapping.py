@@ -16,7 +16,7 @@ import numpy as np
 import progressbar
 
 
-from ReferenceMethods import brummerSNR, changSNR, sijbersSNR
+#from ReferenceMethods import brummerSNR, changSNR, sijbersSNR
 
 plt.interactive(False)
 

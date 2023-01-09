@@ -31,7 +31,6 @@ import glob
 import pv_conv2Nifti as pr
 import openpyxl
 import nibabel as nii
-import os
 import alive_progress as ap
 import time
 #%% Res function
@@ -60,7 +59,8 @@ def snrCalclualtor(input_file):
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.ndarray.astype(IM, 'float64')
     #print('/NewData/',end=" ")
-    for slc in range(ns_lower,ns_upper):
+    #for slc in range(ns_lower,ns_upper):
+    for slc in range(ns):    
         #   Print % of progress
         #print('S' + str(slc + 1), end=",")
 
@@ -69,7 +69,7 @@ def snrCalclualtor(input_file):
             slice = imgData[:, :, slc]
            
         if nd == 4:
-            slice = imgData[:, :, slc,1]
+            slice = imgData[:, :, slc,10]
             
         curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(slice, 0, 1)
         noiseChSNR[slc] = estStdChang
@@ -93,7 +93,8 @@ def snrCalclualtor_nifti(input_file):
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.ndarray.astype(IM, 'float64')
     #print('/NewData/',end=" ")
-    for slc in range(ns_lower,ns_upper):
+    #for slc in range(ns_lower,ns_upper):
+    for slc in range(ns):    
         #   Print % of progress
         #print('S' + str(slc + 1), end=",")
 
@@ -527,9 +528,15 @@ def CheckingrawFeatures(Path):
                     if os.path.isfile(CP_v) and os.path.isfile(CP_a):
                         try:
                             pv.read_2dseq(map_raw=False, pv6=False)
-                        except SystemExit:
+                        except ValueError:
                             ErorrList.append(tf)
+                            print("Value Error: catched")
                             continue
+                        except SystemError:
+                            ErorrList.append(tf)
+                            print("System Error: catched")
+                            continue
+                        
                         input_file = nii.squeeze_image(pv.nim)
                         
                     else:
@@ -576,14 +583,14 @@ def CheckingrawFeatures(Path):
                     bar()
                     
             # Saving parsed files to excel sheets
-            AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]
-            
+            AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]        
             
             # using the savetxt 
             # from the numpy module
             
             df = pd.DataFrame()
             df['FileAddress'] = AR[0]
+
             df['SpatRx'] = AR[1][:,0]
             
             df['SpatRy'] = AR[1][:,1]
