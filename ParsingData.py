@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     #%% Parsing
     
-    Types = ['Dti*','EPI','RARE']
+    Types = ['Dti','EPI','RARE']
     Types_new = ['DTI','rsfMRI','T2w']
   
     if format_type== "raw":
@@ -100,9 +100,8 @@ if __name__ == "__main__":
                 
                     for i,t in enumerate(Types):
                     
-                        typ = re.search(t,MN,flags=re.IGNORECASE)
-                        typ_add = re.search(t,p,flags=re.IGNORECASE)
-                        if typ != None or typ_add != None:
+                       # if t in MN or t in p:
+                         if t.upper() in MN.upper():
                             ABook[Types[i]].append(os.path.dirname(p))
                             C = C+1
                     
@@ -172,11 +171,11 @@ if __name__ == "__main__":
             globals()['df'+ str(i)] = pd.DataFrame(ABook[T])        
         for i in text_files :
 
-            if "DTI"in i :
+            if "DTI" in i.upper():
                 ABook["DTI"].append(i)
-            elif "fMRI" in i :
+            elif "FMRI" in i.upper() :
                 ABook["rsfMRI"].append(i)
-            elif "T2"in i or "T1" in i:
+            elif "T2" in i.upper() or "T1" in i.upper():
                 ABook["T2w"].append(i)
 
         #saving in csv file

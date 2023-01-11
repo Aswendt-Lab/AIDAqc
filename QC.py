@@ -60,7 +60,7 @@ def snrCalclualtor(input_file):
     imgData = np.ndarray.astype(IM, 'float64')
     #print('/NewData/',end=" ")
     #for slc in range(ns_lower,ns_upper):
-    for slc in range(ns):    
+    for slc in range(ns_lower,ns_upper):    
         #   Print % of progress
         #print('S' + str(slc + 1), end=",")
 
@@ -93,8 +93,7 @@ def snrCalclualtor_nifti(input_file):
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.ndarray.astype(IM, 'float64')
     #print('/NewData/',end=" ")
-    #for slc in range(ns_lower,ns_upper):
-    for slc in range(ns):    
+    for slc in range(ns_lower,ns_upper):
         #   Print % of progress
         #print('S' + str(slc + 1), end=",")
 
@@ -624,7 +623,7 @@ def CheckingrawFeatures(Path):
                 df = pd.DataFrame()
                 
                 df['ErorrList'] = ErorrList
-                ErorrList_result= os.path.join(Path,"eror_list.csv")
+                ErorrList_result= os.path.join(Path,"Faulty_Datasets.csv")
                 df.to_csv(ErorrList_result)
         
     
