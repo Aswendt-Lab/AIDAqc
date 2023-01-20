@@ -12,6 +12,12 @@ Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
 """
 
 #%% Loading nececcery libraries
+from sklearn.covariance import EllipticEnvelope
+import seaborn as sns    
+from sklearn.ensemble import IsolationForest
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import LocalOutlierFactor 
 from sklearn.svm import OneClassSVM
 import numpy as np
 from matplotlib.pyplot import imshow
@@ -618,117 +624,24 @@ def QCtable(Path):
     df.to_csv( final_result)    
     
 
+def ML(Path) :
     
-### one_class svm:
-    
-    
-    
-def svm(Path) :
-    import seaborn as sns   
-        
-    Path= r"C:\Users\Erfan\Downloads\caculated_features_T2w.csv"
-    Abook= pd.read_csv(Path)
-    data= Abook["SNR Chang"]
-    
-    X= [ [i] for i in  Abook["SNR Chang"]]
-    
-    sns.set_theme()
-    sns.displot(data=data).set(title="Distribution of Scores", xlabel="Scores")
-    
-    plt.scatter( data, [0] * data.shape[0])
-    
-    
-    # Fit the One-Class SVM 36
-    
-
-
-    nu = 0.05
-    gamma = 2.0
-    
-        
-
-    
-    
-    
-   
-    clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
-
-    pre =clf.predict(X)
-  
-    pre1= np.sum(pre==1)    
-        
-    pre2= np.sum(pre==-1)  
-
-############################################19
-    from sklearn.covariance import EllipticEnvelope
-    elpenv = EllipticEnvelope(contamination=0.025, 
-                              random_state=1)
-    pred = elpenv.fit_predict(X)
-
-    pre1= np.sum(pred==1)    
-        
-    pre2= np.sum(pred==-1)
-
-
-############################################37
-
-from sklearn.ensemble import IsolationForest
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-
-
-
-
-iforest = IsolationForest(n_estimators=100, max_samples='auto', 
-                          contamination=0.05, max_features=1.0, 
-                          bootstrap=False, n_jobs=-1, random_state=1)
-
-# Returns 1 of inliers, -1 for outliers 
-pred = iforest.fit_predict(X)
-
-
-pre1= np.sum(pred==1)    
-    
-pre2= np.sum(pred==-1)
-
-
-
-############################################30
-
-
-
-from sklearn.neighbors import LocalOutlierFactor
-
-
-
-
-lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
-                         metric='minkowski', contamination=0.04,
-                         novelty=False, n_jobs=-1)
-
-# Returns 1 of inliers, -1 for outliers
-pred = lof.fit_predict(X)
-
-
-pre1= np.sum(pred==1)    
-    
-pre2= np.sum(pred==-1)
-
-
-
-
+<<<<<<< HEAD
+    #prepare data
     Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"
  
     #"caculated_features_fMRI.csv"
-    csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv"]
+    csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
     result=[]
     for N, csv in enumerate (csv_path):
         
        csv_path=os.path.join(Path,csv)
        Abook= pd.read_csv(csv_path)
+       Abook= Abook.dropna()
        address= [i for i in Abook.iloc[:,1]]
        snr=[ i for i in Abook.iloc[:,5]]
        X= [ [i] for i in  Abook.iloc[:,5]]
+       
 ############# Fit the One-Class SVM 
        nu = 0.05
        gamma = 2.0
@@ -763,7 +676,8 @@ pre2= np.sum(pred==-1)
        result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
        result[N]["SNR_tSNR"]=snr
        result[N]["address"]=address
-
+        
+       return(result)
 
 
 
