@@ -12,9 +12,8 @@ Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
 """
 
 #%% Loading nececcery libraries
-
+from sklearn.svm import OneClassSVM
 import numpy as np
-import changSNR as ch
 from matplotlib.pyplot import imshow
 import os
 import pandas as pd
@@ -28,11 +27,11 @@ import numpy as np
 import openpyxl
 import nibabel as nib
 import glob
-import pv_conv2Nifti as pr
 import openpyxl
 import nibabel as nii
-import alive_progress as ap
+import os
 import time
+<<<<<<< HEAD
 from nibabel.testing import data_path
 import matplotlib.pyplot as plt
 from skimage import data
@@ -63,7 +62,111 @@ def toc(tempBool=True):
 def tic():
     # Records a time in TicToc, marks the beginning of a time interval
     toc(False)
+=======
+import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
+from matplotlib import transforms
+import mpl_toolkits.axisartist.floating_axes as floating_axes
+import changSNR as ch
+import pv_reader as pr
+import alive_progress as ap
+>>>>>>> origin/main
 #%% Res function
+
+def Nifti_Image_Selection(Path) :
+    
+   
+    Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\Sham"
+    qc_path= os.path.join(Path,"QC_output")
+    os.mkdir(qc_path)
+ 
+
+    Abook = []
+    
+    for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
+        
+        if "DTI" in file:
+            dti_path= file
+            dti_addreses= pd.read_csv(dti_path)
+            Abook.append(dti_addreses)
+          
+        elif "fMRI" in file :
+            fmri_path= file
+            fmri_addreses= pd.read_csv(fmri_path)
+            Abook.append(fmri_addreses)
+           
+        elif "T2w" in file :    
+             t2w_path= file
+             t2w_addreses= pd.read_csv(t2w_path)
+             Abook.append(t2w_addreses)
+             
+    Abook = [a.values.tolist() for a in Abook]
+         
+   
+    images2={} 
+    for i in range(0,3): 
+
+        for addrese in Abook[i] :
+            
+            if "DTI" in str(addrese):
+                path_split= os.path.split(str(addrese))
+                img_name=path_split[-1]
+                img= nii.load(addrese[0])
+                img_data=img.get_fdata()
+                img_shape=img_data.shape 
+                middle=int(img_shape[2]/2)
+                time_middle=int(img_shape[3]/2)
+                selected_img= img_data[:, :,middle,time_middle]
+                images2[addrese[0]]= selected_img
+                selected_img= np.rot90(selected_img)
+                plt.figure()          
+                plt.axis('off')
+                plt.imshow(selected_img,cmap='gray')
+                svg_path= os.path.join(qc_path,img_name[:-9]+"_DTI.svg")
+                plt.savefig(svg_path) 
+                
+                
+                
+                
+                
+                
+            elif "MRI" in str(addrese):
+                path_split= os.path.split(str(addrese))
+                img_name=path_split[-1]
+                img= nii.load(addrese[0])
+                img_data=img.get_fdata()
+                img_shape=img_data.shape 
+                middle=int(img_shape[2]/2)
+                time_middle=int(img_shape[3]/2)
+                selected_img= img_data[:, :,middle,time_middle]
+                images2[addrese[0]]= selected_img
+                selected_img= np.rot90(selected_img)
+                plt.figure()          
+                plt.axis('off')
+                plt.imshow(selected_img,cmap='gray')
+                svg_path= os.path.join(qc_path,img_name[:-9]+"_fMRI.svg")
+                plt.savefig(svg_path) 
+                
+                
+            elif  "T2w" in str(addrese):
+                path_split= os.path.split(str(addrese))
+                img_name=path_split[-1]
+                img= nii.load(addrese[0])
+                img_data=img.get_fdata()
+                img_shape=img_data.shape 
+                middle=int(img_shape[2]/2)
+                selected_img= img_data[:, :,middle]
+                images2[addrese[0]]= selected_img
+                selected_img= np.rot90(selected_img)
+                plt.figure()          
+                plt.axis('off')
+                plt.imshow(selected_img,cmap='gray')
+                svg_path= os.path.join(qc_path,img_name[:-9]+"_T2w.svg")
+                plt.savefig(svg_path) 
+
+
+
+
 
 def ResCalculator(input_file):
     
@@ -518,6 +621,77 @@ def QCtable(Path):
     
 
     
+### one_class svm:
+    
+    
+    
+def svm(Path) :
+        
+        
+    Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"
+
+
+    Abook = []
+    
+    data_folder=os.path.join(Path, 'unaccountable_data.csv')
+        
+    Abook= pd.read_csv(data_folder)
+    data= Abook["Problematic Quality Feature"]
+   
+    clf = OneClassSVM(gamma='auto').fit(data)
+
+    clf.predict(X)
+  
+        
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
 
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline     
