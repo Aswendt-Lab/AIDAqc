@@ -33,6 +33,36 @@ import openpyxl
 import nibabel as nii
 import alive_progress as ap
 import time
+from nibabel.testing import data_path
+import matplotlib.pyplot as plt
+from skimage import data
+from skimage.filters import try_all_threshold
+from skimage.filters import threshold_isodata
+from scipy import ndimage
+#%% Tic Toc Timer
+
+
+def TicTocGenerator():
+    # Generator that returns time differences
+    ti = 0           # initial time
+    tf = time.time() # final time
+    while True:
+        ti = tf
+        tf = time.time()
+        yield tf-ti # returns the time difference
+
+TicToc = TicTocGenerator() # create an instance of the TicTocGen generator
+
+# This will be the main function through which we define both tic() and toc()
+def toc(tempBool=True):
+    # Prints the time difference yielded by generator instance TicToc
+    tempTimeInterval = next(TicToc)
+    if tempBool:
+        print( "Elapsed time: %f seconds.\n" %tempTimeInterval )
+
+def tic():
+    # Records a time in TicToc, marks the beginning of a time interval
+    toc(False)
 #%% Res function
 
 def ResCalculator(input_file):
@@ -45,19 +75,21 @@ def ResCalculator(input_file):
 
 
 #%% SNR function
-def snrCalclualtor(input_file):
+def snrCalclualtor_chang(input_file):
 
     imgData = input_file
+    IM = np.asanyarray(imgData.dataobj)
+    imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
     
+    
+    snr_chang_slice_vec = []
     ns = imgData.shape[2]  # Number of slices
+    n_dir = imgData.shape[-1]  # Number of directions if dti dataset
     nd = imgData.ndim
     
     ns_lower = int(np.floor(ns/2) - 2)
     ns_upper = int(np.floor(ns/2) + 2)
 
-    noiseChSNR = np.zeros(ns)
-    IM = np.asanyarray(imgData.dataobj)
-    imgData = np.ndarray.astype(IM, 'float64')
     #print('/NewData/',end=" ")
     #for slc in range(ns_lower,ns_upper):
     for slc in range(ns_lower,ns_upper):    
@@ -66,51 +98,118 @@ def snrCalclualtor(input_file):
 
         # Decision if the input data is DTI type or T2w
         if nd == 3:
-            slice = imgData[:, :, slc]
-           
-        if nd == 4:
-            slice = imgData[:, :, slc,10]
-            
-        curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(slice, 0, 1)
-        noiseChSNR[slc] = estStdChang
-
-    snrCh = 20 * np.log10(np.mean(imgData) / np.mean(noiseChSNR))
-
-    return snrCh
-
-#%% SNR function
-def snrCalclualtor_nifti(input_file):
-
-    imgData = input_file
-    
-    ns = imgData.shape[2]  # Number of slices
-    nd = imgData.ndim
-    
-    ns_lower = int(np.floor(ns/2) - 2)
-    ns_upper = int(np.floor(ns/2) + 2)
-
-    noiseChSNR = np.zeros(ns)
-    IM = np.asanyarray(imgData.dataobj)
-    imgData = np.ndarray.astype(IM, 'float64')
-    #print('/NewData/',end=" ")
-    for slc in range(ns_lower,ns_upper):
-        #   Print % of progress
-        #print('S' + str(slc + 1), end=",")
-
-        # Decision if the input data is DTI type or T2w
-        if nd == 3:
-            slice = imgData[:, :, slc]
-           
-        if nd == 4:
-            slice = imgData[:, :, slc]
-            
-        curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(slice, 0, 1)
-        noiseChSNR[slc] = estStdChang
-
-    snrCh = 20 * np.log10(np.mean(imgData) / np.mean(noiseChSNR))
+            Slice = imgData[:, :, slc]
+            curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
+            snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
+            snr_chang_slice_vec.append(snr_chang_slice)
+        else:
+            for bb in range(5,n_dir):
+                Slice = imgData[:, :,slc,bb]
+                curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
+                snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
+                snr_chang_slice_vec.append(snr_chang_slice)
+        
+    snr_chang_slice_vec = np.array(snr_chang_slice_vec)    
+    snrCh = np.mean(snr_chang_slice_vec[~np.isinf(snr_chang_slice_vec)])
 
     return snrCh
 
+#%% SNR function 2
+def snrCalclualtor_normal(input_file):
+    
+    IM = np.asanyarray(input_file.dataobj)
+    imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
+    Data = imgData
+    
+    S = np.shape(np.squeeze(Data))
+    if len(S) == 3:
+        imgData = np.squeeze(Data)
+    if len(S) == 4:
+        imgData = np.squeeze(Data[:,:,:,int((S[2]/2))])
+    
+    S = np.shape(np.squeeze(imgData))
+    
+    #local thresholding
+    imgData_new = np.zeros(S[0:3]);
+    for ii in range(0,S[2]):
+        temp_image = imgData[:,:,ii]
+        global_thresh = threshold_isodata(temp_image)
+        binary_global = temp_image > global_thresh
+        imgData_new[:,:,ii] = binary_global
+        
+    
+    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData_new*imgData))]
+    r = np.floor(0.10*(np.mean(S)))
+    Mask = sphere(S, int(r) , COM)
+    Singal = np.mean(imgData[Mask])
+    
+    
+    x= int(S[0]*0.15)
+    y = int(S[1]*0.15)
+    z = int(S[2]*0.15)
+    
+    MaskN = np.zeros(S[0:3]);
+    MaskN[:x,:y,:z] = 2
+    MaskN[:x,-y:,:z] = 2
+    MaskN[-x:,:y,:z] = 2
+    MaskN[-x:,-y:,:z] = 2
+    MaskN[:x,:y,-z:] = 2
+    MaskN[:x,-y:,-z:] = 2
+    MaskN[-x:,:y,-z:] = 2
+    MaskN[-x:,-y:,-z:] = 2
+    
+    
+    
+    n1 = np.squeeze(imgData[:x,:y,:z])
+    n2 = np.squeeze(imgData[:x,-y:,:z])
+    n3 = np.squeeze(imgData[-x:,:y,:z])
+    n4 = np.squeeze(imgData[-x:,-y:,:z])
+    n5 = np.squeeze(imgData[:x,:y,-z:])
+    n6 = np.squeeze(imgData[:x,-y:,-z:])
+    n7 = np.squeeze(imgData[-x:,:y,-z:])
+    n8 = np.squeeze(imgData[-x:,-y:,-z:])
+    
+    
+    Noise_std = np.std(np.array([n1,n2,n3,n4,n5,n6,n7,n8]))
+    #show_slices([n8[:,:,3],np.squeeze(imgData[:,:,3])])
+    #plt.show()
+    SNR = Singal/Noise_std
+    
+    return SNR
+
+
+
+def show_slices(slices):
+   """ Function to display row of image slices """
+   fig, axes = plt.subplots(1, len(slices))
+   for i, Slice in enumerate(slices):
+       axes[i].imshow(Slice.T, cmap="gray", origin="lower")
+       
+
+def sphere(shape, radius, position):
+    """Generate an n-dimensional spherical mask."""
+    # assume shape and position have the same length and contain ints
+    # the units are pixels / voxels (px for short)
+    # radius is a int or float in px
+    assert len(position) == len(shape)
+    n = len(shape)
+    semisizes = (radius,) * len(shape)
+
+    # genereate the grid for the support points
+    # centered at the position indicated by position
+    grid = [slice(-x0, dim - x0) for x0, dim in zip(position, shape)]
+    position = np.ogrid[grid]
+    # calculate the distance of all points from `position` center
+    # scaled by the radius
+    arr = np.zeros(shape, dtype=float)
+    for x_i, semisize in zip(position, semisizes):
+        # this can be generalized for exponent != 2
+        # in which case `(x_i / semisize)`
+        # would become `np.abs(x_i / semisize)`
+        arr += (x_i / semisize) ** 2
+
+    # the inner part of the sphere will have distance below or equal to 1
+    return arr <= 1.0
 
 #%% TSNR function
 
@@ -119,48 +218,27 @@ def TsnrCalclualtor(input_file):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.ndarray.astype(IM, 'float64')
-    temp_mean = imgData.mean(axis=(0,1,3))
-    temp_max = temp_mean.argmax()
-
-    ns = imgData.shape[2]  # Number of slices
-    nt = imgData.shape[-1]
-    nd = imgData.ndim
+    signal_averge_over_time = imgData[:,:,:,10:].mean(axis=-1) 
+    signal_std_over_time = imgData[:,:,:,10:].std(axis=-1) 
+    tSNR_map = 20 * np.log10(signal_averge_over_time/signal_std_over_time)
     
-    if temp_max == 0:
-        temp_max = temp_max+1
-        print('temp_max is the min slice')
+    S = np.shape(input_file)
+     #local thresholding
+    imgData_new = np.zeros(S[0:3])
+    imgData_average = np.mean(imgData,axis=-1)
+    for ii in range(0,S[2]):
+        temp_image = imgData_average[:,:,ii]
+        global_thresh = threshold_isodata(temp_image)
+        binary_global = temp_image > global_thresh
+        imgData_new[:,:,ii] = binary_global
         
-    if temp_max == ns:
-        temp_max = temp_max-1
-        print('temp_max is the max slice')
-        
-        
-    ns_lower = int(temp_max - 1)
-    ns_upper = int(temp_max + 1)
-
-    noiseChSNR = np.zeros(ns)
-    tSNR_Ch_vec = []
-    for slc in range(ns_lower,ns_upper):
-        snrCh_t = []
-        
-        for t in range(1,nt):
-            
-            slice = imgData[:, :, slc,t]
-            
-            curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(slice, 0, 1)
-                
-            noiseChSNR = estStdChang
-            snrCh_temp = 20 * np.log10(np.mean(imgData[:,:,slc,t]) / noiseChSNR)
-            snrCh_t.append(snrCh_temp)
     
-        Std_Ch = np.std(snrCh_t)
-        tSNR_Ch = np.mean(snrCh_t)/Std_Ch
-        tSNR_Ch_vec.append(tSNR_Ch)
-        
-        
-    tSNR_Ch_final = np.mean(tSNR_Ch_vec)
-   
-    return tSNR_Ch_final
+    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData_new*imgData_average))]
+    r = np.floor(0.10*(np.mean([S[0:2]])))
+    Mask = sphere(S[0:3], int(r) , COM)
+    tSNR = np.mean(tSNR_map[Mask])
+    
+    return tSNR
 
 
 #%% Calculating Mutual Information: based on https://matthew-brett.github.io/teaching/mutual_information.html
@@ -191,10 +269,10 @@ def mutualInfo(Im1,Im2):
 #%% Movement detection of rsFRI function (based on mutual information)
 
 def Ismovement(input_file):
-    TypeMov=[]
+    GMV=[]
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
-    imgData = np.ndarray.astype(IM, 'float64')
+    imgData = np.ndarray.astype(IM[:,:,:,10:], 'float64')
     S = np.shape(imgData)
     temp_mean = imgData.mean(axis=(0,1,3))
     temp_max = temp_mean.argmax()
@@ -203,23 +281,17 @@ def Ismovement(input_file):
     Im_rot = temp_Data
     
     MI_all = []
-    for z in range(S[-1]):
+    for z in range(1,S[-1]):
         
         MI = mutualInfo(Im_fix,Im_rot[:,:,z])
         MI_all.append(MI)
     
     Final = np.asarray(MI_all)
-    
-    m,b = np.polyfit(np.arange(0,len(Final)),Final,1)
-    if m > 0.2:
-        TypeMov = 'General & Local'
-    else:
-        TypeMov = 'Local'
-        
+    Max_mov_between = str([Final.argmin()+10,Final.argmax()+10])
     GMV = getrange(Final)
-    LMV = 3*np.std(Final)
+    LMV = np.std(Final)
     
-    return Final,GMV,LMV,TypeMov
+    return Final,Max_mov_between,GMV,LMV
 
 #%% Getting range 
 
@@ -448,8 +520,7 @@ def QCtable(Path):
     
     
 
-#%% Feature calculation of the pipeline. Core Unit of the Pipeline
-     
+#%% Feature calculation of the pipeline. Core Unit of the Pipeline     
 def CheckingrawFeatures(Path):   
     #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
     Abook = []
@@ -501,8 +572,9 @@ def CheckingrawFeatures(Path):
             SpatRes_vec = []
             MI_vec_all = []
             LMV_all = []
-            TypeMov_all = []
+            GMV_all = []
             text_files_new = []
+            snr_normal_vec = []
             kk = 0
             i=1
            
@@ -548,65 +620,82 @@ def CheckingrawFeatures(Path):
                     SpatRes = ResCalculator(input_file)
                     
                     
-                    if N == 'T2w' or N == 'DTI':
+                    if N == 'T2w':
                         # Signal 2 noise ratio
-                        try:
-                            snrCh = snrCalclualtor(input_file)
-                        except Exception:
-                            ErorrList.append(tf)
-                            kk = kk+1
-                            continue
-                            
+                        snrCh = snrCalclualtor_chang(input_file)
+                        snr_normal = snrCalclualtor_normal(input_file)   
+                        
                         LMV_all = np.nan
-                        TypeMov_all = np.nan
+                        GMV_all = np.nan
+                        Max_mov_between_all = np.nan
+                        snr_normal_vec.append(snr_normal)
+                        snrCh_vec.append(snrCh)
+                        
+                    if N == 'DTI':
+                        # Signal 2 noise ratio
+                        
+                        snrCh = snrCalclualtor_chang(input_file)
+                        snr_normal = snrCalclualtor_normal(input_file)   
+                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
+                        
+                        Max_mov_between_all.append(Max_mov_between)
+                        GMV_all.append(GMV)
+                        LMV_all.append(LMV)
+                        MI_vec_all.append(Final)
+                        Max_mov_between_all.append(Max_mov_between)
+                        snr_normal_vec.append(snr_normal)
+                        snrCh_vec.append(snrCh)
                         
                     if N == 'rsfMRI':
                         #temporal signal 2 noise ratio
-                        try:
-                            snrCh = TsnrCalclualtor(input_file)
-                        except Exception:
-                            ErorrList.append(tf)
-                            kk = kk+1
-                            continue
+                        snrCh = TsnrCalclualtor(input_file)
+                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
-                        # movement severity with the help of mutual information
-                        Final,GMV,LMV,TypeMov = Ismovement(input_file)
-                        TypeMov_all.append(TypeMov)
+                        Max_mov_between_all.append(Max_mov_between)
+                        GMV_all.append(GMV)
                         LMV_all.append(LMV)
                         MI_vec_all.append(Final)
+                        Max_mov_between_all.append(Max_mov_between)
+                        snrCh_vec.append(snrCh)
+
                         
                     SpatRes_vec.append(SpatRes)      
                     snrCh_vec.append(snrCh)
+                    snr_normal_vec.append(snr_normal)
+                    
                     i=i+1
                     text_files_new.append(tf)
                     bar()
                     
             # Saving parsed files to excel sheets
-            AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]        
+            AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),np.array(GMV_all),np.array(snr_normal_vec)]        
             
             # using the savetxt 
             # from the numpy module
             
             df = pd.DataFrame()
             df['FileAddress'] = AR[0]
-
             df['SpatRx'] = AR[1][:,0]
-            
             df['SpatRy'] = AR[1][:,1]
             df['Slicethick'] = AR[1][:,2]
             
-            if N == 'T2w' or N == 'DTI':
+
+            if N == 'T2w':
                  df['SNR Chang'] = AR[2]
-                 
+                 df['SNR Normal'] = AR[5]
+
+            if N == 'DTI':
+                 df['SNR Chang'] = AR[2]
+                 df['SNR Normal'] = AR[5]
+                 df['Displacement factor (std of Mutual information)']=AR[3]
+                 df['Maximal displacement']=AR[4]
             else:
-                 df['tSNR Chang'] = AR[2]
-                 df['Local Movement Variability']=AR[3]
-                 df['Movement Type']=AR[4]
+                 df['tSNR (Averaged Brain ROI)'] = AR[2]
+                 df['Displacement factor (std of Mutual information)']=AR[3]
+                 df['Maximal displacement']=AR[4]
                  
             if N=="T2w":
 
-            
-                 
                 t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
                 df.to_csv( t2w_result)
 
@@ -639,15 +728,21 @@ def CheckingrawFeatures(Path):
 
 
 
-#exact above function but this time for nifti format
+#%% exact above function but this time for nifti format
 def CheckingNiftiFeatures(Path):   
     
     
     Abook = []
     Names =[]
     for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
-       
-        if "DTI" in file:
+
+        if "T2w" in file :    
+             t2w_path= file
+             t2w_addreses= pd.read_csv(t2w_path)
+             Abook.append(t2w_addreses)
+             Names.append("T2w")        
+             
+        elif "DTI" in file:
             dti_path= file
             dti_addreses= pd.read_csv(dti_path)
             Abook.append(dti_addreses)
@@ -657,11 +752,7 @@ def CheckingNiftiFeatures(Path):
             fmri_addreses= pd.read_csv(fmri_path)
             Abook.append(fmri_addreses)
             Names.append("rsfMRI")
-        elif "T2w" in file :    
-             t2w_path= file
-             t2w_addreses= pd.read_csv(t2w_path)
-             Abook.append(t2w_addreses)
-             Names.append("T2w")
+
     
     ErorrList = []
  
@@ -694,10 +785,12 @@ def CheckingNiftiFeatures(Path):
             
             
             snrCh_vec =[]
+            snr_normal_vec = []
             SpatRes_vec = []
             MI_vec_all = []
             LMV_all = []
-            TypeMov_all = []
+            GMV_all = []
+            Max_mov_between_all = []
             text_files_new = []
             kk = 0
             i=1
@@ -727,35 +820,46 @@ def CheckingNiftiFeatures(Path):
                     
                     
                     
-                    if N == 'T2w' or N == 'DTI':
+                    if N == 'T2w':
+                        # Signal 2 noise ratio
+                        snrCh = snrCalclualtor_chang(input_file)
+                        snr_normal = snrCalclualtor_normal(input_file)   
+                        
+                        LMV_all = np.nan
+                        GMV_all = np.nan
+                        Max_mov_between_all = np.nan
+                        snr_normal_vec.append(snr_normal)
+                        snrCh_vec.append(snrCh)
+                        
+                    if N == 'DTI':
                         # Signal 2 noise ratio
                         
                         
-                        snrCh = snrCalclualtor_nifti(input_file)
-                           
+                        snrCh = snrCalclualtor_chang(input_file)
+                        snr_normal = snrCalclualtor_normal(input_file)   
+                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
-                            
-                            
                         
-                            
-                        LMV_all = np.nan
-                        TypeMov_all = np.nan
+                        GMV_all.append(GMV)
+                        LMV_all.append(LMV)
+                        MI_vec_all.append(Final)
+                        Max_mov_between_all.append(Max_mov_between)
+                        snr_normal_vec.append(snr_normal)
+                        snrCh_vec.append(snrCh)
                         
                     if N == 'fMRI':
                         #temporal signal 2 noise ratio
-                        
                         snrCh = TsnrCalclualtor(input_file)
+                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
-                            
-                        
-                        # movement severity with the help of mutual information
-                        Final,GMV,LMV,TypeMov = Ismovement(input_file)
-                        TypeMov_all.append(TypeMov)
+                        Max_mov_between_all.append(Max_mov_between)
+                        GMV_all.append(GMV)
                         LMV_all.append(LMV)
                         MI_vec_all.append(Final)
-
-
-                    snrCh_vec.append(snrCh)
+                        Max_mov_between_all.append(Max_mov_between)
+                        snrCh_vec.append(snrCh)
+                    
+                    
                     
                     i=i+1
                     text_files_new.append(tf)
@@ -766,8 +870,8 @@ def CheckingNiftiFeatures(Path):
                      
                      
             # Saving parsed files to excel sheets
-            AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),TypeMov_all]
-          
+            AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),np.array(GMV_all),np.array(snr_normal_vec)]
+            
             
             # using the savetxt 
             # from the numpy module
@@ -777,19 +881,24 @@ def CheckingNiftiFeatures(Path):
             df['SpatRx'] = AR[1][:,0]
             df['SpatRy'] = AR[1][:,1]
             df['Slicethick'] = AR[1][:,2]
+          
             
-            if N == 'T2w' or N == 'DTI':
+            if N == 'T2w':
                  df['SNR Chang'] = AR[2]
+                 df['SNR Normal'] = AR[5]
                  
+            if N == 'DTI':
+                 df['SNR Chang'] = AR[2]
+                 df['SNR Normal'] = AR[5]
+                 df['Displacement factor (std of Mutual information)']=AR[3]
+                 df['Maximal displacement']=AR[4]
             else:
-                 df['tSNR Chang'] = AR[2]
-                 df['Local Movement Variability']=AR[3]
-                 df['Movement Type']=AR[4]
+                 df['tSNR (Averaged Brain ROI)'] = AR[2]
+                 df['Displacement factor (std of Mutual information)']=AR[3]
+                 df['Maximal displacement']=AR[4]
                  
             if N=="T2w":
 
-            
-                
                 t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
                 df.to_csv( t2w_result)
 
@@ -806,7 +915,8 @@ def CheckingNiftiFeatures(Path):
                 df = pd.DataFrame()
                 
                 df['ErorrList'] = ErorrList
-                df.to_csv( r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\Sham\df.csv")
+                ErorrList_result= os.path.join(Path,"Faulty_Datasets.csv")
+                df.to_csv(ErorrList_result)
         
     
     print('\n\nExcel file was created:' + str(Path))
@@ -817,28 +927,5 @@ def CheckingNiftiFeatures(Path):
     #QCPlot(dti_result,fmri_result,t2w_result)
     
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
-#%% Tic Toc Timer
 
-
-def TicTocGenerator():
-    # Generator that returns time differences
-    ti = 0           # initial time
-    tf = time.time() # final time
-    while True:
-        ti = tf
-        tf = time.time()
-        yield tf-ti # returns the time difference
-
-TicToc = TicTocGenerator() # create an instance of the TicTocGen generator
-
-# This will be the main function through which we define both tic() and toc()
-def toc(tempBool=True):
-    # Prints the time difference yielded by generator instance TicToc
-    tempTimeInterval = next(TicToc)
-    if tempBool:
-        print( "Elapsed time: %f seconds.\n" %tempTimeInterval )
-
-def tic():
-    # Records a time in TicToc, marks the beginning of a time interval
-    toc(False)
 #%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de

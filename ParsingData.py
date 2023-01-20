@@ -33,10 +33,10 @@ if __name__ == "__main__":
     parser.add_argument('-f','--format_type',\
                         help="you need to tell what kind of format your images are :\
                             nifti or raw",type=str,required=True,choices=["nifti","raw"])  
-    parser.add_argument('-t','--sequence_types',\
-                        help="you need to tell what kind of Sequences should be used in \
-                             for processing the dataset:\
-                            T2w, DTI, fmri",type=str,required=False,choices=["T2w","DTI","fMRI"],default=["T2w","DTI","fMRI"])  
+   # parser.add_argument('-t','--sequence_types',\
+   #                     help="you need to tell what kind of Sequences should be used in \
+   #                          for processing the dataset:\
+   #                         T2w, DTI, fmri",type=str,required=False,choices=["T2w","DTI","fMRI"],default=["T2w","DTI","fMRI"])  
     parser.add_argument('-s','--suffix',\
                         help="If necessery you can specify what kind of sufix the data to look for should have :\
                             for example: -s test , this means it will only look for data that have this\
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     initial_path = args.initial_path
     saving_path = args.output_path
     format_type= args.format_type
-    sequence_types = args.sequence_types
+    #sequence_types = args.sequence_types
     suffix = args.suffix
     #%% Information for the user 
     
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
     print('\nStarting Stage two ...'.upper())
     print('\nChosen Sequences are: ')
-    print(sequence_types)
+    #print(sequence_types)
     print('\nCalculating features...\n'.upper())
     print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
     if format_type=="raw":
