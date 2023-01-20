@@ -31,13 +31,19 @@ import openpyxl
 import nibabel as nii
 import os
 import time
-<<<<<<< HEAD
 from nibabel.testing import data_path
 import matplotlib.pyplot as plt
 from skimage import data
 from skimage.filters import try_all_threshold
 from skimage.filters import threshold_isodata
 from scipy import ndimage
+import matplotlib.pyplot as plt
+from matplotlib.transforms import Affine2D
+from matplotlib import transforms
+import mpl_toolkits.axisartist.floating_axes as floating_axes
+import changSNR as ch
+import pv_reader as pr
+import alive_progress as ap
 #%% Tic Toc Timer
 
 
@@ -62,15 +68,7 @@ def toc(tempBool=True):
 def tic():
     # Records a time in TicToc, marks the beginning of a time interval
     toc(False)
-=======
-import matplotlib.pyplot as plt
-from matplotlib.transforms import Affine2D
-from matplotlib import transforms
-import mpl_toolkits.axisartist.floating_axes as floating_axes
-import changSNR as ch
-import pv_reader as pr
-import alive_progress as ap
->>>>>>> origin/main
+
 #%% Res function
 
 def Nifti_Image_Selection(Path) :
@@ -165,7 +163,7 @@ def Nifti_Image_Selection(Path) :
                 plt.savefig(svg_path) 
 
 
-
+#%% 
 
 
 def ResCalculator(input_file):
