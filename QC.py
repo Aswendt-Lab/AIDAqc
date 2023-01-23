@@ -509,11 +509,13 @@ def QCPlot(Path):
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    
-
+    Path= r"C:\Users\Erfan\Downloads\Documents"
+    ML_algorythms= ML(Path)
+    ML_algorythms=pd.concat(ML_algorythms) 
+    ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
     Abook = []
     Names =[]
-    for file in glob.glob(Path+ '*caculated_features*.csv') :
+    for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
         
         if "DTI" in file:
             dti_path= file
@@ -616,21 +618,48 @@ def QCtable(Path):
                 Med.extend('-'*len(D))
                 MiN.extend('-'*len(D))
                 MaX.extend('-'*len(D))
-                        
-    List = {"Pathes":Pathes,"Sequence Type":ST, "Problematic Quality Feature":COE,"Value":V,"Mean":AvV,"Median":Med,"Min":MiN,"Max":MaX}
+                
+                
+    
+    Overlap=[]
+    for ml_outlier in ML_algorythms["address"]:
+        for classic_outlier in Pathes :
+            
+            if ml_outlier== classic_outlier:
+                Overlap.append(ml_outlier)
+    for path in Overlap :
+        Overlap=ML_algorythms[ML_algorythms['address'] == path]
+        
+        
+    Overlap= Overlap.rename(columns={"address": "Pathes"})  
+     
+    List = {"Pathes":Pathes,"Sequence Type":ST, "Problematic Quality Feature":COE}
     
     df = pd.DataFrame(List)
+    
+    
+    df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor","SNR_tSNR"]])
+
+    ML_number=list(df[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
+    for num in ML_number :
+        if num>=3 :
+            ML_number[num]= True
+        else:
+            ML_number[num]= False
+            
+        
+    
+    df["final_outliers"]=ML_number
     final_result = os.path.join(Path,"unaccountable_data.csv")
     df.to_csv( final_result)    
     
-
 def ML(Path) :
     
-<<<<<<< HEAD
+
     #prepare data
-    Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"
+    #Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"
  
-    #"caculated_features_fMRI.csv"
+    
     csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
     result=[]
     for N, csv in enumerate (csv_path):
@@ -677,7 +706,7 @@ def ML(Path) :
        result[N]["SNR_tSNR"]=snr
        result[N]["address"]=address
         
-       return(result)
+    return(result)
 
 
 
