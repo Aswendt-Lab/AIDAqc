@@ -175,14 +175,14 @@ if __name__ == "__main__":
                 ABook["DTI"].append(i)
             elif "FMRI" in i.upper() :
                 ABook["rsfMRI"].append(i)
-            elif "T2" in i.upper() or "T1" in i.upper():
+            elif "T2" in i.upper() or "T1" in i.upper() and not ("Localizer".upper() in i.upper()):
                 ABook["T2w"].append(i)
 
         #saving in csv file
         for n,type in enumerate(Types_new):
              if len(ABook[type]) !=0:
                  addreses= pd.DataFrame(ABook[type])
-                 csv_path= "raw_data_addreses_"+type+".csv"
+                 csv_path= "nifti_data_addreses_"+type+".csv"
                  csv_path= os.path.join(saving_path,csv_path)
                  addreses.to_csv(csv_path, sep=',',index=False)
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     print('\n\ncsv files were created:' + str(saving_path))
     print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
     print('\nStarting Stage two ...'.upper())
-    print('\nChosen Sequences are: ')
+    #print('\nChosen Sequences are: ')
     #print(sequence_types)
     print('\nCalculating features...\n'.upper())
     print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
