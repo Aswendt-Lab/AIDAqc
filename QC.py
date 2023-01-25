@@ -48,7 +48,7 @@ from matplotlib.transforms import Affine2D
 from matplotlib import transforms
 import mpl_toolkits.axisartist.floating_axes as floating_axes
 import changSNR as ch
-import pv_reader as pr
+import pv_conv2Nifti as pr
 import alive_progress as ap
 #%% Tic Toc Timer
 
@@ -509,7 +509,7 @@ def QCPlot(Path):
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    Path= r"C:\Users\Erfan\Downloads\Documents"
+    #Path= r"C:\Users\Erfan\Downloads\Documents"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -555,7 +555,7 @@ def QCtable(Path):
             D = d[C]
             
             
-            if C == 'SNR Chang' or C == 'tSNR Chang':
+            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)':
                 
                 for dd,DD in enumerate(D):
                     
@@ -587,7 +587,7 @@ def QCtable(Path):
                 MaX.extend([Ma]*len(P))
                 
                 
-            if C == 'Local Movement Variability':
+            if C == 'Displacement factor (std of Mutual information)':
                 q75, q25 = np.nanpercentile(D, [75 ,25])
                 iqr = q75 - q25
                 ul = q75+1.5*iqr #upper limit
@@ -669,7 +669,7 @@ def ML(Path) :
        Abook= Abook.dropna()
        address= [i for i in Abook.iloc[:,1]]
        snr=[ i for i in Abook.iloc[:,5]]
-       X= [ [i] for i in  Abook.iloc[:,5]]
+       X= [[i] for i in  Abook.iloc[:,5]]
        
 ############# Fit the One-Class SVM 
        nu = 0.05
@@ -726,7 +726,13 @@ def CheckingrawFeatures(Path):
     Names =[]
     for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
         
-        if "DTI" in file:
+        if "T2w" in file :    
+             t2w_path= file
+             t2w_addreses= pd.read_csv(t2w_path)
+             Abook.append(t2w_addreses)
+             Names.append("T2w")
+
+        elif "DTI" in file:
             dti_path= file
             dti_addreses= pd.read_csv(dti_path)
             Abook.append(dti_addreses)
@@ -736,16 +742,9 @@ def CheckingrawFeatures(Path):
             fmri_addreses= pd.read_csv(fmri_path)
             Abook.append(fmri_addreses)
             Names.append("rsfMRI")
-        elif "T2w" in file :    
-             t2w_path= file
-             t2w_addreses= pd.read_csv(t2w_path)
-             Abook.append(t2w_addreses)
-             Names.append("T2w")
       
     
     ErorrList = []
- 
-    
     saving_path = Path
     
 
@@ -760,6 +759,8 @@ def CheckingrawFeatures(Path):
     kk =0
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
+            if kk > 0:
+                print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
             
             print(N+' processing... \n')
             
@@ -768,16 +769,19 @@ def CheckingrawFeatures(Path):
             
             
             snrCh_vec =[]
+            tsnr_vec = []
+            snr_normal_vec = []
             SpatRes_vec = []
             MI_vec_all = []
             LMV_all = []
             GMV_all = []
+            Max_mov_between_all = []
             text_files_new = []
-            snr_normal_vec = []
             kk = 0
             i=1
            
             with ap.alive_bar(len(text_files),spinner='wait') as bar:
+                
                 for tf in text_files:
                     
                     tf = str(tf)
@@ -798,6 +802,7 @@ def CheckingrawFeatures(Path):
                     if os.path.isfile(CP_v) and os.path.isfile(CP_a):
                         try:
                             pv.read_2dseq(map_raw=False, pv6=False)
+                            input_file = nii.squeeze_image(pv.nim)
                         except ValueError:
                             ErorrList.append(tf)
                             print("Value Error: catched")
@@ -806,8 +811,6 @@ def CheckingrawFeatures(Path):
                             ErorrList.append(tf)
                             print("System Error: catched")
                             continue
-                        
-                        input_file = nii.squeeze_image(pv.nim)
                         
                     else:
                         ErorrList.append(tf)
@@ -837,7 +840,7 @@ def CheckingrawFeatures(Path):
                         snr_normal = snrCalclualtor_normal(input_file)   
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
-                        Max_mov_between_all.append(Max_mov_between)
+                        
                         GMV_all.append(GMV)
                         LMV_all.append(LMV)
                         MI_vec_all.append(Final)
@@ -847,7 +850,7 @@ def CheckingrawFeatures(Path):
                         
                     if N == 'rsfMRI':
                         #temporal signal 2 noise ratio
-                        snrCh = TsnrCalclualtor(input_file)
+                        tSNR = TsnrCalclualtor(input_file)
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
                         Max_mov_between_all.append(Max_mov_between)
@@ -855,16 +858,15 @@ def CheckingrawFeatures(Path):
                         LMV_all.append(LMV)
                         MI_vec_all.append(Final)
                         Max_mov_between_all.append(Max_mov_between)
-                        snrCh_vec.append(snrCh)
+                        tsnr_vec.append(tSNR)
 
                         
-                    SpatRes_vec.append(SpatRes)      
-                    snrCh_vec.append(snrCh)
-                    snr_normal_vec.append(snr_normal)
+                        
                     
                     i=i+1
                     text_files_new.append(tf)
                     bar()
+                    SpatRes_vec.append(SpatRes)  
                     
             # Saving parsed files to excel sheets
             AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),np.array(GMV_all),np.array(snr_normal_vec)]        
@@ -873,28 +875,28 @@ def CheckingrawFeatures(Path):
             # from the numpy module
             
             df = pd.DataFrame()
-            df['FileAddress'] = AR[0]
-            df['SpatRx'] = AR[1][:,0]
-            df['SpatRy'] = AR[1][:,1]
-            df['Slicethick'] = AR[1][:,2]
+            df['FileAddress'] = text_files_new
+            df['SpatRx'] = np.array(SpatRes_vec)[:,0]
+            df['SpatRy'] = np.array(SpatRes_vec)[:,1]
+            df['Slicethick'] = np.array(SpatRes_vec)[:,2]
+          
             
-
             if N == 'T2w':
-                 df['SNR Chang'] = AR[2]
-                 df['SNR Normal'] = AR[5]
-
-            if N == 'DTI':
-                 df['SNR Chang'] = AR[2]
-                 df['SNR Normal'] = AR[5]
-                 df['Displacement factor (std of Mutual information)']=AR[3]
-                 df['Maximal displacement']=AR[4]
-            else:
-                 df['tSNR (Averaged Brain ROI)'] = AR[2]
-                 df['Displacement factor (std of Mutual information)']=AR[3]
-                 df['Maximal displacement']=AR[4]
+                 df['SNR Chang'] = np.array(snrCh_vec)
+                 df['SNR Normal'] = np.array(snr_normal_vec)
+                 
+            elif N == 'DTI':
+                 df['SNR Chang'] = np.array(snrCh_vec)
+                 df['SNR Normal'] = np.array(snr_normal_vec)
+                 df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                 #df['Maximal displacement']=AR[4]
+                 
+            elif N == "rsfMRI":
+                 df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
+                 df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                 #df['Maximal displacement']=AR[4]
                  
             if N=="T2w":
-
                 t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
                 df.to_csv( t2w_result)
 
@@ -902,18 +904,11 @@ def CheckingrawFeatures(Path):
                 dti_result= os.path.join(Path,"caculated_features_DTI.csv")
                 df.to_csv( dti_result)   
 
-
-
-            elif N=="fMRI":
+            elif N=="rsfMRI":
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
-                df.to_csv( fmri_result)                              
-            else:
-                df = pd.DataFrame()
-                
-                df['ErorrList'] = ErorrList
-                ErorrList_result= os.path.join(Path,"Faulty_Datasets.csv")
-                df.to_csv(ErorrList_result)
+                df.to_csv(fmri_result)
         
+          
     
     print('\n\noutput files was created:' + str(Path))
     
@@ -939,8 +934,7 @@ def CheckingNiftiFeatures(Path):
              t2w_path= file
              t2w_addreses= pd.read_csv(t2w_path)
              Abook.append(t2w_addreses)
-             Names.append("T2w")        
-             
+             Names.append("T2w")             
         elif "DTI" in file:
             dti_path= file
             dti_addreses= pd.read_csv(dti_path)
@@ -951,11 +945,8 @@ def CheckingNiftiFeatures(Path):
             fmri_addreses= pd.read_csv(fmri_path)
             Abook.append(fmri_addreses)
             Names.append("rsfMRI")
-
     
     ErorrList = []
- 
-    
     saving_path = os.path.dirname(Path) 
     
 
@@ -972,7 +963,6 @@ def CheckingNiftiFeatures(Path):
     kk =0
     
     for ii,N in enumerate(Names):
-        
         if N != 'ErrorData':
             if kk > 0:
                 print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
@@ -984,6 +974,7 @@ def CheckingNiftiFeatures(Path):
             
             
             snrCh_vec =[]
+            tsnr_vec = []
             snr_normal_vec = []
             SpatRes_vec = []
             MI_vec_all = []
@@ -1001,12 +992,12 @@ def CheckingNiftiFeatures(Path):
 
                     tf = str(tf)
                    
-                    if "DTI" in tf :
+                    if "DTI".upper() in tf.upper() :
                         N= "DTI"
-                    if  "T2w" in tf:
+                    if  "T2w".upper() in tf.upper():
                         N="T2w"
-                    if  "fMRI" in tf:
-                        N="fMRI"
+                    if  "fMRI".upper() in tf.upper():
+                        N="rsfMRI"
                     tf = os.path.normpath(tf)
                     
                     
@@ -1015,8 +1006,6 @@ def CheckingNiftiFeatures(Path):
                    
                     # Resoultution
                     SpatRes = ResCalculator(input_file)
-                    
-                    
                     
                     
                     if N == 'T2w':
@@ -1033,7 +1022,6 @@ def CheckingNiftiFeatures(Path):
                     if N == 'DTI':
                         # Signal 2 noise ratio
                         
-                        
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
@@ -1046,9 +1034,9 @@ def CheckingNiftiFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    if N == 'fMRI':
+                    if N == 'rsfMRI':
                         #temporal signal 2 noise ratio
-                        snrCh = TsnrCalclualtor(input_file)
+                        tSNR = TsnrCalclualtor(input_file)
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
                         Max_mov_between_all.append(Max_mov_between)
@@ -1056,15 +1044,14 @@ def CheckingNiftiFeatures(Path):
                         LMV_all.append(LMV)
                         MI_vec_all.append(Final)
                         Max_mov_between_all.append(Max_mov_between)
-                        snrCh_vec.append(snrCh)
+                        tsnr_vec.append(tSNR)
                     
                     
                     
                     i=i+1
                     text_files_new.append(tf)
                     bar()
-                    SpatRes_vec.append(SpatRes) 
-                     
+                    SpatRes_vec.append(SpatRes)
                 
                      
                      
@@ -1076,28 +1063,28 @@ def CheckingNiftiFeatures(Path):
             # from the numpy module
             
             df = pd.DataFrame()
-            df['FileAddress'] = AR[0]
-            df['SpatRx'] = AR[1][:,0]
-            df['SpatRy'] = AR[1][:,1]
-            df['Slicethick'] = AR[1][:,2]
+            df['FileAddress'] = text_files_new
+            df['SpatRx'] = np.array(SpatRes_vec)[:,0]
+            df['SpatRy'] = np.array(SpatRes_vec)[:,1]
+            df['Slicethick'] = np.array(SpatRes_vec)[:,2]
           
             
             if N == 'T2w':
-                 df['SNR Chang'] = AR[2]
-                 df['SNR Normal'] = AR[5]
+                 df['SNR Chang'] = np.array(snrCh_vec)
+                 df['SNR Normal'] = np.array(snr_normal_vec)
                  
-            if N == 'DTI':
-                 df['SNR Chang'] = AR[2]
-                 df['SNR Normal'] = AR[5]
-                 df['Displacement factor (std of Mutual information)']=AR[3]
-                 df['Maximal displacement']=AR[4]
-            else:
-                 df['tSNR (Averaged Brain ROI)'] = AR[2]
-                 df['Displacement factor (std of Mutual information)']=AR[3]
-                 df['Maximal displacement']=AR[4]
+            elif N == 'DTI':
+                 df['SNR Chang'] = np.array(snrCh_vec)
+                 df['SNR Normal'] = np.array(snr_normal_vec)
+                 df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                 #df['Maximal displacement']=AR[4]
+                 
+            elif N == "rsfMRI":
+                 df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
+                 df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                 #df['Maximal displacement']=AR[4]
                  
             if N=="T2w":
-
                 t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
                 df.to_csv( t2w_result)
 
@@ -1105,20 +1092,12 @@ def CheckingNiftiFeatures(Path):
                 dti_result= os.path.join(Path,"caculated_features_DTI.csv")
                 df.to_csv( dti_result)   
 
-
-
-            elif N=="fMRI":
+            elif N=="rsfMRI":
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
-                df.to_csv( fmri_result)                              
-            else:
-                df = pd.DataFrame()
-                
-                df['ErorrList'] = ErorrList
-                ErorrList_result= os.path.join(Path,"Faulty_Datasets.csv")
-                df.to_csv(ErorrList_result)
+                df.to_csv(fmri_result)
         
     
-    print('\n\nExcel file was created:' + str(Path))
+    print('\n\noutput file was created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%%End of the Second stage%%%%%%%%%%%%%%%\n\n'.upper())
     print('Plotting quality features...\n'.upper())
