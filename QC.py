@@ -509,7 +509,7 @@ def QCPlot(Path):
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    Path= r"C:\Users\Erfan\Downloads\Documents"
+    #Path= r"C:\Users\Erfan\Downloads\Documents"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -638,7 +638,7 @@ def QCtable(Path):
     df = pd.DataFrame(List)
     
     
-    df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor","SNR_tSNR"]])
+    df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]])
 
     ML_number=list(df[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
     for num in ML_number :
@@ -657,7 +657,7 @@ def ML(Path) :
     
 
     #prepare data
-    #Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"
+    #Path= r"C:\Users\Erfan\Downloads\Documents"
  
     
     csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
@@ -703,7 +703,7 @@ def ML(Path) :
        result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
        result[N]= result[N][0]
        result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
-       result[N]["SNR_tSNR"]=snr
+       
        result[N]["address"]=address
         
     return(result)
