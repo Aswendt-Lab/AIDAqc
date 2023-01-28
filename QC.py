@@ -509,7 +509,7 @@ def QCPlot(Path):
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    #Path= r"C:\Users\Erfan\Downloads\Documents"
+    Path= r"C:\Users\Erfan\Downloads\Documents"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -618,7 +618,32 @@ def QCtable(Path):
                 Med.extend('-'*len(D))
                 MiN.extend('-'*len(D))
                 MaX.extend('-'*len(D))
-                
+ 
+
+         
+         
+
+    
+ 
+    
+    #prepare ML outliers
+
+    ml_outliers= ML_algorythms[(ML_algorythms["One_class_SVM" ]==True) | (ML_algorythms["IsolationForest" ]==True) |
+                     (ML_algorythms["LocalOutlierFactor" ]==True) | (ML_algorythms[" EllipticEnvelope" ]==True)  ]
+ 
+    
+    
+    ml_outliers= ml_outliers.rename(columns={"address": "Pathes"})  
+    ml_outliers["Problematic Quality Feature"  ]= len(ml_outliers)*["ml_outlier" ] 
+    ml_outliers["Sequence Type"  ]= len(ml_outliers)*["unknown" ]     
+    ml_outliers= ml_outliers[["Pathes","Sequence Type","Problematic Quality Feature",'One_class_SVM',' EllipticEnvelope',
+                              'IsolationForest',"LocalOutlierFactor"]]
+                              
+ 
+    
+ 
+    
+ 
                 
     
     Overlap=[]
@@ -639,19 +664,23 @@ def QCtable(Path):
     
     
     df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]])
+    df =df.append(ml_outliers)
+    
 
     ML_number=list(df[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
-    for num in ML_number :
-        if num>=3 :
-            ML_number[num]= True
-        else:
-            ML_number[num]= False
+    
+    ML_number= [True if x>=3 else False for x in ML_number]
             
         
     
     df["final_outliers"]=ML_number
     final_result = os.path.join(Path,"unaccountable_data.csv")
     df.to_csv( final_result)    
+ 
+    
+ 
+    
+ 
     
 def ML(Path) :
     
@@ -671,25 +700,25 @@ def ML(Path) :
        snr=[ i for i in Abook.iloc[:,5]]
        X= [ [i] for i in  Abook.iloc[:,5]]
        
-############# Fit the One-Class SVM 
+############## Fit the One-Class SVM 
        nu = 0.05
        gamma = 2.0
        clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
        svm_pre =clf.predict(X)
-################ EllipticEnvelope
+############## EllipticEnvelope
         
        elpenv = EllipticEnvelope(contamination=0.025, 
                                   random_state=1)
        ell_pred = elpenv.fit_predict(X)
     
-############### IsolationForest
+############## IsolationForest
    
        iforest = IsolationForest(n_estimators=100, max_samples='auto', 
                               contamination=0.05, max_features=1.0, 
                               bootstrap=False, n_jobs=-1, random_state=1)
        iso_pred = iforest.fit_predict(X)
     
-################### LocalOutlierFactor
+############## LocalOutlierFactor
     
        lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
                              metric='minkowski', contamination=0.04,
