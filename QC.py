@@ -77,7 +77,7 @@ def tic():
 
 #%% Res function
 
-def Image_Selection(input_file,Path,N):
+def Image_Selection(input_file,Path,N,tf):
     
     img = input_file
     img_data=img.get_fdata()
@@ -98,7 +98,7 @@ def Image_Selection(input_file,Path,N):
     plt.figure()          
     plt.axis('off')
     plt.imshow(selected_img,cmap='gray')
-    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+".svg").replace(".nii","").replace(".gz","")
+    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+".tiff").replace(".nii","").replace(".gz","")
     plt.savefig(svg_path)
 
 
@@ -966,7 +966,7 @@ def CheckingNiftiFeatures(Path):
                     # Resoultution
                     SpatRes = ResCalculator(input_file)
                     # Slice extraction
-                    Image_Selection(input_file,Path,N)
+                    Image_Selection(input_file,Path,N,tf)
                     
                     if N == 'T2w':
                         # Signal 2 noise ratio
