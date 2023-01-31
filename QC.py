@@ -77,97 +77,29 @@ def tic():
 
 #%% Res function
 
-def Nifti_Image_Selection(Path) :
+def Image_Selection(input_file,Path,N):
     
-   
-    Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\Sham"
-    qc_path= os.path.join(Path,"QC_output")
-    if os.path.isdir(qc_path):
-        os.mkdir(qc_path)
- 
-
-    Abook = []
-    
-    for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
-        
-        if "DTI" in file:
-            dti_path= file
-            dti_addreses= pd.read_csv(dti_path)
-            Abook.append(dti_addreses)
-          
-        elif "fMRI" in file :
-            fmri_path= file
-            fmri_addreses= pd.read_csv(fmri_path)
-            Abook.append(fmri_addreses)
-           
-        elif "T2w" in file :    
-             t2w_path= file
-             t2w_addreses= pd.read_csv(t2w_path)
-             Abook.append(t2w_addreses)
-             
-    Abook = [a.values.tolist() for a in Abook]
-         
-   
-    images2={} 
-    for i in range(0,3): 
-
-        for addrese in Abook[i] :
+    img = input_file
+    img_data=img.get_fdata()
+    img_shape=img_data.shape 
+    middle=int(img_shape[2]/2)
+    if len(img_shape) == 3:
+            selected_img= img_data[:, :,middle]
             
-            if "DTI" in str(addrese):
-                path_split= os.path.split(str(addrese))
-                img_name=path_split[-1]
-                img= nii.load(addrese[0])
-                img_data=img.get_fdata()
-                img_shape=img_data.shape 
-                middle=int(img_shape[2]/2)
-                time_middle=int(img_shape[3]/2)
-                selected_img= img_data[:, :,middle,time_middle]
-                images2[addrese[0]]= selected_img
-                selected_img= np.rot90(selected_img)
-                plt.figure()          
-                plt.axis('off')
-                plt.imshow(selected_img,cmap='gray')
-                svg_path= os.path.join(qc_path,img_name[:-9]+"_DTI.svg")
-                plt.savefig(svg_path) 
-                
-                
-                
-                
-                
-                
-            elif "MRI" in str(addrese):
-                path_split= os.path.split(str(addrese))
-                img_name=path_split[-1]
-                img= nii.load(addrese[0])
-                img_data=img.get_fdata()
-                img_shape=img_data.shape 
-                middle=int(img_shape[2]/2)
-                time_middle=int(img_shape[3]/2)
-                selected_img= img_data[:, :,middle,time_middle]
-                images2[addrese[0]]= selected_img
-                selected_img= np.rot90(selected_img)
-                plt.figure()          
-                plt.axis('off')
-                plt.imshow(selected_img,cmap='gray')
-                svg_path= os.path.join(qc_path,img_name[:-9]+"_fMRI.svg")
-                plt.savefig(svg_path) 
-                
-                
-            elif  "T2w" in str(addrese):
-                path_split= os.path.split(str(addrese))
-                img_name=path_split[-1]
-                img= nii.load(addrese[0])
-                img_data=img.get_fdata()
-                img_shape=img_data.shape 
-                middle=int(img_shape[2]/2)
-                selected_img= img_data[:, :,middle]
-                images2[addrese[0]]= selected_img
-                selected_img= np.rot90(selected_img)
-                plt.figure()          
-                plt.axis('off')
-                plt.imshow(selected_img,cmap='gray')
-                svg_path= os.path.join(qc_path,img_name[:-9]+"_T2w.svg")
-                plt.savefig(svg_path) 
+    elif len(img_shape) > 3:
+        time_middle=int(img_shape[3]/2)
+        selected_img= img_data[:, :,middle,time_middle]
+        
+    selected_img= np.rot90(selected_img,k=-1)
+    qc_path= os.path.join(Path,"manual_slice_inspection")
+    if not os.path.isdir(qc_path):
+        os.mkdir(qc_path)
+    img_name = (os.path.split(tf)[-1])
+    plt.figure()          
+    plt.axis('off')
+    plt.imshow(selected_img,cmap='gray')
+    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+".svg").replace(".nii","").replace(".gz","")
+    plt.savefig(svg_path)
 
 
 #%% 
@@ -1029,14 +961,12 @@ def CheckingNiftiFeatures(Path):
                     if  "fMRI".upper() in tf.upper():
                         N="rsfMRI"
                     tf = os.path.normpath(tf)
-                    
-                    
-
                     input_file= nib.load(tf)
                    
                     # Resoultution
                     SpatRes = ResCalculator(input_file)
-                    
+                    # Slice extraction
+                    Image_Selection(input_file,Path,N)
                     
                     if N == 'T2w':
                         # Signal 2 noise ratio
