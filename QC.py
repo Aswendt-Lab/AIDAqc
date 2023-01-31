@@ -618,7 +618,32 @@ def QCtable(Path):
                 Med.extend('-'*len(D))
                 MiN.extend('-'*len(D))
                 MaX.extend('-'*len(D))
-                
+ 
+
+         
+         
+
+    
+ 
+    
+    #prepare ML outliers
+
+    ml_outliers= ML_algorythms[(ML_algorythms["One_class_SVM" ]==True) | (ML_algorythms["IsolationForest" ]==True) |
+                     (ML_algorythms["LocalOutlierFactor" ]==True) | (ML_algorythms[" EllipticEnvelope" ]==True)  ]
+ 
+    
+    
+    ml_outliers= ml_outliers.rename(columns={"address": "Pathes"})  
+    ml_outliers["Problematic Quality Feature"  ]= len(ml_outliers)*["ml_outlier" ] 
+    ml_outliers["Sequence Type"  ]= len(ml_outliers)*["unknown" ]     
+    ml_outliers= ml_outliers[["Pathes","Sequence Type","Problematic Quality Feature",'One_class_SVM',' EllipticEnvelope',
+                              'IsolationForest',"LocalOutlierFactor"]]
+                              
+ 
+    
+ 
+    
+ 
                 
     
     Overlap=[]
@@ -638,26 +663,30 @@ def QCtable(Path):
     df = pd.DataFrame(List)
     
     
-    df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor","SNR_tSNR"]])
+    df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]])
+    df =df.append(ml_outliers)
+    
 
     ML_number=list(df[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
-    for num in ML_number :
-        if num>=3 :
-            ML_number[num]= True
-        else:
-            ML_number[num]= False
+    
+    ML_number= [True if x>=3 else False for x in ML_number]
             
         
     
     df["final_outliers"]=ML_number
     final_result = os.path.join(Path,"unaccountable_data.csv")
     df.to_csv( final_result)    
+ 
+    
+ 
+    
+ 
     
 def ML(Path) :
     
 
     #prepare data
-    #Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"
+    #Path= r"C:\Users\Erfan\Downloads\Documents"
  
     
     csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
@@ -671,25 +700,25 @@ def ML(Path) :
        snr=[ i for i in Abook.iloc[:,5]]
        X= [[i] for i in  Abook.iloc[:,5]]
        
-############# Fit the One-Class SVM 
+############## Fit the One-Class SVM 
        nu = 0.05
        gamma = 2.0
        clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
        svm_pre =clf.predict(X)
-################ EllipticEnvelope
+############## EllipticEnvelope
         
        elpenv = EllipticEnvelope(contamination=0.025, 
                                   random_state=1)
        ell_pred = elpenv.fit_predict(X)
     
-############### IsolationForest
+############## IsolationForest
    
        iforest = IsolationForest(n_estimators=100, max_samples='auto', 
                               contamination=0.05, max_features=1.0, 
                               bootstrap=False, n_jobs=-1, random_state=1)
        iso_pred = iforest.fit_predict(X)
     
-################### LocalOutlierFactor
+############## LocalOutlierFactor
     
        lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
                              metric='minkowski', contamination=0.04,
@@ -703,7 +732,7 @@ def ML(Path) :
        result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
        result[N]= result[N][0]
        result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
-       result[N]["SNR_tSNR"]=snr
+       
        result[N]["address"]=address
         
     return(result)
