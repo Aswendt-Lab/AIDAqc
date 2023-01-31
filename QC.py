@@ -82,7 +82,8 @@ def Nifti_Image_Selection(Path) :
    
     Path= r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5\Sham"
     qc_path= os.path.join(Path,"QC_output")
-    os.mkdir(qc_path)
+    if os.path.isdir(qc_path):
+        os.mkdir(qc_path)
  
 
     Abook = []
