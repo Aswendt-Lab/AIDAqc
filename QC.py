@@ -25,7 +25,6 @@ import os
 import pandas as pd
 import glob
 from openpyxl import load_workbook
-import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import seaborn as sns
 import matplotlib.patches as mpatches
@@ -43,6 +42,7 @@ from skimage import data
 from skimage.filters import try_all_threshold
 from skimage.filters import threshold_isodata
 from scipy import ndimage
+from scipy import signal
 import matplotlib.pyplot as plt
 from matplotlib.transforms import Affine2D
 from matplotlib import transforms
@@ -74,6 +74,44 @@ def toc(tempBool=True):
 def tic():
     # Records a time in TicToc, marks the beginning of a time interval
     toc(False)
+#%% Goasing 
+def GoastCheck(input_file):
+    
+    #input_file= nib.load(tf)
+    img = input_file
+    img_data = img.get_fdata()
+    img_shape = np.shape(img_data)
+    MI_vec = []
+    n = 1
+    Mmos = []
+    while (img_shape[1]%(2**n)) == 0:
+        Mmos.append(img_shape[1]/2**n)
+        n = n+1
+    Mmos = np.asarray(Mmos)
+    if len(img_shape)>3:
+        img_data = np.mean(img_data,axis=-1)
+    Im_ref = img_data[:,:,int(img_shape[-2]/2)]
+    for ii in range(0,int(img_shape[1])):
+        Im_rol = np.roll(Im_ref,ii)
+        MI_vec.append(mutualInfo(Im_rol,Im_ref))
+        
+    peaks_strong, prop = signal.find_peaks(MI_vec, height = 0.25*max(MI_vec))
+    peaks_weak, prop = signal.find_peaks(MI_vec)
+    
+    StrongGoast = np.sum(np.isin(peaks_strong,Mmos))
+    WeekGoast = np.sum(np.isin(peaks_weak,Mmos))
+    
+    if WeekGoast > 2 or StrongGoast > 0:
+        GMetric = "yes"
+    else:
+        GMetric = "no"
+    
+    
+    #plt.plot((MI_vec))
+    #plt.show()
+    
+    return GMetric
+  
 
 #%% Res function
 
@@ -95,7 +133,7 @@ def Image_Selection(input_file,Path,N,tf):
     if not os.path.isdir(qc_path):
         os.mkdir(qc_path)
     img_name = (os.path.split(tf)[-1])
-    plt.figure()          
+    #plt.figure()          
     plt.axis('off')
     plt.imshow(selected_img,cmap='gray')
     svg_path = os.path.join(qc_path,img_name+"_"+str(N)+".tiff").replace(".nii","").replace(".gz","")
@@ -944,6 +982,7 @@ def CheckingNiftiFeatures(Path):
             GMV_all = []
             Max_mov_between_all = []
             text_files_new = []
+            GMetric_vec =  []
             kk = 0
             i=1
             
@@ -965,6 +1004,7 @@ def CheckingNiftiFeatures(Path):
                    
                     # Resoultution
                     SpatRes = ResCalculator(input_file)
+                    GMetric = GoastCheck(input_file)
                     # Slice extraction
                     Image_Selection(input_file,Path,N,tf)
                     
@@ -1012,7 +1052,8 @@ def CheckingNiftiFeatures(Path):
                     text_files_new.append(tf)
                     bar()
                     SpatRes_vec.append(SpatRes)
-                
+                    GMetric_vec.append(GMetric)
+                    
                      
                      
             # Saving parsed files to excel sheets
@@ -1027,6 +1068,8 @@ def CheckingNiftiFeatures(Path):
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
+            df['Goasting metric'] = np.array(GMetric_vec)
+            
           
             
             if N == 'T2w':
