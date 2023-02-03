@@ -154,7 +154,7 @@ if __name__ == "__main__":
     
     #%% Parsing nifti format
 
-    if format_type=="nifti":
+    elif format_type=="nifti":
 
         PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
