@@ -19,6 +19,7 @@ import numpy as np
 import QC
 import time
 from openpyxl import Workbook
+import FeatureCheck as fc
 #%% Command line interface
 if __name__ == "__main__":
         
@@ -195,11 +196,16 @@ if __name__ == "__main__":
     print('\nCalculating features...\n'.upper())
     print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
     if format_type=="raw":
-        QC.CheckingrawFeatures(saving_path)
+        fc.CheckingRawFeatures(saving_path)
         QC.toc()
     elif format_type=="nifti":
-        QC.CheckingNiftiFeatures(saving_path)
+        fc.CheckingNiftiFeatures(saving_path)
         QC.toc()
+    
+     #QCPlot(dti_result,fmri_result,t2w_result)
+    print('Plotting quality features...\n'.upper())
+    QC.QCtable(saving_path)
+    print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
 
     print('------------------------------------------------------------')
     print('Thank you for using our Code. For questions please contact us over:')
