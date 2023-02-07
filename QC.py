@@ -209,14 +209,16 @@ def snrCalclualtor_normal(input_file):
     
     #local thresholding
     imgData_new = np.zeros(S[0:3]);
-    for ii in range(0,S[2]):
-        temp_image = imgData[:,:,ii]
-        global_thresh = threshold_isodata(temp_image)
-        binary_global = temp_image > global_thresh
-        imgData_new[:,:,ii] = binary_global
+# =============================================================================
+#     for ii in range(0,S[2]):
+#         temp_image = imgData[:,:,ii]
+#         global_thresh = threshold_isodata(temp_image)
+#         binary_global = temp_image > global_thresh
+#         imgData_new[:,:,ii] = binary_global
         
+# =============================================================================
     
-    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData_new*imgData))]
+    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData))]
     r = np.floor(0.10*(np.mean(S)))
     Mask = sphere(S, int(r) , COM)
     Singal = np.mean(imgData[Mask])
