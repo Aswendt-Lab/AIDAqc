@@ -167,10 +167,11 @@ if __name__ == "__main__":
         for i in range(len(Types)):         #Creation of Adress Book
             ABook[Types_new[i]] = []
         
-        text_files2 = [os.path.split(t)[-1] for t in text_files]
-        text_files3,Index = np.unique(text_files2,return_index=True)
-        text_files = [text_files[ii] for ii in Index]
-        
+# =============================================================================
+#         text_files2 = [os.path.split(t)[-1] for t in text_files]
+#         text_files3,Index = np.unique(text_files2,return_index=True)
+#         text_files = [text_files[ii] for ii in Index]        
+# =============================================================================
 
         for i,T in enumerate(Types_new):
             globals()['df'+ str(i)] = pd.DataFrame(ABook[T])        

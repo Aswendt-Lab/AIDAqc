@@ -38,9 +38,9 @@ import os
 import time
 from nibabel.testing import data_path
 import matplotlib.pyplot as plt
-from skimage import data
-from skimage.filters import try_all_threshold
-from skimage.filters import threshold_isodata
+#from skimage import data
+#from skimage.filters import try_all_threshold
+#from skimage.filters import threshold_isodata
 from scipy import ndimage
 from scipy import signal
 import matplotlib.pyplot as plt
