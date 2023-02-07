@@ -130,10 +130,11 @@ def CheckingRawFeatures(Path):
                    
                     ########### Slice extraction 
                     selected_img = Image_Selection(input_file)                    
-                    qc_path = os.path.join(Path,"manual_slice_inspection")
+                    qc_path = os.path.join(saving_path,"manual_slice_inspection")
                     if not os.path.isdir(qc_path):
                         os.mkdir(qc_path)
-                    img_name = (os.path.split(tf)[-2])
+                    img_name = str.split(tf,os.sep)[-2]
+                    
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')
@@ -172,6 +173,7 @@ def CheckingRawFeatures(Path):
                         
                     if N == 'rsfMRI':
                         #temporal signal 2 noise ratio
+                        print(tf)
                         tSNR = TsnrCalclualtor(input_file)
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
@@ -323,7 +325,7 @@ def CheckingNiftiFeatures(Path):
                     qc_path = os.path.join(Path,"manual_slice_inspection")
                     if not os.path.isdir(qc_path):
                         os.mkdir(qc_path)
-                    img_name = (os.path.split(tf)[-1])
+                    img_name = str.split(tf,os.sep)[-1]
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')

@@ -90,7 +90,9 @@ def GoastCheck(input_file):
     Mmos = np.asarray(Mmos)
     if len(img_shape)>3:
         img_data = np.mean(img_data,axis=-1)
-    Im_ref = img_data[:,:,int(img_shape[-2]/2)]
+                
+    
+    Im_ref = img_data[:,:,int(img_shape[2]/2)]
     for ii in range(0,int(img_shape[1])):
         Im_rol = np.roll(Im_ref,ii)
         MI_vec.append(mutualInfo(Im_rol,Im_ref))
@@ -169,18 +171,24 @@ def snrCalclualtor_chang(input_file):
         # Decision if the input data is DTI type or T2w
         if nd == 3:
             Slice = imgData[:, :, slc]
-            curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
+            try:
+                curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
+            except ValueError:
+                estStdChang = np.nan
             snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
             snr_chang_slice_vec.append(snr_chang_slice)
         else:
             for bb in range(5,n_dir):
                 Slice = imgData[:, :,slc,bb]
-                curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
+                try:
+                    curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
+                except ValueError:
+                    estStdChang = np.nan
                 snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
                 snr_chang_slice_vec.append(snr_chang_slice)
         
     snr_chang_slice_vec = np.array(snr_chang_slice_vec)    
-    snrCh = np.mean(snr_chang_slice_vec[~np.isinf(snr_chang_slice_vec)])
+    snrCh = np.mean(snr_chang_slice_vec[~np.isinf(snr_chang_slice_vec) *  ~np.isnan(snr_chang_slice_vec)])
 
     return snrCh
 
@@ -284,7 +292,6 @@ def sphere(shape, radius, position):
 #%% TSNR function
 
 def TsnrCalclualtor(input_file):
-    
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.ndarray.astype(IM, 'float64')
@@ -640,7 +647,6 @@ def QCtable(Path):
  
     
 def ML(Path) :
-    
 
     #prepare data
     #Path= r"C:\Users\Erfan\Downloads\Documents"
@@ -648,7 +654,7 @@ def ML(Path) :
     
     csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
     result=[]
-    for N, csv in enumerate (csv_path):
+    for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
         
        csv_path=os.path.join(Path,csv)
        Abook= pd.read_csv(csv_path)
