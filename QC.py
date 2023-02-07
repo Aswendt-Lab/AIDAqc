@@ -381,33 +381,57 @@ def getrange(numbers):
 #%% Plotting QC Histogram and etc.
 
 def QCPlot(Path):
-    Names = []
-    xls = pd.ExcelFile(Path,engine= 'openpyxl')
-    Names = xls.sheet_names
-    saving_path = os.path.dirname(Path) 
     
-    if 'ErrorData' in Names:
-        Names.remove('ErrorData')
-    
+    saving_path = (Path) 
+    QC_fig_path =os.path.join( (Path) , "QCfigures")
+    if not os.path.isdir(QC_fig_path):
+        os.mkdir(QC_fig_path)
+
+       
     Abook = []
-    for n in Names:
-        Abook.append(pd.read_excel(Path,engine= 'openpyxl',sheet_name = n))
-    
-    # creating plots
-    sns.set_palette("colorblind")
-    #f1, ax1 = plt.subplots(3,3)
-    rr = 1
+    Names =[]
+    for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
+        
+        if "DTI" in file.upper():
+            dti_path= file
+            dti_features= pd.read_csv(dti_path)
+            Abook.append(dti_features)
+            Names.append("DTI")
+        elif "FMRI" in file.upper():
+            fmri_path= file
+            fmri_features= pd.read_csv(fmri_path)
+            Abook.append(fmri_features)
+            Names.append("rsfMRI")
+        elif "T2W" in file.upper():    
+             t2w_path= file
+             t2w_features= pd.read_csv(t2w_path)
+             Abook.append(t2w_features)
+             Names.append("T2w")    
+
+    ST = []
+    COE = []
+    AvV = []
+    V = []
+    Pathes = []
+    Med = []
+    MaX = []
+    MiN= []
     hh = 1
-    
-    
+    rr = 1
     for nn,N in enumerate(Names):
-        COL = list(Abook[nn].columns)
-        COL.pop(0)
-        D = Abook[nn]
+
+            
+        d= Abook[nn]
+        COL = Abook[nn].columns
+        
         for cc,C in enumerate(COL):
-            Data = list(D[C])
-            if C== 'SNR Chang' or C == 'tSNR Chang' or C=='Local Movement Variability':
-                #plot histogrm
+           
+            Data = list(d[C])
+            
+            
+            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C =='SNR Normal':
+             
+             #plot histogrm
                 plt.figure(hh,figsize=(10,5))
                 ax2 = plt.subplot(1,1,1)
                 for dd,DD in enumerate(Data):
@@ -419,14 +443,15 @@ def QCPlot(Path):
                 
                 B = round((np.nanmax(Data)-np.nanmin(Data)) / (2 * iqr / (len(Data)**(1/3))))
                
-                y, x, bars = plt.hist(Data, bins= B, histtype= 'bar',edgecolor='white')
+                y, x, bars = plt.hist(Data, bins= B*7, histtype= 'bar',edgecolor='white')
                 plt.xlabel(N+': '+C + ' [a.u.]')
                 plt.ylabel("Frequency")
                 ax2.spines['right'].set_visible(False)
                 ax2.spines['top'].set_visible(False)
+                plt.locator_params(axis='x', nbins=B*5)
                 #calculate interquartile range of values in the 'points' column
                 
-                if C == 'Local Movement Variability':
+                if C == 'Displacement factor (std of Mutual information)':
                     ll = q75+1.5*iqr
                     plt.text(1.07*ll,2*max(y)/3,'Q3 + 1.5*IQ',color='grey')
                     for b,bar in enumerate(bars):
@@ -443,15 +468,17 @@ def QCPlot(Path):
                             
                 plt.axvline(ll,color = 'grey',linestyle='--')
                 plt.suptitle(N+': '+C,weight="bold")
-                hh = hh + 1
+                
                 
     
                 red_patch = mpatches.Patch(color='red', label='Discard')
                 blue_patch = mpatches.Patch(color='tab:blue', label='Keep')
                 plt.legend(handles=[blue_patch,red_patch])
+                plt.savefig(os.path.join(QC_fig_path,C+".tiff"),dpi=250)
+                plt.close()
                    # plt.savefig(os.path.dirname(Path) + "\ResHomogenity.png",dpi=300)
                
-               
+    hh = hh + 1           
     plt.figure(hh,figsize=(14, 10))
     for nn,N in enumerate(Names):
         COL = list(Abook[nn].columns)
@@ -472,11 +499,9 @@ def QCPlot(Path):
                 ax1.set_title(N+':'+C)
                 plt.suptitle('Resolution homogeneity between data',weight="bold")
                 rr = rr+1
+    plt.savefig(os.path.join(QC_fig_path,"Spatial_Resolution.tiff"),dpi=250)
+    plt.close()
     
-    pdf = matplotlib.backends.backend_pdf.PdfPages(os.path.dirname(Path) + "/QCfigures.pdf")
-    for fig in range(1, plt.figure().number): ## will open an empty extra figure :(
-        pdf.savefig( fig )
-    pdf.close()
 
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
@@ -647,7 +672,7 @@ def QCtable(Path):
  
     
  
-    
+#%%  
 def ML(Path) :
 
     #prepare data

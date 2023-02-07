@@ -206,11 +206,13 @@ if __name__ == "__main__":
         fc.CheckingNiftiFeatures(saving_path)
         QC.toc()
     
-     #QCPlot(dti_result,fmri_result,t2w_result)
+     
     print('Plotting quality features...\n'.upper())
     QC.QCtable(saving_path)
+    
+    QC.QCPlot(saving_path)
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
-
+    
     print('------------------------------------------------------------')
     print('Thank you for using our Code. For questions please contact us over:')
     print('aref.kalantari-sarcheshmeh@uk-koeln.de or markus.aswendt@uk-koeln.de')
