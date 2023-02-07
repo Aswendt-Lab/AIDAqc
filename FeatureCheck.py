@@ -78,7 +78,7 @@ def CheckingRawFeatures(Path):
             text_files0 = Abook2[ii]
             text_files = [i[0] for i in text_files0]
             
-            
+            dd = 1
             snrCh_vec =[]
             tsnr_vec = []
             snr_normal_vec = []
@@ -138,7 +138,8 @@ def CheckingRawFeatures(Path):
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')
-                    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+".tiff").replace(".nii","").replace(".gz","")
+                    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+str(dd)+".tiff").replace(".nii","").replace(".gz","")
+                    dd = dd +1
                     plt.savefig(svg_path)
                     ########### Slice extraction               
                     # other Features
@@ -290,7 +291,7 @@ def CheckingNiftiFeatures(Path):
             text_files0 = Abook2[ii]
             text_files = [i[0] for i in text_files0]
             
-            
+            dd = 1
             snrCh_vec =[]
             tsnr_vec = []
             snr_normal_vec = []
@@ -329,7 +330,8 @@ def CheckingNiftiFeatures(Path):
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')
-                    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+".tiff").replace(".nii","").replace(".gz","")
+                    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+str(dd)+".tiff").replace(".nii","").replace(".gz","")
+                    dd = dd +1
                     plt.savefig(svg_path)
                     ########### Slice extraction               
                     # other Features
