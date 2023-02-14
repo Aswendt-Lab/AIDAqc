@@ -442,13 +442,17 @@ def QCPlot(Path):
                 iqr = q75 - q25
                 
                 B = round((np.nanmax(Data)-np.nanmin(Data)) / (2 * iqr / (len(Data)**(1/3))))
-               
+                if B*5 > 25:
+                    BB = 25
+                else:
+                    BB = 25
+                
                 y, x, bars = plt.hist(Data, bins= B*7, histtype= 'bar',edgecolor='white')
                 plt.xlabel(N+': '+C + ' [a.u.]')
                 plt.ylabel("Frequency")
                 ax2.spines['right'].set_visible(False)
                 ax2.spines['top'].set_visible(False)
-                plt.locator_params(axis='x', nbins=B*5)
+                plt.locator_params(axis='x', nbins=BB)
                 #calculate interquartile range of values in the 'points' column
                 
                 if C == 'Displacement factor (std of Mutual information)':
@@ -474,7 +478,7 @@ def QCPlot(Path):
                 red_patch = mpatches.Patch(color='red', label='Discard')
                 blue_patch = mpatches.Patch(color='tab:blue', label='Keep')
                 plt.legend(handles=[blue_patch,red_patch])
-                plt.savefig(os.path.join(QC_fig_path,C+".tiff"),dpi=250)
+                plt.savefig(os.path.join(QC_fig_path,C+N+".tiff"),dpi=250)
                 plt.close()
                    # plt.savefig(os.path.dirname(Path) + "\ResHomogenity.png",dpi=300)
                
