@@ -509,7 +509,7 @@ def QCPlot(Path):
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    Path= r"C:\Users\Erfan\Downloads\Documents"
+    #Path= r"C:\Users\Erfan\Downloads\Documents"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -656,24 +656,24 @@ def QCtable(Path):
         Overlap=ML_algorythms[ML_algorythms['address'] == path]
         
         
-    Overlap= Overlap.rename(columns={"address": "Pathes"})  
+    #Overlap= Overlap.rename(columns={"address": "Pathes"})  
      
     List = {"Pathes":Pathes,"Sequence Type":ST, "Problematic Quality Feature":COE}
     
     df = pd.DataFrame(List)
     
     
-    df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]])
-    df =df.append(ml_outliers)
+    #df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]])
+    #df =df.append(ml_outliers)
     
 
-    ML_number=list(df[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
+    #ML_number=list(df[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
     
-    ML_number= [True if x>=3 else False for x in ML_number]
+    #ML_number= [True if x>=3 else False for x in ML_number]
             
         
     
-    df["final_outliers"]=ML_number
+    #df["final_outliers"]=ML_number
     final_result = os.path.join(Path,"unaccountable_data.csv")
     df.to_csv( final_result)    
  
