@@ -68,8 +68,11 @@ def parsePV(filename):
         sys.exit("Error: visu_pars is not readable")
 
     if 'subject' in filename:
-        tmp = lines[32].split('#$Name,')
-        params['coilname'] = tmp[1].split('#$Id')[0]
+        try:
+            tmp = lines[32].split('#$Name,')
+            params['coilname'] = tmp[1].split('#$Id')[0]
+        except IndexError:
+            params['coilname'] = "Unknown"
         return params
 
     for line in lines:
