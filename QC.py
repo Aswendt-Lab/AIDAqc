@@ -305,14 +305,16 @@ def TsnrCalclualtor(input_file):
      #local thresholding
     imgData_new = np.zeros(S[0:3])
     imgData_average = np.mean(imgData,axis=-1)
-    for ii in range(0,S[2]):
-        temp_image = imgData_average[:,:,ii]
-        global_thresh = threshold_isodata(temp_image)
-        binary_global = temp_image > global_thresh
-        imgData_new[:,:,ii] = binary_global
-        
+# =============================================================================
+#     for ii in range(0,S[2]):
+#         temp_image = imgData_average[:,:,ii]
+#         global_thresh = threshold_isodata(temp_image)
+#         binary_global = temp_image > global_thresh
+#         imgData_new[:,:,ii] = binary_global
+#         
+# =============================================================================
     
-    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData_new*imgData_average))]
+    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData_average))]
     r = np.floor(0.10*(np.mean([S[0:2]])))
     Mask = sphere(S[0:3], int(r) , COM)
     tSNR = np.mean(tSNR_map[Mask])
