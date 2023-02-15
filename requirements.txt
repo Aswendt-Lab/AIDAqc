@@ -1,0 +1,15 @@
+numpy
+scipy
+nibabel
+dipy
+nipype
+pydicom
+nilearn
+pandas
+seaborn
+matplotlib
+scikit-image
+joblib
+natsort
+alive-progress
+lmfit

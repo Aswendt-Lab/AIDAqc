@@ -3,19 +3,19 @@ from matplotlib.pyplot import imshow
 import os
 import pandas as pd
 import glob
-from openpyxl import load_workbook
+#from openpyxl import load_workbook
 import matplotlib.backends.backend_pdf
 import seaborn as sns
 import matplotlib.patches as mpatches
 import numpy as np
-import openpyxl
+#import openpyxl
 import nibabel as nib
 import glob
-import openpyxl
+#import openpyxl
 import nibabel as nii
 import os
 import time
-from nibabel.testing import data_path
+#from nibabel.testing import data_path
 import matplotlib.pyplot as plt
 from skimage import data
 from skimage.filters import try_all_threshold

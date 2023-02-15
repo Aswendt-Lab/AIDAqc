@@ -18,7 +18,7 @@ import alive_progress as ap
 import numpy as np
 import QC
 import time
-from openpyxl import Workbook
+#from openpyxl import Workbook
 import FeatureCheck as fc
 #%% Command line interface
 if __name__ == "__main__":
