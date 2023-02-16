@@ -147,6 +147,7 @@ def CheckingRawFeatures(Path):
                     GMetric = GoastCheck(input_file)
                     
                     if N == 'T2w':
+                        
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
@@ -159,7 +160,7 @@ def CheckingRawFeatures(Path):
                         
                     if N == 'DTI':
                         # Signal 2 noise ratio
-                        
+                        #print(tf)
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)

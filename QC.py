@@ -134,7 +134,10 @@ def snrCalclualtor_chang(input_file):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
-    
+    Sone = len(imgData.shape)
+    if Sone < 3:
+       imgData = np.tile(imgData[:, :, np.newaxis], (1, 1, 10))
+        
     
     snr_chang_slice_vec = []
     ns = imgData.shape[2]  # Number of slices
@@ -186,8 +189,15 @@ def snrCalclualtor_chang(input_file):
 #%% SNR function 2
 def snrCalclualtor_normal(input_file):
     
+    
+    
     IM = np.asanyarray(input_file.dataobj)
     imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
+    
+    Sone = len(imgData.shape)
+    if Sone < 3:
+        imgData = np.tile(imgData[:, :, np.newaxis], (1, 1, 10))
+    
     Data = imgData
     
     S = np.shape(np.squeeze(Data))
@@ -220,9 +230,9 @@ def snrCalclualtor_normal(input_file):
     Singal = np.mean(imgData[Mask])
     
     
-    x= round(S[0]*0.15)
-    y = round(S[1]*0.15)
-    z = round(S[2]*0.15)
+    x = int(np.ceil(S[0]*0.15))
+    y = int(np.ceil(S[1]*0.15))
+    z = int(np.ceil(S[2]*0.15))
     
     MaskN = np.zeros(S[0:3]);
     MaskN[:x,:y,:z] = 2
@@ -292,8 +302,13 @@ def sphere(shape, radius, position):
 def TsnrCalclualtor(input_file):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
+    S=IM.shape
+    if len(S) == 3:    
+        IM = IM.reshape((S[0],S[1],1,S[2]))
+    
+    
     imgData = np.ndarray.astype(IM, 'float64')
-    if IM.shape[-1] < 10 :
+    if IM.shape[-1] < 10:
         fff = 0
     else:
         fff = 10
@@ -302,7 +317,7 @@ def TsnrCalclualtor(input_file):
     signal_std_over_time = imgData[:,:,:,fff:].std(axis=-1) 
     tSNR_map = 20 * np.log10(signal_averge_over_time/signal_std_over_time)
     
-    S = np.shape(input_file)
+    S = np.shape(IM)
      #local thresholding
     #imgData_new = np.zeros(S[0:3])
     imgData_average = np.mean(imgData,axis=-1)
@@ -354,6 +369,11 @@ def Ismovement(input_file):
     GMV=[]
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
+    S = IM.shape
+    if len(S) == 3:    
+        IM = IM.reshape((S[0],S[1],1,S[2]))
+    
+    
     if IM.shape[-1] < 10 :
         fff = 0
     else:
