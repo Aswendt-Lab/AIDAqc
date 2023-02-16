@@ -13,3 +13,4 @@ joblib
 natsort
 alive-progress
 lmfit
+progressbar
