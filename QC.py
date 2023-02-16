@@ -25,32 +25,13 @@ from matplotlib.pyplot import imshow
 import os
 import pandas as pd
 import glob
-#from openpyxl import load_workbook
-import matplotlib.backends.backend_pdf
-import seaborn as sns
 import matplotlib.patches as mpatches
-import numpy as np
-#import openpyxl
-import nibabel as nib
-import glob
-#import openpyxl
-import nibabel as nii
-import os
 import time
-#from nibabel.testing import data_path
 import matplotlib.pyplot as plt
-#from skimage import data
-#from skimage.filters import try_all_threshold
-#from skimage.filters import threshold_isodata
 from scipy import ndimage
 from scipy import signal
 import matplotlib.pyplot as plt
-from matplotlib.transforms import Affine2D
-from matplotlib import transforms
-import mpl_toolkits.axisartist.floating_axes as floating_axes
 import changSNR as ch
-import pv_conv2Nifti as pr
-import alive_progress as ap
 #%% Tic Toc Timer
 
 
@@ -158,6 +139,15 @@ def snrCalclualtor_chang(input_file):
     snr_chang_slice_vec = []
     ns = imgData.shape[2]  # Number of slices
     n_dir = imgData.shape[-1]  # Number of directions if dti dataset
+    if len(imgData.shape) > 3:    
+        if n_dir < 10 :
+            fff = 0
+            print()
+            print("Warning: Be aware that the size of the 4th dimension (difusion direction or timepoints) is lower then 10. This might result in unstable values")
+            print()
+        else:
+            fff = 10
+        
     nd = imgData.ndim
     
     ns_lower = int(np.floor(ns/2) - 2)
@@ -179,7 +169,7 @@ def snrCalclualtor_chang(input_file):
             snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
             snr_chang_slice_vec.append(snr_chang_slice)
         else:
-            for bb in range(5,n_dir):
+            for bb in range(fff,n_dir):
                 Slice = imgData[:, :,slc,bb]
                 try:
                     curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
@@ -201,15 +191,16 @@ def snrCalclualtor_normal(input_file):
     Data = imgData
     
     S = np.shape(np.squeeze(Data))
+    #print(S)
     if len(S) == 3:
         imgData = np.squeeze(Data)
     if len(S) == 4:
-        imgData = np.squeeze(Data[:,:,:,int((S[2]/2))])
+        imgData = np.squeeze(Data[:,:,:,int((S[-1]/2))])
     
     S = np.shape(np.squeeze(imgData))
     
     #local thresholding
-    imgData_new = np.zeros(S[0:3]);
+    #imgData_new = np.zeros(S[0:3]);
 # =============================================================================
 #     for ii in range(0,S[2]):
 #         temp_image = imgData[:,:,ii]
@@ -221,13 +212,17 @@ def snrCalclualtor_normal(input_file):
     
     COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData))]
     r = np.floor(0.10*(np.mean(S)))
+    
+    if r > S[2]:
+        r = S[2]
+    
     Mask = sphere(S, int(r) , COM)
     Singal = np.mean(imgData[Mask])
     
     
-    x= int(S[0]*0.15)
-    y = int(S[1]*0.15)
-    z = int(S[2]*0.15)
+    x= round(S[0]*0.15)
+    y = round(S[1]*0.15)
+    z = round(S[2]*0.15)
     
     MaskN = np.zeros(S[0:3]);
     MaskN[:x,:y,:z] = 2
@@ -354,7 +349,12 @@ def Ismovement(input_file):
     GMV=[]
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
-    imgData = np.ndarray.astype(IM[:,:,:,10:], 'float64')
+    if IM.shape[-1] < 10 :
+        fff = 0
+    else:
+        fff = 10
+ 
+    imgData = np.ndarray.astype(IM[:,:,:,fff:], 'float64')
     S = np.shape(imgData)
     temp_mean = imgData.mean(axis=(0,1,3))
     temp_max = temp_mean.argmax()
