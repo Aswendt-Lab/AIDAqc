@@ -293,13 +293,18 @@ def TsnrCalclualtor(input_file):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.ndarray.astype(IM, 'float64')
-    signal_averge_over_time = imgData[:,:,:,10:].mean(axis=-1) 
-    signal_std_over_time = imgData[:,:,:,10:].std(axis=-1) 
+    if IM.shape[-1] < 10 :
+        fff = 0
+    else:
+        fff = 10
+ 
+    signal_averge_over_time = imgData[:,:,:,fff:].mean(axis=-1) 
+    signal_std_over_time = imgData[:,:,:,fff:].std(axis=-1) 
     tSNR_map = 20 * np.log10(signal_averge_over_time/signal_std_over_time)
     
     S = np.shape(input_file)
      #local thresholding
-    imgData_new = np.zeros(S[0:3])
+    #imgData_new = np.zeros(S[0:3])
     imgData_average = np.mean(imgData,axis=-1)
 # =============================================================================
 #     for ii in range(0,S[2]):
