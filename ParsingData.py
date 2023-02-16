@@ -209,9 +209,10 @@ if __name__ == "__main__":
     
      
     print('Plotting quality features...\n'.upper())
+    QC.QCPlot(saving_path)
     QC.QCtable(saving_path)
     
-    QC.QCPlot(saving_path)
+    
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
     
     print('------------------------------------------------------------')
