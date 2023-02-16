@@ -13,6 +13,7 @@ Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
 
 #%% Loading nececcery libraries
 from sklearn.covariance import EllipticEnvelope
+from sklearn import preprocessing
 import seaborn as sns    
 from sklearn.ensemble import IsolationForest
 from sklearn.decomposition import PCA
@@ -104,9 +105,9 @@ def GoastCheck(input_file):
     WeekGoast = np.sum(np.isin(peaks_weak,Mmos))
     
     if WeekGoast > 2 or StrongGoast > 0:
-        GMetric = "yes"
+        GMetric = True
     else:
-        GMetric = "no"
+        GMetric = False
     
     
     #plt.plot((MI_vec))
@@ -509,10 +510,65 @@ def QCPlot(Path):
     plt.close()
     
 
+
+# machine learning methods
+def ML(Path) :
+
+    #prepare data
+    #Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
+ 
+    
+    csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
+    result=[]
+    for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
+        
+       csv_path=os.path.join(Path,csv)
+       Abook= pd.read_csv(csv_path)
+       Abook= Abook.dropna()
+       address= [i for i in Abook.iloc[:,1]]
+       X =  Abook.iloc[:,4:]
+       #X=preprocessing.normalize(X)
+############## Fit the One-Class SVM 
+       nu = 0.05
+       gamma = 2.0
+       clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
+       svm_pre =clf.predict(X)
+############## EllipticEnvelope
+        
+       elpenv = EllipticEnvelope(contamination=0.025, random_state=1)
+       ell_pred = elpenv.fit_predict(X)
+    
+############## IsolationForest
+   
+       iforest = IsolationForest(n_estimators=100, max_samples='auto', 
+                              contamination=0.05, max_features=1.0, 
+                              bootstrap=False, n_jobs=-1, random_state=1)
+       iso_pred = iforest.fit_predict(X)
+    
+############## LocalOutlierFactor
+    
+       lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
+                             metric='minkowski', contamination=0.04,
+                             novelty=False, n_jobs=-1)
+       local_pred = lof.fit_predict(X)
+    
+        
+############## saving result
+       algorythms=[svm_pre,ell_pred,iso_pred,local_pred]
+       result.append(algorythms)
+       result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
+       result[N]= result[N][0]
+       result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
+       
+       result[N]["Pathes"] = address
+        
+    return(result)
+
+
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    #Path= r"C:\Users\Erfan\Downloads\Documents"
+    Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -636,100 +692,50 @@ def QCtable(Path):
  
     
     
-    ml_outliers= ml_outliers.rename(columns={"address": "Pathes"})  
+      
     ml_outliers["Problematic Quality Feature"  ]= len(ml_outliers)*["ml_outlier" ] 
     ml_outliers["Sequence Type"  ]= len(ml_outliers)*["unknown" ]     
     ml_outliers= ml_outliers[["Pathes","Sequence Type","Problematic Quality Feature",'One_class_SVM',' EllipticEnvelope',
                               'IsolationForest',"LocalOutlierFactor"]]
                             
+    # to get overlap with ml and simple method
     
-    Overlap=[]
-    for ml_outlier in ML_algorythms["address"]:
-        for classic_outlier in Pathes :
+    # Overlap=[]
+    # for ml_outlier in ML_algorythms["address"]:
+    #     for classic_outlier in Pathes :
             
-            if ml_outlier== classic_outlier:
-                Overlap.append(ml_outlier)
-    for path in Overlap :
-        Overlap=ML_algorythms[ML_algorythms['address'] == path]
+    #         if ml_outlier== classic_outlier:
+    #             Overlap.append(ml_outlier)
+    # for path in Overlap :
+    #     Overlap=ML_algorythms[ML_algorythms['address'] == path]
         
         
-    #Overlap= Overlap.rename(columns={"address": "Pathes"})  
+    
      
     List = {"Pathes":Pathes,"Sequence Type":ST, "Problematic Quality Feature":COE}
-    
     df = pd.DataFrame(List)
-    
-    
     #df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]])
     #df =df.append(ml_outliers)
     
-
-    #ML_number=list(df[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
     
-    #ML_number= [True if x>=3 else False for x in ML_number]
-            
-        
-    
+    ML_number=list(ml_outliers[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
+    ML_number= [True if x>=3 else False for x in ML_number]        
+    ml_outliers["overlap>=2"]=   ML_number 
+    final_ml =ml_outliers.loc[ml_outliers["overlap>=2"]==True]
+    final_ml =final_ml.drop("overlap>=2", axis='columns')
+    final_ml= final_ml[["Pathes","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']]
+    final_ml_result = os.path.join(Path,"ML_unaccountable_data.csv")
+    final_ml.to_csv( final_ml_result, index=False) 
     #df["final_outliers"]=ML_number
-    final_result = os.path.join(Path,"unaccountable_data.csv")
-    df.to_csv( final_result)    
+    final_statistica_result = os.path.join(Path,"statistics_unaccountable_data.csv")
+    df.to_csv( final_statistica_result)    
  
     
  
     
  
 #%%  
-def ML(Path) :
 
-    #prepare data
-    #Path= r"C:\Users\Erfan\Downloads\Documents"
- 
-    
-    csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
-    result=[]
-    for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
-        
-       csv_path=os.path.join(Path,csv)
-       Abook= pd.read_csv(csv_path)
-       Abook= Abook.dropna()
-       address= [i for i in Abook.iloc[:,1]]
-       X = [[i] for i in  Abook.iloc[:,6]]
-       
-############## Fit the One-Class SVM 
-       nu = 0.05
-       gamma = 2.0
-       clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
-       svm_pre =clf.predict(X)
-############## EllipticEnvelope
-        
-       elpenv = EllipticEnvelope(contamination=0.025, random_state=1)
-       ell_pred = elpenv.fit_predict(X)
-    
-############## IsolationForest
-   
-       iforest = IsolationForest(n_estimators=100, max_samples='auto', 
-                              contamination=0.05, max_features=1.0, 
-                              bootstrap=False, n_jobs=-1, random_state=1)
-       iso_pred = iforest.fit_predict(X)
-    
-############## LocalOutlierFactor
-    
-       lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
-                             metric='minkowski', contamination=0.04,
-                             novelty=False, n_jobs=-1)
-       local_pred = lof.fit_predict(X)
-    
-        
-############## saving result
-       algorythms=[svm_pre,ell_pred,iso_pred,local_pred]
-       result.append(algorythms)
-       result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
-       result[N]= result[N][0]
-       result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
-       
-       result[N]["address"] = address
-        
-    return(result)
 
 
 #%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
