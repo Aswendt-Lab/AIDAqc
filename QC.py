@@ -584,6 +584,18 @@ def ML(Path) :
        result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
        result[N]= result[N][0]
        result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
+       if "DTI" in csv:
+           
+           dti=["DTI"]*len(result[N])
+           result[N]["sequence_type"] = dti
+           
+       elif "fMRI" in csv:
+           fmri=["fMRI"]*len(result[N])
+           result[N]["sequence_type"] = fmri          
+       
+       elif "T2w" in csv :
+           t2w=["T2w"]*len(result[N])
+           result[N]["sequence_type"] = t2w    
        
        result[N]["Pathes"] = address
         
@@ -719,8 +731,8 @@ def QCtable(Path):
     
       
     ml_outliers["Problematic Quality Feature"  ]= len(ml_outliers)*["ml_outlier" ] 
-    ml_outliers["Sequence Type"  ]= len(ml_outliers)*["unknown" ]     
-    ml_outliers= ml_outliers[["Pathes","Sequence Type","Problematic Quality Feature",'One_class_SVM',' EllipticEnvelope',
+        
+    ml_outliers= ml_outliers[["Pathes","sequence_type","Problematic Quality Feature",'One_class_SVM',' EllipticEnvelope',
                               'IsolationForest',"LocalOutlierFactor"]]
                             
     # to get overlap with ml and simple method
@@ -748,9 +760,12 @@ def QCtable(Path):
     ml_outliers["overlap>=2"]=   ML_number 
     final_ml =ml_outliers.loc[ml_outliers["overlap>=2"]==True]
     final_ml =final_ml.drop("overlap>=2", axis='columns')
-    final_ml= final_ml[["Pathes","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']]
+    final_ml= final_ml[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']]
     final_ml_result = os.path.join(Path,"ML_unaccountable_data.csv")
     final_ml.to_csv( final_ml_result, index=False) 
+    
+    
+    
     #df["final_outliers"]=ML_number
     final_statistica_result = os.path.join(Path,"statistics_unaccountable_data.csv")
     df.to_csv( final_statistica_result)    
