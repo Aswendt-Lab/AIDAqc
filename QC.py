@@ -605,7 +605,7 @@ def ML(Path) :
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    Path= r"C:\Users\Erfan\Desktop\New folder"
+    #Path= r"C:\Users\Erfan\Desktop\New folder"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -757,7 +757,7 @@ def QCtable(Path):
 
 
 
-a=df[[df["Pathes"]== "Z:\Backup_14_Aref_Kalantari\Projects\QualityControl\
-         Datasets\Sirmpilatze\ds001981\sub-01\func\sub-01_task-efs_run-01_bold.nii.gz"]]
+#a=df[[df["Pathes"]== "Z:\Backup_14_Aref_Kalantari\Projects\QualityControl\
+ #        Datasets\Sirmpilatze\ds001981\sub-01\func\sub-01_task-efs_run-01_bold.nii.gz"]]
 
 
