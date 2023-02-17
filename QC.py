@@ -461,7 +461,7 @@ def QCPlot(Path):
              
              #plot histogrm
                 plt.figure(hh,figsize=(10,5))
-                ax2 = plt.subplot(1,1,1)
+                ax2 = plt.subplot(1,1,1, label="histogram")
                 for dd,DD in enumerate(Data):
                     if DD == np.inf:
                         Data[dd] = np.nan
@@ -605,7 +605,7 @@ def ML(Path) :
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    #Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
+
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -754,8 +754,6 @@ def QCtable(Path):
 
 
 #%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
-
-
 
 
 
