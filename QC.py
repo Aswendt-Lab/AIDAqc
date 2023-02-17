@@ -461,7 +461,7 @@ def QCPlot(Path):
              
              #plot histogrm
                 plt.figure(hh,figsize=(10,5))
-                ax2 = plt.subplot(1,1,1)
+                ax2 = plt.subplot(1,1,1, label="histogram")
                 for dd,DD in enumerate(Data):
                     if DD == np.inf:
                         Data[dd] = np.nan
