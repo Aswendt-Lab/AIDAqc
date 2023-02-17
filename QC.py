@@ -543,7 +543,7 @@ def ML(Path) :
     #Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
  
     
-    csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
+    #csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
     result=[]
     for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
         
@@ -724,9 +724,9 @@ def QCtable(Path):
     
     #prepare ML outliers
     ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
-    ML_number= [True if x>=3 else False for x in ML_number]               
+    #ML_number= [True if x>=3 else False for x in ML_number]               
     ML_algorythms= ML_algorythms[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']]
-    ML_algorythms["ML Majority Voting outlier"]=   ML_number 
+    ML_algorythms["ML Majority Voting outlier (from 4)"]=   ML_number 
     
     
 
@@ -739,7 +739,7 @@ def QCtable(Path):
     df = pd.DataFrame(List)
     
     merged_df = pd.merge(df,ML_algorythms, on='Pathes', how='inner')
-    merged_df=merged_df[["Pathes","Sequence Type","Problematic Quality Feature","ML Majority Voting outlier"]]
+    merged_df=merged_df[["Pathes","Sequence Type","Problematic Quality Feature","ML Majority Voting outlier (from 4)"]]
     
     final_statistica_result = os.path.join(Path,"statical_unaccountable_data.csv")
     final_ML_result = os.path.join(Path,"ML_unaccountable_data.csv")

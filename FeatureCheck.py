@@ -175,7 +175,7 @@ def CheckingRawFeatures(Path):
                         
                     if N == 'rsfMRI':
                         #temporal signal 2 noise ratio
-                        print(tf)
+                        #print(tf)
                         tSNR = TsnrCalclualtor(input_file)
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
                         
