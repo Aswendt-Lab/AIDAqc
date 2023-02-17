@@ -741,9 +741,10 @@ def QCtable(Path):
     merged_df = pd.merge(df,ML_algorythms, on='Pathes', how='inner')
     merged_df=merged_df[["Pathes","Sequence Type","Problematic Quality Feature","ML Majority Voting outlier"]]
     
-    final_statistica_result = os.path.join(Path,"unaccountable_data.csv")
-    df.to_csv( final_statistica_result)    
- 
+    final_statistica_result = os.path.join(Path,"statical_unaccountable_data.csv")
+    final_ML_result = os.path.join(Path,"ML_unaccountable_data.csv")
+    merged_df.to_csv( final_statistica_result)    
+    ML_algorythms.to_csv( final_ML_result) 
     
  
     
@@ -757,7 +758,5 @@ def QCtable(Path):
 
 
 
-a=df[[df["Pathes"]== "Z:\Backup_14_Aref_Kalantari\Projects\QualityControl\
-         Datasets\Sirmpilatze\ds001981\sub-01\func\sub-01_task-efs_run-01_bold.nii.gz"]]
 
 
