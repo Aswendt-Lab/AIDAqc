@@ -605,7 +605,7 @@ def ML(Path) :
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
+    Path= r"C:\Users\Erfan\Desktop\New folder"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -723,51 +723,25 @@ def QCtable(Path):
  
     
     #prepare ML outliers
+    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
+    ML_number= [True if x>=3 else False for x in ML_number]               
+    ML_algorythms= ML_algorythms[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']]
+    ML_algorythms["ML Majority Voting outlier"]=   ML_number 
+    
+    
 
-    ml_outliers= ML_algorythms[(ML_algorythms["One_class_SVM" ]==True) | (ML_algorythms["IsolationForest" ]==True) |
-                     (ML_algorythms["LocalOutlierFactor" ]==True) | (ML_algorythms[" EllipticEnvelope" ]==True)  ]
- 
+
+
     
+
     
-      
-    ml_outliers["Problematic Quality Feature"  ]= len(ml_outliers)*["ml_outlier" ] 
-        
-    ml_outliers= ml_outliers[["Pathes","sequence_type","Problematic Quality Feature",'One_class_SVM',' EllipticEnvelope',
-                              'IsolationForest',"LocalOutlierFactor"]]
-                            
-    # to get overlap with ml and simple method
-    
-    # Overlap=[]
-    # for ml_outlier in ML_algorythms["address"]:
-    #     for classic_outlier in Pathes :
-            
-    #         if ml_outlier== classic_outlier:
-    #             Overlap.append(ml_outlier)
-    # for path in Overlap :
-    #     Overlap=ML_algorythms[ML_algorythms['address'] == path]
-        
-        
-    
-     
     List = {"Pathes":Pathes,"Sequence Type":ST, "Problematic Quality Feature":COE}
     df = pd.DataFrame(List)
-    #df =df.merge(Overlap[['Pathes','One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]])
-    #df =df.append(ml_outliers)
     
+    merged_df = pd.merge(df,ML_algorythms, on='Pathes', how='inner')
+    merged_df=merged_df[["Pathes","Sequence Type","Problematic Quality Feature","ML Majority Voting outlier"]]
     
-    ML_number=list(ml_outliers[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
-    ML_number= [True if x>=3 else False for x in ML_number]        
-    ml_outliers["overlap>=2"]=   ML_number 
-    final_ml =ml_outliers.loc[ml_outliers["overlap>=2"]==True]
-    final_ml =final_ml.drop("overlap>=2", axis='columns')
-    final_ml= final_ml[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']]
-    final_ml_result = os.path.join(Path,"ML_unaccountable_data.csv")
-    final_ml.to_csv( final_ml_result, index=False) 
-    
-    
-    
-    #df["final_outliers"]=ML_number
-    final_statistica_result = os.path.join(Path,"statistics_unaccountable_data.csv")
+    final_statistica_result = os.path.join(Path,"unaccountable_data.csv")
     df.to_csv( final_statistica_result)    
  
     
@@ -779,3 +753,11 @@ def QCtable(Path):
 
 
 #%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
+
+
+
+
+a=df[[df["Pathes"]== "Z:\Backup_14_Aref_Kalantari\Projects\QualityControl\
+         Datasets\Sirmpilatze\ds001981\sub-01\func\sub-01_task-efs_run-01_bold.nii.gz"]]
+
+
