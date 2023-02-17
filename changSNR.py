@@ -25,12 +25,13 @@ def calcSNR(img, show, fac):
     n = len(imgNorm)
 
     estStd = np.argmax(binCount)
-    estStd = (estStd) / binCount.shape
+    if binCount.max() > 0:
+        estStd = (estStd) / binCount.shape
 
     x = np.linspace(0, 1, bins)
     fhat = np.zeros([1, len(x)])
-
-    h = 1.06 * n ** (-1 / 5) * estStd
+    if binCount.max() > 0:
+        h = 1.06 * n ** (-1 / 5) * estStd
 
     # define function
     gauss = lambda x: gaussianFct(x)

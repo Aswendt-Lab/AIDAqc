@@ -3,19 +3,19 @@ from matplotlib.pyplot import imshow
 import os
 import pandas as pd
 import glob
-from openpyxl import load_workbook
+#from openpyxl import load_workbook
 import matplotlib.backends.backend_pdf
 import seaborn as sns
 import matplotlib.patches as mpatches
 import numpy as np
-import openpyxl
+#import openpyxl
 import nibabel as nib
 import glob
-import openpyxl
+#import openpyxl
 import nibabel as nii
 import os
 import time
-from nibabel.testing import data_path
+#from nibabel.testing import data_path
 import matplotlib.pyplot as plt
 from skimage import data
 from skimage.filters import try_all_threshold
@@ -147,6 +147,7 @@ def CheckingRawFeatures(Path):
                     GMetric = GoastCheck(input_file)
                     
                     if N == 'T2w':
+                        
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
@@ -159,7 +160,7 @@ def CheckingRawFeatures(Path):
                         
                     if N == 'DTI':
                         # Signal 2 noise ratio
-                        
+                        #print(tf)
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
