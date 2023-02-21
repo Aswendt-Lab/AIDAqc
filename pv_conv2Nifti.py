@@ -249,7 +249,7 @@ if __name__ == "__main__":
     list = os.listdir(input_folder)
     listOfScans = [s for s in list if s.isdigit()]
 
-    if len(listOfScans) is 0:
+    if len(listOfScans) == 0:
         sys.exit("Error: '%s' contains no numbered scans." % (input_folder,))
 
     print('Start to process '+str(len(listOfScans))+' scans...')

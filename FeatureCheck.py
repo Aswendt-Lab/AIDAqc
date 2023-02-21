@@ -1,32 +1,11 @@
 import numpy as np
-from matplotlib.pyplot import imshow
 import os
 import pandas as pd
 import glob
-#from openpyxl import load_workbook
 import matplotlib.backends.backend_pdf
-import seaborn as sns
-import matplotlib.patches as mpatches
-import numpy as np
-#import openpyxl
 import nibabel as nib
-import glob
-#import openpyxl
 import nibabel as nii
-import os
-import time
-#from nibabel.testing import data_path
 import matplotlib.pyplot as plt
-from skimage import data
-from skimage.filters import try_all_threshold
-from skimage.filters import threshold_isodata
-from scipy import ndimage
-from scipy import signal
-import matplotlib.pyplot as plt
-from matplotlib.transforms import Affine2D
-from matplotlib import transforms
-import mpl_toolkits.axisartist.floating_axes as floating_axes
-import changSNR as ch
 import pv_conv2Nifti as pr
 import alive_progress as ap
 from QC import *

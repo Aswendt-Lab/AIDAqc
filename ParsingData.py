@@ -11,13 +11,10 @@ and eliminiate the duplicates.
 import os
 import glob
 import pv_parser as par
-import re
 import pandas as pd
 import argparse
 import alive_progress as ap
-import numpy as np
 import QC
-import time
 #from openpyxl import Workbook
 import FeatureCheck as fc
 #%% Command line interface

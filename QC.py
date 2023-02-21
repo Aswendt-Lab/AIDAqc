@@ -12,16 +12,11 @@ Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
 """
 
 #%% Loading nececcery libraries
-from sklearn.covariance import EllipticEnvelope
-from sklearn import preprocessing
-import seaborn as sns    
+from sklearn.covariance import EllipticEnvelope   
 from sklearn.ensemble import IsolationForest
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import LocalOutlierFactor 
 from sklearn.svm import OneClassSVM
 import numpy as np
-from matplotlib.pyplot import imshow
 import os
 import pandas as pd
 import glob
@@ -30,7 +25,6 @@ import time
 import matplotlib.pyplot as plt
 from scipy import ndimage
 from scipy import signal
-import matplotlib.pyplot as plt
 import changSNR as ch
 #%% Tic Toc Timer
 
