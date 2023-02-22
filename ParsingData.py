@@ -95,13 +95,27 @@ if __name__ == "__main__":
                 
             
                 if DateTemp not in CheckDates:
-                
-                    for i,t in enumerate(Types):
                     
+                    if "DTI" in MN.upper():
+                        ABook["Dti"].append(os.path.dirname(p))
+                        C = C+1
+                    if "EPI" in MN.upper() and not "DTI" in MN.upper():
+                        ABook["EPI"].append(os.path.dirname(p))
+                        C = C+1
+                    if "RARE" in MN.upper():
+                        ABook["RARE"].append(os.path.dirname(p))
+                        C = C+1
+                    
+                    
+                        
+                        
+                        
+ #                   for i,t in enumerate(Types):
+ #                   
                        # if t in MN or t in p:
-                         if t.upper() in MN.upper():
-                            ABook[Types[i]].append(os.path.dirname(p))
-                            C = C+1
+ #                        if t.upper() in MN.upper():
+ #                           ABook[Types[i]].append(os.path.dirname(p))
+ #                          C = C+1
                     
                 CheckDates.append(DateTemp)
                 bar()
