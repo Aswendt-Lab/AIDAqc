@@ -15,6 +15,7 @@ import pandas as pd
 import argparse
 import alive_progress as ap
 import QC
+import shutil
 #from openpyxl import Workbook
 import FeatureCheck as fc
 #%% Command line interface
@@ -226,8 +227,19 @@ if __name__ == "__main__":
 
     # remove addressed files
     for file in glob.glob(os.path.join(saving_path, '*data_addreses*.csv')) :
-        
         os.remove(file) 
+        
+    # relocate calculated fearures
+
+    calculated_features = os.path.join(saving_path, "calculated_features")
+    os.mkdir(calculated_features) 
+    old_files=[os.path.join(saving_path,"caculated_features_DTI.csv"),os.path.join(saving_path,"caculated_features_T2w.csv")
+                                                                                  ,os.path.join(saving_path,"caculated_features_fMRI.csv")]
+    new_files=[os.path.join(saving_path,"calculated_features/caculated_features_DTI.csv"),os.path.join(saving_path,"calculated_features/caculated_features_T2w.csv")
+                                                                                  ,os.path.join(saving_path,"calculated_features/caculated_features_fMRI.csv")]
+    for new_file,old_file in enumerate(old_files) :
+
+        shutil.move(old_file , new_files[new_file])
     
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
     
