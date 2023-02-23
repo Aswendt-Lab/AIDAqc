@@ -15,6 +15,7 @@ import pandas as pd
 import argparse
 import alive_progress as ap
 import QC
+import shutil
 #from openpyxl import Workbook
 import FeatureCheck as fc
 #%% Command line interface
@@ -23,7 +24,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parser of all MR files: Description:\
           This code will parse through every possible folder after a defined initial path,\
      looking for MR data files of any type. Then it will extract the wanted files \
-     and eliminate any duplicates.')
+     and eliminate any duplicates(ex:python ParsingData.py -i C:\BME\aida\raw_data -o C:\BME\aida\raw_data -f raw.')
     parser.add_argument('-i','--initial_path',required=True, \
                         help='initial path to start the parsing')
     parser.add_argument('-o','--output_path',required=True,\
@@ -133,8 +134,10 @@ if __name__ == "__main__":
                  csv_path= os.path.join(saving_path,csv_path)
                  addreses.to_csv(csv_path, sep=',',index=False)
 
-
-
+        dfError = pd.DataFrame()
+        dfError['ErrorData'] = ErrorList
+        eror= os.path.join(saving_path,"CanNotOpenTheseFiles.csv")
+        dfError.to_csv(eror,index=False)
 
         print('\n\ncsv files were created:' + str(saving_path))
         print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
@@ -144,8 +147,7 @@ if __name__ == "__main__":
         #     globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
     
     
-        # dfError = pd.DataFrame()
-        # dfError['ErrorData'] = ErrorList
+
     
        
         # saving_path2 = saving_path + 'QuiC_Data_Result_raw.xlsx'
@@ -222,7 +224,22 @@ if __name__ == "__main__":
     print('Plotting quality features...\n'.upper())
     QC.QCPlot(saving_path)
     QC.QCtable(saving_path)
-    
+
+    # remove addressed files
+    for file in glob.glob(os.path.join(saving_path, '*data_addreses*.csv')) :
+        os.remove(file) 
+        
+    # relocate calculated fearures
+
+    calculated_features = os.path.join(saving_path, "calculated_features")
+    os.mkdir(calculated_features) 
+    old_files=[os.path.join(saving_path,"caculated_features_DTI.csv"),os.path.join(saving_path,"caculated_features_T2w.csv")
+                                                                                  ,os.path.join(saving_path,"caculated_features_fMRI.csv")]
+    new_files=[os.path.join(saving_path,"calculated_features/caculated_features_DTI.csv"),os.path.join(saving_path,"calculated_features/caculated_features_T2w.csv")
+                                                                                  ,os.path.join(saving_path,"calculated_features/caculated_features_fMRI.csv")]
+    for new_file,old_file in enumerate(old_files) :
+
+        shutil.move(old_file , new_files[new_file])
     
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
     

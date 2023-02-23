@@ -599,7 +599,7 @@ def ML(Path) :
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-
+    
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -716,29 +716,28 @@ def QCtable(Path):
     
  
     
-    #prepare ML outliers
-    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']].sum(axis=1))
-    #ML_number= [True if x>=3 else False for x in ML_number]               
-    ML_algorythms= ML_algorythms[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope']]
-    ML_algorythms["ML Majority Voting outlier (from 4)"]=   ML_number 
-    
-    
+    #prepare outliers
+    statiscal=[]
+    for path in ML_algorythms["Pathes"]:
+        if path in Pathes :
+            statiscal.append(True)
+            
+        else :
+             statiscal.append(False)
+            
+    ML_algorythms["statiscal_method"]= statiscal    
+    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statiscal_method"]].sum(axis=1))              
+    ML_algorythms= ML_algorythms[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statiscal_method"]]
+    ML_algorythms["Voting outliers (from 5)"]=   ML_number 
+    ML_algorythms= ML_algorythms[ML_algorythms["Voting outliers (from 5)"]>=1]
+    final_result = os.path.join(Path,"votings.csv")
+    ML_algorythms.to_csv( final_result)
 
 
-
     
 
     
-    List = {"Pathes":Pathes,"Sequence Type":ST, "Problematic Quality Feature":COE}
-    df = pd.DataFrame(List)
-    
-    merged_df = pd.merge(df,ML_algorythms, on='Pathes', how='inner')
-    merged_df=merged_df[["Pathes","Sequence Type","Problematic Quality Feature","ML Majority Voting outlier (from 4)"]]
-    
-    final_statistica_result = os.path.join(Path,"statical_unaccountable_data.csv")
-    final_ML_result = os.path.join(Path,"ML_unaccountable_data.csv")
-    merged_df.to_csv( final_statistica_result)    
-    ML_algorythms.to_csv( final_ML_result) 
+
     
  
     
