@@ -23,7 +23,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parser of all MR files: Description:\
           This code will parse through every possible folder after a defined initial path,\
      looking for MR data files of any type. Then it will extract the wanted files \
-     and eliminate any duplicates.')
+     and eliminate any duplicates(ex:python ParsingData.py -i C:\BME\aida\raw_data -o C:\BME\aida\raw_data -f raw.')
     parser.add_argument('-i','--initial_path',required=True, \
                         help='initial path to start the parsing')
     parser.add_argument('-o','--output_path',required=True,\
@@ -133,8 +133,10 @@ if __name__ == "__main__":
                  csv_path= os.path.join(saving_path,csv_path)
                  addreses.to_csv(csv_path, sep=',',index=False)
 
-
-
+        dfError = pd.DataFrame()
+        dfError['ErrorData'] = ErrorList
+        eror= os.path.join(saving_path,"CanNotOpenTheseFiles.csv")
+        dfError.to_csv(eror,index=False)
 
         print('\n\ncsv files were created:' + str(saving_path))
         print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
@@ -144,8 +146,7 @@ if __name__ == "__main__":
         #     globals()['df'+ str(i)] = pd.DataFrame(ABook[T])
     
     
-        # dfError = pd.DataFrame()
-        # dfError['ErrorData'] = ErrorList
+
     
        
         # saving_path2 = saving_path + 'QuiC_Data_Result_raw.xlsx'
