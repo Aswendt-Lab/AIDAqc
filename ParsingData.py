@@ -223,7 +223,11 @@ if __name__ == "__main__":
     print('Plotting quality features...\n'.upper())
     QC.QCPlot(saving_path)
     QC.QCtable(saving_path)
-    
+
+    # remove addressed files
+    for file in glob.glob(os.path.join(saving_path, '*data_addreses*.csv')) :
+        
+        os.remove(file) 
     
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
     
