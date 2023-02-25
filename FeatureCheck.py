@@ -10,7 +10,7 @@ import pv_conv2Nifti as pr
 import alive_progress as ap
 from QC import *
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline     
-def CheckingRawFeatures(Path):   
+def CheckingRawFeatures(Path):
     #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
     Abook = []
     Names =[]
@@ -106,7 +106,11 @@ def CheckingRawFeatures(Path):
                         kk = kk+1
                         continue
                    
-                   
+                    Size = ((input_file.get_fdata()).nbytes/(1024*1024))
+                    if Size < 3:
+                        ErorrList.append(tf)
+                        continue
+                    
                     ########### Slice extraction 
                     selected_img = Image_Selection(input_file)                    
                     qc_path = os.path.join(saving_path,"manual_slice_inspection")
