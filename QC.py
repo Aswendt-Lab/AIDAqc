@@ -599,7 +599,7 @@ def ML(Path) :
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
 def QCtable(Path):
-    
+    Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
     ML_algorythms= ML(Path)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
@@ -717,13 +717,8 @@ def QCtable(Path):
  
     
     #prepare outliers
-    statiscal=[]
-    for path in ML_algorythms["Pathes"]:
-        if path in Pathes :
-            statiscal.append(True)
-            
-        else :
-             statiscal.append(False)
+    statiscal=[True if path in Pathes else False for path in ML_algorythms["Pathes"] ]
+
             
     ML_algorythms["statiscal_method"]= statiscal    
     ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statiscal_method"]].sum(axis=1))              
