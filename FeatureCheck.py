@@ -314,7 +314,7 @@ def CheckingNiftiFeatures(Path):
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')
-                    svg_path = os.path.join(qc_path,img_name+"_"+str(N)+str(dd)+".tiff").replace(".nii","").replace(".gz","")
+                    svg_path = os.path.join(qc_path,str(N)+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
                     plt.savefig(svg_path)
                     ########### Slice extraction               
@@ -339,7 +339,6 @@ def CheckingNiftiFeatures(Path):
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
-                        
                         
                         GMV_all.append(GMV)
                         LMV_all.append(LMV)
