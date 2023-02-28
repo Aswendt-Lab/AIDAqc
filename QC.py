@@ -717,13 +717,8 @@ def QCtable(Path):
  
     
     #prepare outliers
-    statiscal=[]
-    for path in ML_algorythms["Pathes"]:
-        if path in Pathes :
-            statiscal.append(True)
-            
-        else :
-             statiscal.append(False)
+    statiscal=[True if path in Pathes else False for path in ML_algorythms["Pathes"] ]
+
             
     ML_algorythms["statiscal_method"]= statiscal    
     ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statiscal_method"]].sum(axis=1))              
