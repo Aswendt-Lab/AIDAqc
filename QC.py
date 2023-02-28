@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 from scipy import ndimage
 from scipy import signal
 import changSNR as ch
+from matplotlib.ticker import MaxNLocator
 #%% Tic Toc Timer
 
 
@@ -464,17 +465,18 @@ def QCPlot(Path):
                 iqr = q75 - q25
                 
                 B = round((np.nanmax(Data)-np.nanmin(Data)) / (2 * iqr / (len(Data)**(1/3))))
-                if B*5 > 25:
-                    BB = 25
+                if B*5 > 22:
+                    XX = 22
                 else:
-                    BB = 25
+                    XX = B*5
                 
                 y, x, bars = plt.hist(Data, bins= B*7, histtype= 'bar',edgecolor='white')
                 plt.xlabel(N+': '+C + ' [a.u.]')
                 plt.ylabel("Frequency")
                 ax2.spines['right'].set_visible(False)
                 ax2.spines['top'].set_visible(False)
-                plt.locator_params(axis='x', nbins=BB)
+                plt.locator_params(axis='x', nbins=XX)
+                ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
                 #calculate interquartile range of values in the 'points' column
                 
                 if C == 'Displacement factor (std of Mutual information)':
@@ -500,7 +502,7 @@ def QCPlot(Path):
                 red_patch = mpatches.Patch(color='red', label='Discard')
                 blue_patch = mpatches.Patch(color='tab:blue', label='Keep')
                 plt.legend(handles=[blue_patch,red_patch])
-                plt.savefig(os.path.join(QC_fig_path,C+N+".tiff"),dpi=250)
+                plt.savefig(os.path.join(QC_fig_path,C+N+".svg"),dpi=250)
                 plt.close()
                    # plt.savefig(os.path.dirname(Path) + "\ResHomogenity.png",dpi=300)
                
@@ -525,7 +527,7 @@ def QCPlot(Path):
                 ax1.set_title(N+':'+C)
                 plt.suptitle('Resolution homogeneity between data',weight="bold")
                 rr = rr+1
-    plt.savefig(os.path.join(QC_fig_path,"Spatial_Resolution.tiff"),dpi=250)
+    plt.savefig(os.path.join(QC_fig_path,"Spatial_Resolution.svg"),dpi=250)
     plt.close()
     
 
@@ -720,9 +722,9 @@ def QCtable(Path):
     statiscal=[True if path in Pathes else False for path in ML_algorythms["Pathes"] ]
 
             
-    ML_algorythms["statiscal_method"]= statiscal    
-    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statiscal_method"]].sum(axis=1))              
-    ML_algorythms= ML_algorythms[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statiscal_method"]]
+    ML_algorythms["statistical_method"]= statiscal    
+    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]].sum(axis=1))              
+    ML_algorythms= ML_algorythms[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
     ML_algorythms["Voting outliers (from 5)"]=   ML_number 
     ML_algorythms= ML_algorythms[ML_algorythms["Voting outliers (from 5)"]>=1]
     final_result = os.path.join(Path,"votings.csv")

@@ -52,11 +52,11 @@ if __name__ == "__main__":
     #%% Information for the user 
     
     QC.tic()
-    print("Hello!")
+    print("Hello! Are you ready to get rid of bad quality data?")
     print('------------------------------------------------------------')
-    print('Thank you for using our Code. For questions please contact us over:')
-    print('aref.kalantari-sarcheshmeh@uk-koeln.de or markus.aswendt@uk-koeln.de')
-    print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
+    print('Thank you for using our Code. Contact:')
+    print('aref.kalantari-sarcheshmeh@uk-koeln.de / markus.aswendt@uk-koeln.de')
+    print('Lab: AG Neuroimaging and Neuroengineering of Experimental Stroke, University Hospital Cologne')
     print('Web: https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
     print('------------------------------------------------------------')
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
         
-        print(( 'Total number of '+ str(kall) + ' files were found:'+'Parsing finished! '.upper()).upper())
+        print(( 'Total number of '+ str(kall) + ' files were found:'+' Parsing finished! '.upper()).upper())
     
         #%% Extrtacting usable data
         ABook = {}
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         dfError.to_csv(eror,index=False)
 
         print('\n\ncsv files were created:' + str(saving_path))
-        print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
+        print('\n\n%%%%%%%%%%%%% End of stage 1 %%%%%%%%%%%%%%%'.upper())
 
         # to make exel file as an output you can uncomment below lines
         # for i,T in enumerate(Types):
@@ -207,12 +207,12 @@ if __name__ == "__main__":
 
 
     print('\n\ncsv files were created:' + str(saving_path))
-    print('\n\n%%%%%%%%%%%%%End of the first stage%%%%%%%%%%%%%%%'.upper())
-    print('\nStarting Stage two ...'.upper())
+    print('\n\n%%%%%%%%%%%%% End of the stage 1 %%%%%%%%%%%%%%%'.upper())
+    print('\nStarting Stage 2 ...'.upper())
     #print('\nChosen Sequences are: ')
     #print(sequence_types)
     print('\nCalculating features...\n'.upper())
-    print('This might take some time (hours/days) if the dataset is big enough!:) ...\n\n')
+    print('This might take some time (hours/days) if the dataset is large enough!:) ...\n\n')
     if format_type=="raw":
         fc.CheckingRawFeatures(saving_path)
         QC.toc()
