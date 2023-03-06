@@ -233,10 +233,18 @@ if __name__ == "__main__":
 
     calculated_features = os.path.join(saving_path, "calculated_features")
     os.mkdir(calculated_features) 
-    old_files=[os.path.join(saving_path,"caculated_features_DTI.csv"),os.path.join(saving_path,"caculated_features_T2w.csv")
-                                                                                  ,os.path.join(saving_path,"caculated_features_fMRI.csv")]
-    new_files=[os.path.join(saving_path,"calculated_features/caculated_features_DTI.csv"),os.path.join(saving_path,"calculated_features/caculated_features_T2w.csv")
-                                                                                  ,os.path.join(saving_path,"calculated_features/caculated_features_fMRI.csv")]
+    old_files=[]
+    for old_file in glob.glob(os.path.join(saving_path, '*caculated_features*.csv')) :
+        old_files.append(old_file)
+
+    new_direction= os.path.join(saving_path,"calculated_features")
+    new_files=[]
+    for old_file in old_files:
+        path_split= os.path.split(old_file)
+        files_name= path_split[1]
+        join_path= os.path.join(new_direction,files_name)
+        new_files.append(join_path)
+                         
     for new_file,old_file in enumerate(old_files) :
 
         shutil.move(old_file , new_files[new_file])
