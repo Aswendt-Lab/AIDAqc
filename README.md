@@ -1,4 +1,4 @@
-<img align="left" src="https://github.com/maswendt/AIDAmri/blob/master/AIDA_Logo.png" width="120">
+<img align="right" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDA_Logo_wide.001.png" width="500">
 <h1>AIDA<i>qc</i></h1>
 
 *An automated and simple tool for fast qualtiy analysis of animal MRI*
