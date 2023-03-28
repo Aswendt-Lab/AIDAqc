@@ -10,12 +10,12 @@
 - **Calculations:** SNR, tSNR, movement variability, data quality categorization (finds bad quality outlier)
 - **Output Format:** Excel sheets & pdf
 
-<img align="left" src="https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_workflow.png">
+<img align="left" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAqc_workflow.png">
 
 <br/>
 <br/>
 
-[**See the poster for all details**](https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_Poster_Summary.pdf) 
+[**See the poster for all details**](https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAqc_Poster_Summary.pdf) 
 
 <h3>Installation</h3> 
 Download the repository => Install Python 3.6 (Anaconda) => Import AIDAqc conda environment aidaqc.yaml
