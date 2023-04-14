@@ -28,7 +28,6 @@ dependencies:
   - colorama=0.4.4=pyhd3eb1b0_0
   - cookiecutter=1.7.2=pyhd3eb1b0_0
   - cryptography=35.0.0=py36h71e12ea_0
-  - decorator=5.1.1=pyhd3eb1b0_0
   - defusedxml=0.7.1=pyhd3eb1b0_0
   - diff-match-patch=20200713=pyhd3eb1b0_0
   - docutils=0.17.1=py36haa95532_1
@@ -76,7 +75,6 @@ dependencies:
   - pathspec=0.7.0=py_0
   - pexpect=4.8.0=pyhd3eb1b0_3
   - pickleshare=0.7.5=pyhd3eb1b0_1003
-  - pip=21.2.2=py36haa95532_0
   - pluggy=1.0.0=py36haa95532_0
   - poyo=0.5.0=pyhd3eb1b0_0
   - prompt-toolkit=3.0.20=pyhd3eb1b0_0
@@ -162,15 +160,62 @@ dependencies:
   - pip:
     - about-time==3.1.1
     - alive-progress==2.1.0
+    - ansicon==1.89.0
+    - asteval==0.9.26
+    - blessed==1.19.1
+    - ci-info==0.2.0
+    - configobj==5.0.8
+    - configparser==5.2.0
     - cycler==0.11.0
+    - dataclasses==0.8
+    - decorator==4.4.2
     - et-xmlfile==1.1.0
+    - etelemetry==0.2.2
+    - filelock==3.4.1
+    - fitz==0.0.1.dev2
+    - flyingcircus==0.1.4.0
+    - flyingcircus-numeric==0.1.1.2
+    - fpdf==1.7.2
     - grapheme==0.6.0
+    - httplib2==0.21.0
+    - imageio==2.15.0
+    - isodate==0.6.1
+    - jinxed==1.2.0
+    - joblib==1.1.1
     - kiwisolver==1.3.1
+    - lmfit==1.0.3
+    - lxml==4.9.2
     - matplotlib==3.3.4
+    - networkx==2.5.1
     - nibabel==3.2.2
+    - nipype==1.7.1
     - numpy==1.19.5
     - openpyxl==3.0.9
     - pandas==1.1.5
+    - pathlib==1.0.1
     - pillow==8.4.0
+    - pip==21.3.1
+    - progressbar==2.5
+    - prov==2.0.0
+    - pydot==1.4.2
+    - pypdf2==3.0.1
+    - pywavelets==1.1.1
+    - pyxnat==1.5
+    - raster-geometry==0.1.4.1
+    - rdflib==5.0.0
+    - scikit-image==0.17.2
+    - scikit-learn==0.24.2
     - scipy==1.5.4
+    - seaborn==0.11.2
+    - setuptools-scm==6.4.2
+    - simplejson==3.18.3
+    - svg-stack==0.1.0
+    - svgutils==0.3.4
+    - threadpoolctl==3.1.0
+    - tifffile==2020.9.3
+    - tinycss2==1.1.1
+    - tomli==1.2.3
+    - traits==6.4.1
+    - uncertainties==3.1.7
     - xlrd==2.0.1
+    - xlsxwriter==3.0.3
