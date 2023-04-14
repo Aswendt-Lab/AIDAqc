@@ -8,7 +8,7 @@
 
 - **Input:** Bruker raw data or NIFTY (T2-weighted MRI, diffusion weighted MRI or DTI, and rs-fMRI)
 - **Calculations:** SNR, tSNR, movement variability, data quality categorization (finds bad quality outlier)
-- **Output Format:** Excel sheets & pdf
+- **Output Format:** CSV sheets & pdf & images
 
 <img align="left" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAqc_workflow.png">
 
@@ -20,9 +20,9 @@
 <h3>Installation</h3> 
 Download the repository => Install Python 3.6 (Anaconda) => Import AIDAqc conda environment aidaqc.yaml
 
-Two main functions: *ParsingAllrawData* and *CheckingFeatures_final*
+Main function: *ParsingData*
 
-See the full manual [here](https://github.com/aswendtlab/AIDAqc/blob/main/AIDAqc_help_v1_1.pdf).
+See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAqc_v2_1.pdf).
 
 <h3>The story behind this tool</h3> 
 
@@ -32,7 +32,7 @@ It can be challenging to acquire MR images of consistent quality or to decide fo
 https://gin.g-node.org/arefks/AIDAqc_test_data
 
 [<h3><b>CONTACT</h3></b>](https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/)
-Aref Kalantari (arefks@gmail.com) and Markus Aswendt (markus.aswendt@uk-koeln.de)
+Aref Kalantari (aref.kalantari-sarcheshmeh@uk-koeln.de) and Markus Aswendt (markus.aswendt@uk-koeln.de)
 
 <h3><b>LICENSE</h3></b>
 
