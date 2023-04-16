@@ -311,10 +311,11 @@ def CheckingNiftiFeatures(Path):
                     if not os.path.isdir(qc_path):
                         os.mkdir(qc_path)
                     img_name = str.split(tf,os.sep)[-1]
+                    folder_name = str.split(tf,os.sep)[-2] 
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')
-                    svg_path = os.path.join(qc_path,str(N)+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
+                    svg_path = os.path.join(qc_path,str(N)+"_"+folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
                     plt.savefig(svg_path)
                     ########### Slice extraction               

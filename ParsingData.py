@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
             if "DTI" in i.upper() or "structur".upper() in i.upper():
                 ABook["DTI"].append(i)
-            elif "FMRI" in i.upper() or "BOLD" in i.upper() or "function".upper() in i.upper():
+            elif "FMRI" in i.upper() or "BOLD" in i.upper() or "function".upper() in i.upper() or "EPI" in i.upper():
                 ABook["rsfMRI"].append(i)
             elif "T2" in i.upper() or "T1" in i.upper() and not ("Localizer".upper() in i.upper()):
                 ABook["T2w"].append(i)
