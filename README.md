@@ -32,7 +32,7 @@ It can be challenging to acquire MR images of consistent quality or to decide fo
 https://gin.g-node.org/arefks/AIDAqc_test_data
 
 [<h3><b>CONTACT</h3></b>](https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/)
-Aref Kalantari (aref.kalantari-sarcheshmeh@uk-koeln.de) and Markus Aswendt (markus.aswendt@uk-koeln.de)
+Aref Kalantari (aref.kalantari-sarcheshmehATuk-koeln.de) and Markus Aswendt (markus.aswendtATuk-koeln.de)
 
 <h3><b>LICENSE</h3></b>
 
