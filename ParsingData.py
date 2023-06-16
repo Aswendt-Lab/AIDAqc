@@ -170,6 +170,11 @@ if __name__ == "__main__":
 
     elif format_type=="nifti":
 
+        DTI_string = ["DTI","STRUCT","DWI"]
+        FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
+        T2_string = ["T2","T1","ANAT","RARE","TURBO"]
+        LOC_string = ["LOC"]
+
         PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
@@ -184,17 +189,44 @@ if __name__ == "__main__":
 #         text_files2 = [os.path.split(t)[-1] for t in text_files]
 #         text_files3,Index = np.unique(text_files2,return_index=True)
 #         text_files = [text_files[ii] for ii in Index]        
-# =============================================================================
+# ============================================================================
+
 
         for i,T in enumerate(Types_new):
             globals()['df'+ str(i)] = pd.DataFrame(ABook[T])        
+        
         for i in text_files :
-
-            if "DTI" in i.upper() or "structur".upper() in i.upper():
+            
+            
+            for rr,Q in enumerate(i.split(os.sep)):
+                temp = i.split(os.sep)[-rr].upper()
+    
+                Flag_anat = any([(aa in temp) for aa in T2_string])
+                Flag_struct = any([(aa in temp) for aa in DTI_string])
+                Flag_func = any([(aa in temp) for aa in FMRI_string])
+                Flag_loc = any([(aa in temp) for aa in LOC_string])
+                
+                if any([Flag_anat,Flag_struct,Flag_func]):
+                    break
+                elif Flag_loc:
+                    continue
+            
+            if not any([Flag_anat,Flag_struct,Flag_func]):
+                print("The sequence type is ambiguous between registered nifti files.")
+                print("To solve this problem use the following names to define sequences in ther path name:")
+                print(DTI_string)
+                print(FMRI_string)
+                print(T2_string)
+                print('Avoide using "EPI"!')
+                
+                break
+                
+            
+            if Flag_struct:
                 ABook["DTI"].append(i)
-            elif "FMRI" in i.upper() or "BOLD" in i.upper() or "function".upper() in i.upper() or "EPI" in i.upper():
+            if Flag_func:
                 ABook["rsfMRI"].append(i)
-            elif "T2" in i.upper() or "T1" in i.upper() and not ("Localizer".upper() in i.upper()):
+            if Flag_anat:
                 ABook["T2w"].append(i)
 
         #saving in csv file
