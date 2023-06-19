@@ -410,7 +410,7 @@ def getrange(numbers):
 def QCPlot(Path):
     
     saving_path = (Path) 
-    QC_fig_path =os.path.join( (Path) , "QCfigures")
+    QC_fig_path = os.path.join( (Path) , "QCfigures")
     if not os.path.isdir(QC_fig_path):
         os.mkdir(QC_fig_path)
 
@@ -454,14 +454,23 @@ def QCPlot(Path):
         for cc,C in enumerate(COL):
            
             Data = list(d[C])
+            if not isinstance(Data[1], str):
+                if sum(np.isnan(Data))> 0.75*len(Data):
+                    print("Column contains only nan values. Skipping to next column")
+                    continue
             
             
-            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C =='SNR Normal':
+            
+            
+            
+            
+            
+            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C =='SNR Normal' or C == 'Displacement factor (std of Mutual information)':
              
              #plot histogrm
                 plt.figure(hh,figsize=(10,5))
                 ax2 = plt.subplot(1,1,1, label="histogram")
-                for dd,DD in enumerate(Data):
+                for dd,DD in enumerate(Data): #If tSNR and SNR chang are also adjusted this section can be eliminated
                     if DD == np.inf:
                         Data[dd] = np.nan
                 
@@ -509,7 +518,7 @@ def QCPlot(Path):
                 plt.savefig(os.path.join(QC_fig_path,C+N+".svg"),dpi=250)
                 plt.close()
                    # plt.savefig(os.path.dirname(Path) + "\ResHomogenity.png",dpi=300)
-               
+           
     hh = hh + 1           
     plt.figure(hh,figsize=(14, 10))
     for nn,N in enumerate(Names):
@@ -549,9 +558,17 @@ def ML(Path) :
         
        csv_path=os.path.join(Path,csv)
        Abook= pd.read_csv(csv_path)
-       Abook= Abook.dropna()
+       if np.any(Abook.isnull().all()[:]):
+           print("The following csv file contains nan values for one of its features:")
+           print(csv_path)
+           print("Voting can not be conducted.")
+           print("Analyzing next sequence...")
+           continue
+                 
+       Abook= Abook.dropna(how='all',axis='columns')
+       Abook= Abook.dropna(how='any')
        address= [i for i in Abook.iloc[:,1]]
-       X =  Abook.iloc[:,4:]
+       X =  Abook.iloc[:,5:]
        #X=preprocessing.normalize(X)
 ############## Fit the One-Class SVM 
        nu = 0.05
