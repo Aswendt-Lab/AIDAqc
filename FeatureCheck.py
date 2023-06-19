@@ -94,10 +94,12 @@ def CheckingRawFeatures(Path):
                             input_file = nii.squeeze_image(pv.nim)
                         except ValueError:
                             ErorrList.append(tf)
+                            print(tf)
                             print("Value Error: catched")
                             continue
                         except SystemError:
                             ErorrList.append(tf)
+                            print(tf)
                             print("System Error: catched")
                             continue
                         
@@ -303,8 +305,13 @@ def CheckingNiftiFeatures(Path):
                     if  "fMRI".upper() in tf.upper():
                         N="rsfMRI"
                     tf = os.path.normpath(tf)
-                    input_file= nib.load(tf)
-                   
+                    try:
+                        input_file= nib.load(tf)
+                    except nib.loadsave.ImageFileError:
+                        print("could not load the following file (check the size of the file):")
+                        print(tf)
+                        continue
+                    
                     ########### Slice extraction 
                     selected_img = Image_Selection(input_file)                    
                     qc_path = os.path.join(Path,"manual_slice_inspection")
