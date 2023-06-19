@@ -559,7 +559,7 @@ def ML(Path) :
        csv_path=os.path.join(Path,csv)
        Abook= pd.read_csv(csv_path)
        if np.any(Abook.isnull().all()[:]):
-           print("The following csv file contains nan values for one of its features:")
+           print("The following csv file contains nan values for one or more of its features:")
            print(csv_path)
            print("Voting can not be conducted.")
            print("Analyzing next sequence...")
