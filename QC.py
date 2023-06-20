@@ -373,7 +373,7 @@ def Ismovement(input_file):
         IM = IM.reshape((S[0],S[1],1,S[2]))
     
     
-    if IM.shape[-1] < 10 :
+    if IM.shape[-1] < 11 :
         fff = 0
     else:
         fff = 10
