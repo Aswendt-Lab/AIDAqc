@@ -66,7 +66,7 @@ if __name__ == "__main__":
     Types_new = ['DTI','rsfMRI','T2w']
   
     if format_type== "raw":
-        PathALL = os.path.join(initial_path,"**","method")
+        PathALL = os.path.join(initial_path,"**","acqp")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
@@ -78,32 +78,49 @@ if __name__ == "__main__":
         ErrorList =[]
         CheckDates = []
         C = 0
+        DTI_string = ["DTI","STRUCT","DWI"]
+        FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
+        T2_string = ["T2","T1","ANAT","RARE","TURBO"]
+        NotAllowed = ["LOC","PIL","FISP","MAP","wobb"]
+        #EPI_flag = ["EPI"]
+        
+        
         for i in range(len(Types)):         #Creation of Adress Book
             ABook[Types[i]] = []
     
     
-        with ap.alive_bar(kall, title='Extracting T2w, DTI and fmri files:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
+        with ap.alive_bar(kall, title='Extracting T1 or T2 weighted, structural and functional sequences:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
             for p in text_files:   #filling the Address Book with wanted files
             
                 try:
                 
                     NameTemp = par.read_param_file(p)
-                    MN = NameTemp[1]["Method"]  #Here we check what the name of the sequence is
+                    MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
+                    MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
+                    KEY = MN + MN2
                     DateTemp = NameTemp[0]['Date'] #Here we check the date of the measurement
                     Ans = []
-                except SystemExit:
+                except KeyError:
+                    print(p)
                     ErrorList.append(p)
                 
+                Flag_anat = any([(aa in KEY) for aa in T2_string])
+                Flag_struct = any([(aa in KEY) for aa in DTI_string])
+                Flag_func = any([(aa in KEY) for aa in FMRI_string])
+                Flag_notAllowed = any([(aa in KEY) for aa in NotAllowed])
+                Flag_epi = "EPI" in KEY
+                if Flag_epi:
+                    print("EPI sequence names might be problematic. Please contact us...")
             
                 if DateTemp not in CheckDates:
                     
-                    if "DTI" in MN.upper():
+                    if Flag_struct and not Flag_notAllowed:
                         ABook["Dti"].append(os.path.dirname(p))
                         C = C+1
-                    if "EPI" in MN.upper() and not "DTI" in MN.upper():
+                    if Flag_func and not Flag_notAllowed:
                         ABook["EPI"].append(os.path.dirname(p))
                         C = C+1
-                    if "RARE" in MN.upper():
+                    if Flag_anat and not Flag_notAllowed:
                         ABook["RARE"].append(os.path.dirname(p))
                         C = C+1
                     
@@ -244,7 +261,7 @@ if __name__ == "__main__":
     #print('\nChosen Sequences are: ')
     #print(sequence_types)
     print('\nCalculating features...\n'.upper())
-    print('This might take some time (hours/days) if the dataset is large enough!:) ...\n\n')
+    print('This might take some time (hours/days) depending on the size of the dataset!:) ...\n\n')
     if format_type=="raw":
         fc.CheckingRawFeatures(saving_path)
         QC.toc()
