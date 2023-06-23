@@ -22,7 +22,7 @@ import FeatureCheck as fc
 if __name__ == "__main__":
         
     parser = argparse.ArgumentParser(description='Parser of all MR files: Description:\
-          This code will parse through every possible folder after a defined initial path,\
+          This code will parse through every possible folder behind a defined initial path,\
      looking for MR data files of any type. Then it will extract the wanted files \
      and eliminate any duplicates(ex:python ParsingData.py -i C:\BME\aida\raw_data -o C:\BME\aida\raw_data -f raw.')
     parser.add_argument('-i','--initial_path',required=True, \
@@ -30,14 +30,14 @@ if __name__ == "__main__":
     parser.add_argument('-o','--output_path',required=True,\
                         help='Set the path where the results should be saved')
     parser.add_argument('-f','--format_type',\
-                        help="you need to tell what kind of format your images are :\
+                        help="the format tye your dataset has :\
                             nifti or raw",type=str,required=True,choices=["nifti","raw"])  
    # parser.add_argument('-t','--sequence_types',\
    #                     help="you need to tell what kind of Sequences should be used in \
    #                          for processing the dataset:\
    #                         T2w, DTI, fmri",type=str,required=False,choices=["T2w","DTI","fMRI"],default=["T2w","DTI","fMRI"])  
     parser.add_argument('-s','--suffix',\
-                        help="If necessery you can specify what kind of sufix the data to look for should have :\
+                        help="If necessary you can specify what kind of suffix the data to look for should have :\
                             for example: -s test , this means it will only look for data that have this\
                                 suffix befor the .nii.gz, meaning test.nii.gz",type=str, required=False, default="")  
                                                   
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     QC.tic()
     print("Hello! Are you ready to get rid of bad quality data?")
     print('------------------------------------------------------------')
-    print('Thank you for using our Code. Contact:')
+    print('Thank you for using our code. Contact:')
     print('aref.kalantari-sarcheshmeh@uk-koeln.de / markus.aswendt@uk-koeln.de')
     print('Lab: AG Neuroimaging and Neuroengineering of Experimental Stroke, University Hospital Cologne')
     print('Web: https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             text_files = glob.glob(PathALL, recursive = True)
             kall = len(text_files)
         
-        print(( 'Total number of '+ str(kall) + ' files were found:'+' Parsing finished! '.upper()).upper())
+        print(( 'Total number of '+ str(kall) + ' files were found:'+' parsing finished! '.upper()).upper())
     
         #%% Extrtacting usable data
         ABook = {}
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         M = dict.fromkeys(CheckDates)
         
         print(' '+str(C)+' files were extracted! %%%'.upper())
-        print((' ' + str(len(CheckDates)-len(M))+ ' Duplicates were Eliminated! %%%').upper())
+        print((' ' + str(len(CheckDates)-len(M))+ ' duplicates were eliminated! %%%').upper())
         #%% Saving parsed files 
        
         #saving in csv file
@@ -234,7 +234,7 @@ if __name__ == "__main__":
                 print(DTI_string)
                 print(FMRI_string)
                 print(T2_string)
-                print('Avoide using "EPI"!')
+                print('Avoid using "EPI"!')
                 
                 break
                 
@@ -301,7 +301,7 @@ if __name__ == "__main__":
     print('\n\n%%%%%%%%%%%%%Quality feature plots were successfully created and saved%%%%%%%%%%%%%%%\n\n'.upper())
     
     print('------------------------------------------------------------')
-    print('Thank you for using our Code. For questions please contact us over:')
+    print('Thank you for using our code. For questions please contact us via:')
     print('aref.kalantari-sarcheshmeh@uk-koeln.de or markus.aswendt@uk-koeln.de')
     print('Lab: AG Neuroimaging and neuroengineering of experimental stroke University Hospital Cologne')
     print('Web:https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
