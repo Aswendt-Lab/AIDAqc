@@ -254,7 +254,7 @@ def snrCalclualtor_normal(input_file):
     Noise_std = np.std(np.array([n1,n2,n3,n4,n5,n6,n7,n8]))
     #show_slices([n8[:,:,3],np.squeeze(imgData[:,:,3])])
     #plt.show()
-    SNR = Singal/Noise_std
+    SNR = 20 * np.log10(Singal/Noise_std)
     if np.isinf(SNR):
         SNR = np.nan
         print("Impossible: Infinite values were the result of SNR")
