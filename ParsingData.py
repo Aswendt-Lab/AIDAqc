@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument('-o','--output_path',required=True,\
                         help='Set the path where the results should be saved')
     parser.add_argument('-f','--format_type',\
-                        help="the format tye your dataset has :\
+                        help="the format your dataset has:\
                             nifti or raw",type=str,required=True,choices=["nifti","raw"])  
    # parser.add_argument('-t','--sequence_types',\
    #                     help="you need to tell what kind of Sequences should be used in \
