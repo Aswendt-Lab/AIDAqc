@@ -221,8 +221,24 @@ def CheckingRawFeatures(Path):
             elif N=="rsfMRI":
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
                 df.to_csv(fmri_result)
-        
-          
+
+
+            dfNewError = pd.DataFrame(ErorrList, index=[0])
+            
+            # Find the existing file path
+            existing_file = None
+            for root, dirs, files in os.walk(saving_path):
+                if "CanNotOpenTheseFiles.csv" in files:
+                    existing_file = os.path.join(root, "CanNotOpenTheseFiles.csv")
+                    break
+            
+            if existing_file:
+                dfNewError.to_csv(existing_file, mode='a', header=False, index=False)
+                #print('\n\nNew data appended to the CSV file: ' + existing_file)
+            else:
+                new_file_path = os.path.join(saving_path, "CanNotOpenTheseFiles.csv")
+                dfNewError.to_csv(new_file_path, index=False)
+                #print('\n\nNew CSV file created: ' + new_file_path)      
     
     print('\n\noutput files was created:' + str(Path))
     
@@ -420,7 +436,23 @@ def CheckingNiftiFeatures(Path):
             elif N=="rsfMRI":
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
                 df.to_csv(fmri_result)
-        
+
+            dfNewError = pd.DataFrame(ErorrList, index=[0])
+            
+            # Find the existing file path
+            existing_file = None
+            for root, dirs, files in os.walk(saving_path):
+                if "CanNotOpenTheseFiles.csv" in files:
+                    existing_file = os.path.join(root, "CanNotOpenTheseFiles.csv")
+                    break
+            
+            if existing_file:
+                dfNewError.to_csv(existing_file, mode='a', header=False, index=False)
+                #print('\n\nNew data appended to the CSV file: ' + existing_file)
+            else:
+                new_file_path = os.path.join(saving_path, "CanNotOpenTheseFiles.csv")
+                dfNewError.to_csv(new_file_path, index=False)
+                #print('\n\nNew CSV file created: ' + new_file_path)         
     
     print('\n\noutput file was created:' + str(Path))
     

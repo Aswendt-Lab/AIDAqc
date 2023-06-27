@@ -65,7 +65,7 @@ if __name__ == "__main__":
     Types = ['Dti','EPI','RARE']
     Types_new = ['DTI','rsfMRI','T2w']
   
-    if format_type== "raw":
+    if format_type == "raw":
         PathALL = os.path.join(initial_path,"**","acqp")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         DTI_string = ["DTI","STRUCT","DWI"]
         FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
         T2_string = ["T2","T1","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","wobb"]
+        NotAllowed = ["LOC","PIL","FISP","MAP","WOB"]
         #EPI_flag = ["EPI"]
         
         
@@ -90,6 +90,7 @@ if __name__ == "__main__":
     
     
         with ap.alive_bar(kall, title='Extracting T1 or T2 weighted, structural and functional sequences:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
+            
             for p in text_files:   #filling the Address Book with wanted files
             
                 try:
@@ -109,8 +110,7 @@ if __name__ == "__main__":
                 Flag_func = any([(aa in KEY) for aa in FMRI_string])
                 Flag_notAllowed = any([(aa in KEY) for aa in NotAllowed])
                 Flag_epi = "EPI" in KEY
-                if Flag_epi:
-                    print("EPI sequence names might be problematic. Please contact us...")
+                
             
                 if DateTemp not in CheckDates:
                     
@@ -137,6 +137,8 @@ if __name__ == "__main__":
                     
                 CheckDates.append(DateTemp)
                 bar()
+            if Flag_epi:
+                    print("EPI sequence names 'might' be problematic.")
         M = dict.fromkeys(CheckDates)
         
         print(' '+str(C)+' files were extracted! %%%'.upper())
@@ -189,8 +191,8 @@ if __name__ == "__main__":
 
         DTI_string = ["DTI","STRUCT","DWI"]
         FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
-        T2_string = ["T2","T1","ANAT","RARE","TURBO"]
-        LOC_string = ["LOC"]
+        T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
+        NotAllowed = ["LOC","PIL","FISP","MAP","WOB"]
 
         PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
@@ -221,29 +223,28 @@ if __name__ == "__main__":
                 Flag_anat = any([(aa in temp) for aa in T2_string])
                 Flag_struct = any([(aa in temp) for aa in DTI_string])
                 Flag_func = any([(aa in temp) for aa in FMRI_string])
-                Flag_loc = any([(aa in temp) for aa in LOC_string])
+                Flag_notAllowed = any([(aa in temp) for aa in NotAllowed])
                 
-                if any([Flag_anat,Flag_struct,Flag_func]):
+                if any([Flag_anat,Flag_struct,Flag_func,Flag_notAllowed]):
                     break
-                elif Flag_loc:
-                    continue
+
             
             if not any([Flag_anat,Flag_struct,Flag_func]):
+                continue
                 print("The sequence type is ambiguous between registered nifti files.")
                 print("To solve this problem use the following names to define sequences in ther path name:")
                 print(DTI_string)
                 print(FMRI_string)
                 print(T2_string)
                 print('Avoid using "EPI"!')
-                
-                break
-                
             
-            if Flag_struct:
+                
+              
+            if Flag_struct and not Flag_notAllowed:
                 ABook["DTI"].append(i)
-            if Flag_func:
+            if Flag_func and not Flag_notAllowed:
                 ABook["rsfMRI"].append(i)
-            if Flag_anat:
+            if Flag_anat and not Flag_notAllowed:
                 ABook["T2w"].append(i)
 
         #saving in csv file
