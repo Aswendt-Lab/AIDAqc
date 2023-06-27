@@ -105,6 +105,7 @@ def CheckingRawFeatures(Path):
                         
                     else:
                         ErorrList.append(tf)
+                        print("No Visu_pars file found")
                         kk = kk+1
                         continue
                    
