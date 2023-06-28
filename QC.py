@@ -131,7 +131,8 @@ def snrCalclualtor_chang(input_file):
     imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
     Sone = len(imgData.shape)
     if Sone < 3:
-       imgData = np.tile(imgData[:, :, np.newaxis], (1, 1, 10))
+        estStdChang = np.nan
+        return snrCh
         
     
     snr_chang_slice_vec = []
