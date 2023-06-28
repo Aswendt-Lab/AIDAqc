@@ -29,7 +29,7 @@ See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAq
 It can be challenging to acquire MR images of consistent quality or to decide between good vs. bad quality data in large databases. Manual screening without quantitative criteria is strictly user-dependent and for large databases is neither practical nor in the spirit of good scientific practice. In contrast to clinical MRI, in animal MRI, there is no consensus on the standardization of quality control measures or categorization of good vs. bad quality images. As we were forced for a recent project to screen hundreds of scans, we decided to automate this process as part of our Atlas-based Processing Pipeline (AIDA).
 
 <h3>Download test dataset</h3>
-[https://gin.g-node.org/Aswendt_Lab/AIDAqc_testdata](https://gin.g-node.org/Aswendt_Lab/testdata_aidaqc)
+https://gin.g-node.org/Aswendt_Lab/testdata_aidaqc
 
 [<h3><b>CONTACT</h3></b>](https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/)
 Aref Kalantari (aref.kalantari-sarcheshmehATuk-koeln.de) and Markus Aswendt (markus.aswendtATuk-koeln.de)
