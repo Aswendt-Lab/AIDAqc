@@ -31,7 +31,7 @@ if __name__ == "__main__":
                         help='Set the path where the results should be saved')
     parser.add_argument('-f','--format_type',\
                         help="the format your dataset has:\
-                            nifti or raw",type=str,required=True,choices=["nifti","raw"])  
+                            nifti or raw Bruker",type=str,required=True,choices=["nifti","raw"])  
    # parser.add_argument('-t','--sequence_types',\
    #                     help="you need to tell what kind of Sequences should be used in \
    #                          for processing the dataset:\
@@ -66,6 +66,9 @@ if __name__ == "__main__":
     Types_new = ['DTI','rsfMRI','T2w']
   
     if format_type == "raw":
+        
+        
+        
         PathALL = os.path.join(initial_path,"**","acqp")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
             text_files = glob.glob(PathALL, recursive = True)
@@ -152,11 +155,11 @@ if __name__ == "__main__":
                  csv_path= "raw_data_addreses_"+Types_new[n]+".csv"
                  csv_path= os.path.join(saving_path,csv_path)
                  addreses.to_csv(csv_path, sep=',',index=False)
-
-        dfError = pd.DataFrame()
-        dfError['ErrorData'] = ErrorList
-        eror= os.path.join(saving_path,"CanNotOpenTheseFiles.csv")
-        dfError.to_csv(eror,index=False)
+        if ErrorList:
+            dfError = pd.DataFrame()
+            dfError['ErrorData'] = ErrorList
+            eror= os.path.join(saving_path,"CanNotOpenTheseFiles.csv")
+            dfError.to_csv(eror,index=False)
 
         print('\n\ncsv files were created:' + str(saving_path))
         print('\n\n%%%%%%%%%%%%% End of stage 1 %%%%%%%%%%%%%%%'.upper())

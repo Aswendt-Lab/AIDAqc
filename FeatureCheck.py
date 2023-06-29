@@ -180,12 +180,6 @@ def CheckingRawFeatures(Path):
                     text_files_new.append(tf)
                     SpatRes_vec.append(SpatRes)
                     GMetric_vec.append(GMetric)
-                    
-            # Saving parsed files to excel sheets
-            #AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),np.array(GMV_all),np.array(snr_normal_vec)]        
-            
-            # using the savetxt 
-            # from the numpy module
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
@@ -222,24 +216,11 @@ def CheckingRawFeatures(Path):
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
                 df.to_csv(fmri_result)
 
-
-            dfNewError = pd.DataFrame(ErorrList, index=[0])
-            
-            # Find the existing file path
-            existing_file = None
-            for root, dirs, files in os.walk(saving_path):
-                if "CanNotOpenTheseFiles.csv" in files:
-                    existing_file = os.path.join(root, "CanNotOpenTheseFiles.csv")
-                    break
-            
-            if existing_file:
-                dfNewError.to_csv(existing_file, mode='a', header=False, index=False)
-                #print('\n\nNew data appended to the CSV file: ' + existing_file)
-            else:
-                new_file_path = os.path.join(saving_path, "CanNotOpenTheseFiles.csv")
-                dfNewError.to_csv(new_file_path, index=False)
-                #print('\n\nNew CSV file created: ' + new_file_path)      
-    
+    if ErorrList:            
+        dfNewError = pd.DataFrame(ErorrList)
+        new_file_path = os.path.join(saving_path, "CanNotProcessTheseFiles.csv")
+        dfNewError.to_csv(new_file_path)
+      
     print('\n\noutput files was created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%% End of the stage 2 %%%%%%%%%%%%%%%\n\n'.upper())
@@ -437,23 +418,11 @@ def CheckingNiftiFeatures(Path):
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
                 df.to_csv(fmri_result)
 
-            dfNewError = pd.DataFrame(ErorrList, index=[0])
-            
-            # Find the existing file path
-            existing_file = None
-            for root, dirs, files in os.walk(saving_path):
-                if "CanNotOpenTheseFiles.csv" in files:
-                    existing_file = os.path.join(root, "CanNotOpenTheseFiles.csv")
-                    break
-            
-            if existing_file:
-                dfNewError.to_csv(existing_file, mode='a', header=False, index=False)
-                #print('\n\nNew data appended to the CSV file: ' + existing_file)
-            else:
-                new_file_path = os.path.join(saving_path, "CanNotOpenTheseFiles.csv")
-                dfNewError.to_csv(new_file_path, index=False)
-                #print('\n\nNew CSV file created: ' + new_file_path)         
-    
+    if ErorrList:            
+        dfNewError = pd.DataFrame(ErorrList)
+        new_file_path = os.path.join(saving_path, "CanNotProcessTheseFiles.csv")
+        dfNewError.to_csv(new_file_path)
+
     print('\n\noutput file was created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%% End of the stage 2 %%%%%%%%%%%%%%%\n\n'.upper())

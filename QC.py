@@ -129,9 +129,16 @@ def snrCalclualtor_chang(input_file):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
+    mm = imgData.min()
+    cc = 0
+    while mm < 1:
+        mm = mm *10
+        cc = cc+1
+    imgData = imgData * (10**cc)
+        
     Sone = len(imgData.shape)
     if Sone < 3:
-        estStdChang = np.nan
+        snrCh = np.nan
         return snrCh
         
     
