@@ -124,15 +124,20 @@ if __name__ == "__main__":
                     if Flag_struct and not Flag_notAllowed:
                         ABook["Dti"].append(os.path.dirname(p))
                         C = C+1
-                    if Flag_func and not Flag_notAllowed:
-                        ABook["EPI"].append(os.path.dirname(p))
+                    elif Flag_func and not Flag_notAllowed:
+                        ABook["EPI"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                         C = C+1
-                    if Flag_anat and not Flag_notAllowed:
+                    elif Flag_anat and not Flag_notAllowed:
                         ABook["RARE"].append(os.path.dirname(p))
                         C = C+1
-                    
-                    
-                        
+                    elif Flag_epi and not Flag_notAllowed:
+                        TP = NameTemp[1]["ACQ_time_points"]
+                        if max(TP) == len(TP)-1 and any(TP):
+                            ABook["EPI"].append(os.path.dirname(p))
+                            C = C+1
+                        elif any(TP):
+                            ABook["Dti"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
+                            C = C+1
                         
                         
  #                   for i,t in enumerate(Types):
