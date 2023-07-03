@@ -47,7 +47,7 @@ def parsePV(filename):
             params['expno'] = [[], tmp[-4]]
             params['procno'] = [[], tmp[-2]]
         except IndexError:
-            params['studyname'] = [[], "leave"]
+            params['studyname'] = [[], "leave"] # This part created an error which is not relevant because visu_parameters are not neccessory for AIDAqc. 
             params['expno'] = [[], "Me"]
             params['procno'] = [[], "alone"]
 
