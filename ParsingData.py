@@ -59,7 +59,11 @@ if __name__ == "__main__":
     print('Lab: AG Neuroimaging and Neuroengineering of Experimental Stroke, University Hospital Cologne')
     print('Web: https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
     print('------------------------------------------------------------')
-
+    #%% Path Construction
+    
+    if not os.path.exists(saving_path):
+        os.mkdir(saving_path)
+    
     #%% Parsing
     
     Types = ['Dti','EPI','RARE']
