@@ -88,7 +88,7 @@ if __name__ == "__main__":
         DTI_string = ["DTI","STRUCT","DWI"]
         FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
         T2_string = ["T2","T1","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","WOB"]
+        NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS"]
         #EPI_flag = ["EPI"]
         
         
@@ -149,8 +149,7 @@ if __name__ == "__main__":
                     
                 CheckDates.append(DateTemp)
                 bar()
-            if Flag_epi:
-                    print("EPI sequence names 'might' be problematic.")
+                
         M = dict.fromkeys(CheckDates)
         
         print(' '+str(C)+' files were extracted! %%%'.upper())
