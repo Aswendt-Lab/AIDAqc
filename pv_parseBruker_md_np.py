@@ -42,9 +42,14 @@ def parsePV(filename):
     #if filename[-9:] == 'visu_pars':
     if 'visu_pars' in filename:
         tmp = lines[6].split('/')
-        params['studyname'] = [[], tmp[-5]]
-        params['expno'] = [[], tmp[-4]]
-        params['procno'] = [[], tmp[-2]]
+        try:
+            params['studyname'] = [[], tmp[-5]]
+            params['expno'] = [[], tmp[-4]]
+            params['procno'] = [[], tmp[-2]]
+        except IndexError:
+            params['studyname'] = [[], "leave"] # This part created an error which is not relevant because visu_parameters are not neccessory for AIDAqc. 
+            params['expno'] = [[], "Me"]
+            params['procno'] = [[], "alone"]
 
     # Remove comment lines
     remove = [] # Index list

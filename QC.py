@@ -129,8 +129,9 @@ def snrCalclualtor_chang(input_file):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
+
     mm = imgData.mean()
-    if mm == 0 :
+    if mm == 0:
         snrCh = np.nan
         return snrCh
     
@@ -556,7 +557,7 @@ def QCPlot(Path):
     plt.close()
     
 
-
+#%%
 # machine learning methods
 def ML(Path) :
 
