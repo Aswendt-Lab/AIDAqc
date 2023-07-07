@@ -310,6 +310,7 @@ def CheckingNiftiFeatures(Path):
                     except nib.loadsave.ImageFileError:
                         print("could not load the following file (check the size of the file):")
                         print(tf)
+                        ErorrList.append(tf)
                         continue
                     
                     ########### Slice extraction 
