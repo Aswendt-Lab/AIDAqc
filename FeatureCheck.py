@@ -50,7 +50,7 @@ def CheckingRawFeatures(Path):
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
             if kk > 0:
-                print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
+                print(str(kk) + 'faulty files were found: All faulty files are available in the Errorlist.csv in the Excel outputs\n')
             
             print(N+' processing... \n')
             
@@ -221,7 +221,7 @@ def CheckingRawFeatures(Path):
         new_file_path = os.path.join(saving_path, "CanNotProcessTheseFiles.csv")
         dfNewError.to_csv(new_file_path)
       
-    print('\n\noutput files was created:' + str(Path))
+    print('\n\noutput files were created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%% End of the stage 2 %%%%%%%%%%%%%%%\n\n'.upper())
    
@@ -268,7 +268,7 @@ def CheckingNiftiFeatures(Path):
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
             if kk > 0:
-                print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
+                print(str(kk) + 'faulty files were found: All faulty files are available in the Errorlist tab in the Excel outputs\n')
             
             print(N+' processing... \n')
             

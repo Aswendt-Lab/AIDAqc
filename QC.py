@@ -153,7 +153,7 @@ def snrCalclualtor_chang(input_file):
         if n_dir < 10 :
             fff = 0
             print()
-            print("Warning: Be aware that the size of the 4th dimension (difusion direction or timepoints) is lower then 10. This might result in unstable values")
+            print("Warning: Be aware that the size of the 4th dimension (difusion direction or timepoints) is less than 10. This might result in unstable values")
             print()
         else:
             fff = 10
@@ -271,7 +271,7 @@ def snrCalclualtor_normal(input_file):
         SNR = np.nan
         print("Impossible: Infinite values were the result of SNR")
         print("Possible reason: already ROI extracted/preprocessed data with zeros around the ROI. S/0=inf'")
-        print("for continuity, inf is replaced with nan ...")
+        print("for continuity, inf is replaced with NaN ...")
     return SNR
 
 
@@ -468,7 +468,7 @@ def QCPlot(Path):
             Data = list(d[C])
             if not isinstance(Data[1], str):
                 if sum(np.isnan(Data))> 0.75*len(Data):
-                    print("Column contains only nan values. Skipping to next column")
+                    print("Column contains only NaN values. Skipping this column")
                     continue
             
             
@@ -571,7 +571,7 @@ def ML(Path) :
        csv_path=os.path.join(Path,csv)
        Abook= pd.read_csv(csv_path)
        if np.any(Abook.isnull().all()[:]):
-           print("The following csv file contains nan values for one or more of its features:")
+           print("The following csv file contains NaN values for one or more of its features:")
            print(csv_path)
            print("Voting can not be conducted.")
            print("Analyzing next sequence...")
