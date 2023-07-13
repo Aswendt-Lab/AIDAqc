@@ -50,7 +50,7 @@ def CheckingRawFeatures(Path):
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
             if kk > 0:
-                print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
+                print(str(kk) + 'faulty files were found: All faulty files are available in the Errorlist.csv in the Excel outputs\n')
             
             print(N+' processing... \n')
             
@@ -106,14 +106,16 @@ def CheckingRawFeatures(Path):
                         
                     else:
                         ErorrList.append(tf)
+                        print("No Visu_pars file found")
                         kk = kk+1
                         continue
                    
-                    Size = ((input_file.get_fdata()).nbytes/(1024*1024))
-                    if Size < 3:
-                        ErorrList.append(tf)
-                        continue
-                    
+# =============================================================================
+#                     Size = ((input_file.get_fdata()).nbytes/(1024*1024))
+#                     if Size < 3:
+#                         ErorrList.append(tf)
+#                         continue
+# =============================================================================
                     ########### Slice extraction 
                     selected_img = Image_Selection(input_file)                    
                     qc_path = os.path.join(saving_path,"manual_slice_inspection")
@@ -126,6 +128,7 @@ def CheckingRawFeatures(Path):
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')
+                    #svg_path = os.path.join(qc_path,+ img_name+".png").replace(".nii","").replace(".gz","")
                     svg_path = os.path.join(qc_path,str(N)+"_"+ img_name+"_"+ str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
                     plt.savefig(svg_path)
@@ -182,12 +185,6 @@ def CheckingRawFeatures(Path):
                     text_files_new.append(tf)
                     SpatRes_vec.append(SpatRes)
                     GMetric_vec.append(GMetric)
-                    
-            # Saving parsed files to excel sheets
-            #AR = [text_files_new,np.array(SpatRes_vec),np.array(snrCh_vec),np.array(LMV_all),np.array(GMV_all),np.array(snr_normal_vec)]        
-            
-            # using the savetxt 
-            # from the numpy module
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
@@ -224,10 +221,13 @@ def CheckingRawFeatures(Path):
             elif N=="rsfMRI":
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
                 df.to_csv(fmri_result)
-        
-          
-    
-    print('\n\noutput files was created:' + str(Path))
+
+    if ErorrList:            
+        dfNewError = pd.DataFrame(ErorrList)
+        new_file_path = os.path.join(saving_path, "CanNotProcessTheseFiles.csv")
+        dfNewError.to_csv(new_file_path)
+      
+    print('\n\noutput files were created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%% End of the stage 2 %%%%%%%%%%%%%%%\n\n'.upper())
    
@@ -274,7 +274,7 @@ def CheckingNiftiFeatures(Path):
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
             if kk > 0:
-                print(str(kk) + 'faulty files were found:All faulty files are available in the Errorlist tab in the Excel outputs\n')
+                print(str(kk) + 'faulty files were found: All faulty files are available in the Errorlist tab in the Excel outputs\n')
             
             print(N+' processing... \n')
             
@@ -315,6 +315,7 @@ def CheckingNiftiFeatures(Path):
                     except nib.loadsave.ImageFileError:
                         print("could not load the following file (check the size of the file):")
                         print(tf)
+                        ErorrList.append(tf)
                         continue
                     
                     ########### Slice extraction 
@@ -428,8 +429,12 @@ def CheckingNiftiFeatures(Path):
             elif N=="rsfMRI":
                 fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
                 df.to_csv(fmri_result)
-        
-    
+
+    if ErorrList:            
+        dfNewError = pd.DataFrame(ErorrList)
+        new_file_path = os.path.join(saving_path, "CanNotProcessTheseFiles.csv")
+        dfNewError.to_csv(new_file_path)
+
     print('\n\noutput file was created:' + str(Path))
     
     print('\n\n%%%%%%%%%%%%% End of the stage 2 %%%%%%%%%%%%%%%\n\n'.upper())

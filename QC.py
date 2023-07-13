@@ -129,9 +129,22 @@ def snrCalclualtor_chang(input_file):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
+
+    mm = imgData.mean()
+    if mm == 0:
+        snrCh = np.nan
+        return snrCh
+    
+    cc = 0
+    while mm < 1:
+        mm = mm *10
+        cc = cc+1
+    imgData = imgData * (10**cc)
+        
     Sone = len(imgData.shape)
     if Sone < 3:
-       imgData = np.tile(imgData[:, :, np.newaxis], (1, 1, 10))
+        snrCh = np.nan
+        return snrCh
         
     
     snr_chang_slice_vec = []
@@ -141,7 +154,7 @@ def snrCalclualtor_chang(input_file):
         if n_dir < 10 :
             fff = 0
             print()
-            print("Warning: Be aware that the size of the 4th dimension (difusion direction or timepoints) is lower then 10. This might result in unstable values")
+            print("Warning: Be aware that the size of the 4th dimension (difusion direction or timepoints) is less than 10. This might result in unstable values")
             print()
         else:
             fff = 10
@@ -254,12 +267,12 @@ def snrCalclualtor_normal(input_file):
     Noise_std = np.std(np.array([n1,n2,n3,n4,n5,n6,n7,n8]))
     #show_slices([n8[:,:,3],np.squeeze(imgData[:,:,3])])
     #plt.show()
-    SNR = Singal/Noise_std
+    SNR = 20 * np.log10(Singal/Noise_std)
     if np.isinf(SNR):
         SNR = np.nan
         print("Impossible: Infinite values were the result of SNR")
         print("Possible reason: already ROI extracted/preprocessed data with zeros around the ROI. S/0=inf'")
-        print("for continuity, inf is replaced with nan ...")
+        print("for continuity, inf is replaced with NaN ...")
     return SNR
 
 
@@ -456,7 +469,7 @@ def QCPlot(Path):
             Data = list(d[C])
             if not isinstance(Data[1], str):
                 if sum(np.isnan(Data))> 0.75*len(Data):
-                    print("Column contains only nan values. Skipping to next column")
+                    print("Column contains only NaN values. Skipping this column")
                     continue
             
             
@@ -544,7 +557,7 @@ def QCPlot(Path):
     plt.close()
     
 
-
+#%%
 # machine learning methods
 def ML(Path) :
 
@@ -559,7 +572,7 @@ def ML(Path) :
        csv_path=os.path.join(Path,csv)
        Abook= pd.read_csv(csv_path)
        if np.any(Abook.isnull().all()[:]):
-           print("The following csv file contains nan values for one or more of its features:")
+           print("The following csv file contains NaN values for one or more of its features:")
            print(csv_path)
            print("Voting can not be conducted.")
            print("Analyzing next sequence...")
