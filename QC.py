@@ -568,7 +568,8 @@ def ML(Path) :
        Abook= Abook.dropna(how='all',axis='columns')
        Abook= Abook.dropna(how='any')
        address= [i for i in Abook.iloc[:,1]]
-       X =  Abook.iloc[:,5:]
+       img_name = [i for i in Abook.iloc[:,2]]
+       X =  Abook.iloc[:,6:]
        #X=preprocessing.normalize(X)
 ############## Fit the One-Class SVM 
        nu = 0.05
@@ -615,6 +616,7 @@ def ML(Path) :
            result[N]["sequence_type"] = t2w    
        
        result[N]["Pathes"] = address
+       result[N]["img"] = img_name
         
     return(result)
 
@@ -745,7 +747,7 @@ def QCtable(Path):
             
     ML_algorythms["statistical_method"]= statiscal    
     ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]].sum(axis=1))              
-    ML_algorythms= ML_algorythms[["Pathes","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
+    ML_algorythms= ML_algorythms[["Pathes","img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
     ML_algorythms["Voting outliers (from 5)"]=   ML_number 
     ML_algorythms= ML_algorythms[ML_algorythms["Voting outliers (from 5)"]>=1]
     final_result = os.path.join(Path,"votings.csv")

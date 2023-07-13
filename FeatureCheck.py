@@ -67,6 +67,7 @@ def CheckingRawFeatures(Path):
             GMV_all = []
             Max_mov_between_all = []
             text_files_new = []
+            img_names_new = []
             GMetric_vec =  []
             kk = 0
             i=1
@@ -119,6 +120,8 @@ def CheckingRawFeatures(Path):
                     if not os.path.isdir(qc_path):
                         os.mkdir(qc_path)
                     img_name = str.split(tf,os.sep)[-2]
+                    full_img_name = img_name+"_"+ str(dd)+".png".replace(".nii","").replace(".gz","")
+                    img_names_new.append(full_img_name) 
                     
                     #plt.figure()          
                     plt.axis('off')
@@ -188,6 +191,7 @@ def CheckingRawFeatures(Path):
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
+            df["img name"] = img_names_new
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
@@ -287,6 +291,7 @@ def CheckingNiftiFeatures(Path):
             GMV_all = []
             Max_mov_between_all = []
             text_files_new = []
+            img_names_new = []
             GMetric_vec =  []
             kk = 0
             i=1
@@ -319,6 +324,9 @@ def CheckingNiftiFeatures(Path):
                         os.mkdir(qc_path)
                     img_name = str.split(tf,os.sep)[-1]
                     folder_name = str.split(tf,os.sep)[-2] 
+                    full_img_name = (folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
+                    img_names_new.append(full_img_name)
+                    
                     #plt.figure()          
                     plt.axis('off')
                     plt.imshow(selected_img,cmap='gray')
@@ -386,6 +394,7 @@ def CheckingNiftiFeatures(Path):
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
+            df["img name"] = img_names_new
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
