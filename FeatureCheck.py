@@ -50,7 +50,7 @@ def CheckingRawFeatures(Path):
     for ii,N in enumerate(Names):
         if N != 'ErrorData':
             if kk > 0:
-                print(str(kk) + 'faulty files were found: All faulty files are available in the Errorlist.csv in the Excel outputs\n')
+                print(str(kk) + ' 1 faulty file(s) were found. Note: these files will be listed in CanNotProcessTheseFiles.csv \n')
             
             print(N+' processing... \n')
             

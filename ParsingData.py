@@ -168,6 +168,7 @@ if __name__ == "__main__":
             dfError = pd.DataFrame()
             dfError['ErrorData'] = ErrorList
             eror= os.path.join(saving_path,"CanNotOpenTheseFiles.csv")
+            print("Some data could not be opened by the pipline- Check CanNotOpenTheseFiles.csv for more information")
             dfError.to_csv(eror,index=False)
 
         print('\n\ncsv files were created:' + str(saving_path))
@@ -274,7 +275,7 @@ if __name__ == "__main__":
     #print('\nChosen Sequences are: ')
     #print(sequence_types)
     print('\nCalculating features...\n'.upper())
-    print('This might take some time (hours/days) depending on the size of the dataset!:) ...\n\n')
+    print('This will take some time depending on the size of the dataset. See the progress bar below.\n\n')
     if format_type=="raw":
         fc.CheckingRawFeatures(saving_path)
         QC.toc()
