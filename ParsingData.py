@@ -39,7 +39,14 @@ if __name__ == "__main__":
     parser.add_argument('-s','--suffix',\
                         help="If necessary you can specify what kind of suffix the data to look for should have :\
                             for example: -s test , this means it will only look for data that have this\
-                                suffix befor the .nii.gz, meaning test.nii.gz",type=str, required=False, default="")  
+                                suffix befor the .nii.gz, meaning test.nii.gz",type=str, required=False, default="")
+                                                  
+    parser.add_argument('-e','--exclude',\
+                        help="If you have a specific sequence which you don't want to include in the analysis you can name it here as a string.\
+                            for example, you have some resting state scans. One of them has the name 'rsfmri_Warmup' as its Protocol or sequence\
+                                name or file name (in the case of Niftis)). The program will automatically categorize it as an fMRI scan. \
+                                    You can set this parameter to exclude some sequences. Here you would do: --exclude Warmup, then it will\
+                                        exclude those scans",type=str, required=False,nargs='+')
                                                   
     
     
@@ -47,6 +54,8 @@ if __name__ == "__main__":
     initial_path = args.initial_path
     saving_path = args.output_path
     format_type= args.format_type
+    exclude_param = args.exclude
+    print(exclude_param)
     #sequence_types = args.sequence_types
     suffix = args.suffix
     #%% Information for the user 
@@ -59,6 +68,14 @@ if __name__ == "__main__":
     print('Lab: AG Neuroimaging and Neuroengineering of Experimental Stroke, University Hospital Cologne')
     print('Web: https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
     print('------------------------------------------------------------')
+    
+    DTI_string = ["DTI","STRUCT","DWI"]
+    FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
+    T2_string = ["T2","T1","ANAT","RARE","TURBO"]
+    NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS","SINGL","MRS"]
+    if exclude_param:
+        NotAllowed = NotAllowed + [e.upper() for e in exclude_param]
+    
     #%% Path Construction
     
     if not os.path.exists(saving_path):
@@ -85,10 +102,7 @@ if __name__ == "__main__":
         ErrorList =[]
         CheckDates = []
         C = 0
-        DTI_string = ["DTI","STRUCT","DWI"]
-        FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
-        T2_string = ["T2","T1","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS","SINGL","MRS"]
+        
         #EPI_flag = ["EPI"]
         
         
@@ -202,10 +216,7 @@ if __name__ == "__main__":
 
     elif format_type=="nifti":
 
-        DTI_string = ["DTI","STRUCT","DWI"]
-        FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
-        T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS","SINGL","MRS"]
+        
 
         PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
