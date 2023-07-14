@@ -86,9 +86,9 @@ if __name__ == "__main__":
         CheckDates = []
         C = 0
         DTI_string = ["DTI","STRUCT","DWI"]
-        FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
+        FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
         T2_string = ["T2","T1","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS"]
+        NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS","SINGL","MRS"]
         #EPI_flag = ["EPI"]
         
         
@@ -127,16 +127,17 @@ if __name__ == "__main__":
                     elif Flag_func and not Flag_notAllowed:
                         ABook["EPI"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                         C = C+1
-                    elif Flag_anat and not Flag_notAllowed:
+                    elif Flag_anat and not Flag_notAllowed and not Flag_epi: #T2Star EPIS are usually rsfmri scans
                         ABook["RARE"].append(os.path.dirname(p))
                         C = C+1
                     elif Flag_epi and not Flag_notAllowed:
                         TP = NameTemp[1]["ACQ_time_points"]
-                        if max(TP) == len(TP)-1 and any(TP):
-                            ABook["EPI"].append(os.path.dirname(p))
+                        MF = NameTemp[1]["ACQ_n_movie_frames"]
+                        if MF != len(TP):
+                            ABook["EPI"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                             C = C+1
-                        elif any(TP):
-                            ABook["Dti"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
+                        elif MF == len(TP):
+                            ABook["Dti"].append(os.path.dirname(p)) 
                             C = C+1
                         
                         
@@ -201,9 +202,9 @@ if __name__ == "__main__":
     elif format_type=="nifti":
 
         DTI_string = ["DTI","STRUCT","DWI"]
-        FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
+        FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
         T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","WOB"]
+        NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS","SINGL","MRS"]
 
         PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
