@@ -115,7 +115,6 @@ if __name__ == "__main__":
             for p in text_files:   #filling the Address Book with wanted files
             
                 try:
-                    print(p)
                     NameTemp = par.read_param_file(p)
                     MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
                     MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
@@ -123,6 +122,11 @@ if __name__ == "__main__":
                     DateTemp = NameTemp[0]['Date'] #Here we check the date of the measurement
                     Ans = []
                 except KeyError:
+                    print("KeyError")
+                    print(p)
+                    ErrorList.append(p)
+                except UnicodeDecodeError:
+                    print("UnicodeDecodeError")
                     print(p)
                     ErrorList.append(p)
                 

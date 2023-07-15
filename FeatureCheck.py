@@ -93,14 +93,19 @@ def CheckingRawFeatures(Path):
                             pv.read_2dseq(map_raw=False, pv6=False)
                             input_file = nii.squeeze_image(pv.nim)
                         except ValueError:
-                            ErorrList.append(tf)
+                            ErorrList.append(tf+"_Value Error")
                             print(tf)
                             print("Value Error: catched")
                             continue
                         except SystemError:
-                            ErorrList.append(tf)
+                            ErorrList.append(tf+"_System Error")
                             print(tf)
                             print("System Error: catched")
+                            continue
+                        except KeyError:
+                            ErorrList.append(tf+"_KeyError")
+                            print(tf)
+                            print("KeyError: catched")
                             continue
                         
                     else:
@@ -146,7 +151,7 @@ def CheckingRawFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    if N == 'DTI':
+                    elif N == 'DTI':
                         # Signal 2 noise ratio
                         #print(tf)
                         snrCh = snrCalclualtor_chang(input_file)
@@ -161,7 +166,7 @@ def CheckingRawFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    if N == 'rsfMRI':
+                    elif N == 'rsfMRI':
                         #temporal signal 2 noise ratio
                         #print(tf)
                         tSNR = TsnrCalclualtor(input_file)
@@ -297,13 +302,15 @@ def CheckingNiftiFeatures(Path):
                 for tf in text_files:
 
                     tf = str(tf)
-                   
+                    print(tf)
+                    """
                     if "DTI".upper() in tf.upper() :
-                        N= "DTI"
+                            N= "DTI"
                     if  "T2w".upper() in tf.upper():
-                        N="T2w"
+                            N="T2w"
                     if  "fMRI".upper() in tf.upper():
-                        N="rsfMRI"
+                            N="rsfMRI"
+                    """
                     tf = os.path.normpath(tf)
                     try:
                         input_file= nib.load(tf)
@@ -342,7 +349,7 @@ def CheckingNiftiFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    if N == 'DTI':
+                    elif N == 'DTI':
                         # Signal 2 noise ratio
                         
                         snrCh = snrCalclualtor_chang(input_file)
@@ -356,7 +363,7 @@ def CheckingNiftiFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    if N == 'rsfMRI':
+                    elif N == 'rsfMRI':
                         #temporal signal 2 noise ratio
                         tSNR = TsnrCalclualtor(input_file)
                         Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
