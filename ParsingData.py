@@ -71,7 +71,7 @@ if __name__ == "__main__":
     
     DTI_string = ["DTI","STRUCT","DWI"]
     FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
-    T2_string = ["T2","T1","ANAT","RARE","TURBO"]
+    T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
     NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS","SINGL","MRS"]
     if exclude_param:
         NotAllowed = NotAllowed + [e.upper() for e in exclude_param]
@@ -115,7 +115,7 @@ if __name__ == "__main__":
             for p in text_files:   #filling the Address Book with wanted files
             
                 try:
-                
+                    print(p)
                     NameTemp = par.read_param_file(p)
                     MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
                     MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
