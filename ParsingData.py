@@ -39,7 +39,14 @@ if __name__ == "__main__":
     parser.add_argument('-s','--suffix',\
                         help="If necessary you can specify what kind of suffix the data to look for should have :\
                             for example: -s test , this means it will only look for data that have this\
-                                suffix befor the .nii.gz, meaning test.nii.gz",type=str, required=False, default="")  
+                                suffix befor the .nii.gz, meaning test.nii.gz",type=str, required=False, default="")
+                                                  
+    parser.add_argument('-e','--exclude',\
+                        help="If you have a specific sequence which you don't want to include in the analysis you can name it here as a string.\
+                            for example, you have some resting state scans. One of them has the name 'rsfmri_Warmup' as its Protocol or sequence\
+                                name or file name (in the case of Niftis)). The program will automatically categorize it as an fMRI scan. \
+                                    You can set this parameter to exclude some sequences. Here you would do: --exclude Warmup, then it will\
+                                        exclude those scans",type=str, required=False,nargs='+')
                                                   
     
     
@@ -47,6 +54,8 @@ if __name__ == "__main__":
     initial_path = args.initial_path
     saving_path = args.output_path
     format_type= args.format_type
+    exclude_param = args.exclude
+    print(exclude_param)
     #sequence_types = args.sequence_types
     suffix = args.suffix
     #%% Information for the user 
@@ -59,6 +68,14 @@ if __name__ == "__main__":
     print('Lab: AG Neuroimaging and Neuroengineering of Experimental Stroke, University Hospital Cologne')
     print('Web: https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
     print('------------------------------------------------------------')
+    
+    DTI_string = ["DTI","STRUCT","DWI"]
+    FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
+    T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
+    NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS","SINGL","MRS"]
+    if exclude_param:
+        NotAllowed = NotAllowed + [e.upper() for e in exclude_param]
+    
     #%% Path Construction
     
     if not os.path.exists(saving_path):
@@ -85,10 +102,7 @@ if __name__ == "__main__":
         ErrorList =[]
         CheckDates = []
         C = 0
-        DTI_string = ["DTI","STRUCT","DWI"]
-        FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
-        T2_string = ["T2","T1","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","WOB","NOIS"]
+        
         #EPI_flag = ["EPI"]
         
         
@@ -101,7 +115,6 @@ if __name__ == "__main__":
             for p in text_files:   #filling the Address Book with wanted files
             
                 try:
-                
                     NameTemp = par.read_param_file(p)
                     MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
                     MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
@@ -109,6 +122,11 @@ if __name__ == "__main__":
                     DateTemp = NameTemp[0]['Date'] #Here we check the date of the measurement
                     Ans = []
                 except KeyError:
+                    print("KeyError")
+                    print(p)
+                    ErrorList.append(p)
+                except UnicodeDecodeError:
+                    print("UnicodeDecodeError")
                     print(p)
                     ErrorList.append(p)
                 
@@ -127,16 +145,17 @@ if __name__ == "__main__":
                     elif Flag_func and not Flag_notAllowed:
                         ABook["EPI"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                         C = C+1
-                    elif Flag_anat and not Flag_notAllowed:
+                    elif Flag_anat and not Flag_notAllowed and not Flag_epi: #T2Star EPIS are usually rsfmri scans
                         ABook["RARE"].append(os.path.dirname(p))
                         C = C+1
                     elif Flag_epi and not Flag_notAllowed:
                         TP = NameTemp[1]["ACQ_time_points"]
-                        if max(TP) == len(TP)-1 and any(TP):
-                            ABook["EPI"].append(os.path.dirname(p))
+                        MF = NameTemp[1]["ACQ_n_movie_frames"]
+                        if MF != len(TP):
+                            ABook["EPI"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                             C = C+1
-                        elif any(TP):
-                            ABook["Dti"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
+                        elif MF == len(TP):
+                            ABook["Dti"].append(os.path.dirname(p)) 
                             C = C+1
                         
                         
@@ -167,6 +186,7 @@ if __name__ == "__main__":
             dfError = pd.DataFrame()
             dfError['ErrorData'] = ErrorList
             eror= os.path.join(saving_path,"CanNotOpenTheseFiles.csv")
+            print("Some data could not be opened by the pipline- Check CanNotOpenTheseFiles.csv for more information")
             dfError.to_csv(eror,index=False)
 
         print('\n\ncsv files were created:' + str(saving_path))
@@ -200,10 +220,7 @@ if __name__ == "__main__":
 
     elif format_type=="nifti":
 
-        DTI_string = ["DTI","STRUCT","DWI"]
-        FMRI_string = ["RESTING","FUN","RS","FMRI","BOLD"]
-        T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
-        NotAllowed = ["LOC","PIL","FISP","MAP","WOB"]
+        
 
         PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
@@ -273,7 +290,7 @@ if __name__ == "__main__":
     #print('\nChosen Sequences are: ')
     #print(sequence_types)
     print('\nCalculating features...\n'.upper())
-    print('This might take some time (hours/days) depending on the size of the dataset!:) ...\n\n')
+    print('This will take some time depending on the size of the dataset. See the progress bar below.\n\n')
     if format_type=="raw":
         fc.CheckingRawFeatures(saving_path)
         QC.toc()
