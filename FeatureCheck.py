@@ -137,7 +137,7 @@ def CheckingRawFeatures(Path):
                     if not os.path.isdir(qc_path):
                         os.mkdir(qc_path)
                     img_name = str.split(tf,os.sep)[-2]
-                    full_img_name = img_name+"_"+ str(dd)+".png".replace(".nii","").replace(".gz","")
+                    full_img_name = str(N)+"_" + img_name+"_"+ str(dd)+".png".replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name) 
                     
                     #plt.figure()          
@@ -343,7 +343,7 @@ def CheckingNiftiFeatures(Path):
                         os.mkdir(qc_path)
                     img_name = str.split(tf,os.sep)[-1]
                     folder_name = str.split(tf,os.sep)[-2] 
-                    full_img_name = (folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
+                    full_img_name = (str(N)+"_"+folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name)
                     
                     #plt.figure()          
