@@ -559,7 +559,7 @@ def QCPlot(Path):
 
 #%%
 # machine learning methods
-def ML(Path) :
+def ML(Path, format_type) :
 
     #prepare data
     #Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
@@ -569,76 +569,83 @@ def ML(Path) :
     result=[]
     for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
         
-       csv_path=os.path.join(Path,csv)
-       Abook= pd.read_csv(csv_path)
-       if np.any(Abook.isnull().all()[:]):
-           print("The following csv file contains NaN values for one or more of its features:")
-           print(csv_path)
-           print("Voting can not be conducted.")
-           print("Analyzing next sequence...")
-           continue
+        csv_path=os.path.join(Path,csv)
+        Abook= pd.read_csv(csv_path)
+        if np.any(Abook.isnull().all()[:]):
+            print("The following csv file contains NaN values for one or more of its features:")
+            print(csv_path)
+            print("Voting can not be conducted.")
+            print("Analyzing next sequence...")
+            continue
                  
-       Abook= Abook.dropna(how='all',axis='columns')
-       Abook= Abook.dropna(how='any')
-       address= [i for i in Abook.iloc[:,1]]
-       img_name = [i for i in Abook.iloc[:,2]]
-       X =  Abook.iloc[:,6:]
+        Abook= Abook.dropna(how='all',axis='columns')
+        Abook= Abook.dropna(how='any')
+        address= [i for i in Abook.iloc[:,1]]
+        if format_type == "raw":
+            sequence_name = [i for i in Abook.iloc[:,2]]
+            img_name = [i for i in Abook.iloc[:,3]]
+            X =  Abook.iloc[:,7:]
+        elif format_type == "nifti":
+            img_name = [i for i in Abook.iloc[:,2]]
+            X =  Abook.iloc[:,6:]
+
        #X=preprocessing.normalize(X)
 ############## Fit the One-Class SVM 
-       nu = 0.05
-       gamma = 2.0
-       clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
-       svm_pre =clf.predict(X)
+        nu = 0.05
+        gamma = 2.0
+        clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
+        svm_pre =clf.predict(X)
 ############## EllipticEnvelope
         
-       elpenv = EllipticEnvelope(contamination=0.025, random_state=1)
-       ell_pred = elpenv.fit_predict(X)
+        elpenv = EllipticEnvelope(contamination=0.025, random_state=1)
+        ell_pred = elpenv.fit_predict(X)
     
 ############## IsolationForest
    
-       iforest = IsolationForest(n_estimators=100, max_samples='auto', 
+        iforest = IsolationForest(n_estimators=100, max_samples='auto', 
                               contamination=0.05, max_features=1.0, 
                               bootstrap=False, n_jobs=-1, random_state=1)
-       iso_pred = iforest.fit_predict(X)
+        iso_pred = iforest.fit_predict(X)
     
 ############## LocalOutlierFactor
     
-       lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
+        lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
                              metric='minkowski', contamination=0.04,
                              novelty=False, n_jobs=-1)
-       local_pred = lof.fit_predict(X)
+        local_pred = lof.fit_predict(X)
     
         
 ############## saving result
-       algorythms=[svm_pre,ell_pred,iso_pred,local_pred]
-       result.append(algorythms)
-       result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
-       result[N]= result[N][0]
-       result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
-       if "DTI" in csv:
+        algorythms=[svm_pre,ell_pred,iso_pred,local_pred]
+        result.append(algorythms)
+        result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
+        result[N]= result[N][0]
+        result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
+        if "DTI" in csv:
+            dti=["DTI"]*len(result[N])
+            result[N]["sequence_type"] = dti
            
-           dti=["DTI"]*len(result[N])
-           result[N]["sequence_type"] = dti
-           
-       elif "fMRI" in csv:
-           fmri=["fMRI"]*len(result[N])
-           result[N]["sequence_type"] = fmri          
+        elif "fMRI" in csv:
+            fmri=["fMRI"]*len(result[N])
+            result[N]["sequence_type"] = fmri          
        
-       elif "T2w" in csv :
-           t2w=["T2w"]*len(result[N])
-           result[N]["sequence_type"] = t2w    
+        elif "T2w" in csv :
+            t2w=["T2w"]*len(result[N])
+            result[N]["sequence_type"] = t2w    
        
-       result[N]["Pathes"] = address
-       result[N]["img"] = img_name
+        result[N]["Pathes"] = address
+        if format_type == "raw":
+            result[N]["sequence name"] = sequence_name
+        result[N]["img"] = img_name
         
     return(result)
 
 
 #%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
 
-def QCtable(Path):
+def QCtable(Path, format_type):
     
-    ML_algorythms= ML(Path)
+    ML_algorythms= ML(Path, format_type)
     ML_algorythms=pd.concat(ML_algorythms) 
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
     Abook = []
@@ -759,8 +766,11 @@ def QCtable(Path):
 
             
     ML_algorythms["statistical_method"]= statiscal    
-    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]].sum(axis=1))              
-    ML_algorythms= ML_algorythms[["Pathes","img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
+    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]].sum(axis=1))
+    if format_type == "raw":              
+        ML_algorythms= ML_algorythms[["Pathes","sequence name", "img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
+    elif format_type == "nifti":
+        ML_algorythms= ML_algorythms[["Pathes","img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
     ML_algorythms["Voting outliers (from 5)"]=   ML_number 
     ML_algorythms= ML_algorythms[ML_algorythms["Voting outliers (from 5)"]>=1]
     final_result = os.path.join(Path,"votings.csv")

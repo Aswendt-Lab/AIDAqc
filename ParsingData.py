@@ -113,6 +113,7 @@ if __name__ == "__main__":
         with ap.alive_bar(kall, title='Extracting T1 or T2 weighted, structural and functional sequences:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
             
             for p in text_files:   #filling the Address Book with wanted files
+
             
                 try:
                     NameTemp = par.read_param_file(p)
@@ -301,7 +302,7 @@ if __name__ == "__main__":
      
     print('Plotting quality features...\n'.upper())
     QC.QCPlot(saving_path)
-    QC.QCtable(saving_path)
+    QC.QCtable(saving_path, format_type)
 
     # remove addressed files
     for file in glob.glob(os.path.join(saving_path, '*data_addreses*.csv')) :

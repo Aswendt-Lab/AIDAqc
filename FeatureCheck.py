@@ -8,6 +8,7 @@ import nibabel as nii
 import matplotlib.pyplot as plt
 import pv_conv2Nifti as pr
 import alive_progress as ap
+import pv_parser as par
 from QC import *
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline     
 def CheckingRawFeatures(Path):
@@ -68,6 +69,7 @@ def CheckingRawFeatures(Path):
             Max_mov_between_all = []
             text_files_new = []
             img_names_new = []
+            keys = []
             GMetric_vec =  []
             kk = 0
             i=1
@@ -75,7 +77,15 @@ def CheckingRawFeatures(Path):
             with ap.alive_bar(len(text_files),spinner='wait') as bar:
                 
                 for tf in text_files:
-                    
+
+
+                    tf_key_path = tf + "/acqp"
+                    NameTemp = par.read_param_file(tf_key_path)
+                    MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
+                    MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
+                    KEY = MN + MN2
+                    keys.append(KEY)
+
                     tf = str(tf)
                     tf = os.path.normpath(tf)
                     path_split = tf.split(os.sep)
@@ -193,6 +203,7 @@ def CheckingRawFeatures(Path):
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
+            df['sequence name'] = keys
             df["img name"] = img_names_new
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
