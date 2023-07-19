@@ -77,22 +77,7 @@ def CheckingRawFeatures(Path):
             with ap.alive_bar(len(text_files),spinner='wait') as bar:
                 
                 for tf in text_files:
-
-
-                    tf_key_path = tf + "/acqp"
-                    try:
-                        NameTemp = par.read_param_file(tf_key_path)
-                        MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
-                        MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
-                        KEY = MN + MN2
-                        keys.append(KEY)
-                    except KeyError:
-                        print("KeyError")
-                        print(tf_key_path)
-                    except UnicodeDecodeError:
-                        print("UnicodeDecodeError")
-                        print(tf_key_path)
-                 
+                   
                     tf = str(tf)
                     tf = os.path.normpath(tf)
                     path_split = tf.split(os.sep)
@@ -131,6 +116,13 @@ def CheckingRawFeatures(Path):
                         print("No Visu_pars file found")
                         kk = kk+1
                         continue
+
+                    # determine sequence name 
+                    NameTemp = par.read_param_file(CP_a)
+                    MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
+                    MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
+                    KEY = MN + MN2
+                    keys.append(KEY)
                    
 # =============================================================================
 #                     Size = ((input_file.get_fdata()).nbytes/(1024*1024))
@@ -234,15 +226,15 @@ def CheckingRawFeatures(Path):
                  #df['Maximal displacement']=AR[4]
                  
             if N=="T2w":
-                t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
+                t2w_result= os.path.join(Path,"caculated_features_anatomical.csv")
                 df.to_csv( t2w_result)
 
             elif N=="DTI":    
-                dti_result= os.path.join(Path,"caculated_features_DTI.csv")
+                dti_result= os.path.join(Path,"caculated_features_structural.csv")
                 df.to_csv( dti_result)   
 
             elif N=="rsfMRI":
-                fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
+                fmri_result= os.path.join(Path,"caculated_features_functional.csv")
                 df.to_csv(fmri_result)
 
     if ErorrList:            
@@ -420,7 +412,7 @@ def CheckingNiftiFeatures(Path):
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
-            df["img name"] = img_names_new
+            df["corresponding_img"] = img_names_new
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
@@ -444,15 +436,15 @@ def CheckingNiftiFeatures(Path):
                  #df['Maximal displacement']=AR[4]
                  
             if N=="T2w":
-                t2w_result= os.path.join(Path,"caculated_features_T2w.csv")
+                t2w_result= os.path.join(Path,"caculated_features_anatomical.csv")
                 df.to_csv( t2w_result)
 
             elif N=="DTI":    
-                dti_result= os.path.join(Path,"caculated_features_DTI.csv")
+                dti_result= os.path.join(Path,"caculated_features_structural.csv")
                 df.to_csv( dti_result)   
 
             elif N=="rsfMRI":
-                fmri_result= os.path.join(Path,"caculated_features_fMRI.csv")
+                fmri_result= os.path.join(Path,"caculated_features_functional.csv")
                 df.to_csv(fmri_result)
 
     if ErorrList:            

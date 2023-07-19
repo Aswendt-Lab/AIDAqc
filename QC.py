@@ -621,22 +621,22 @@ def ML(Path, format_type) :
         result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
         result[N]= result[N][0]
         result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
-        if "DTI" in csv:
-            dti=["DTI"]*len(result[N])
+        if "structural" in csv:
+            dti=["structural"]*len(result[N])
             result[N]["sequence_type"] = dti
            
-        elif "fMRI" in csv:
-            fmri=["fMRI"]*len(result[N])
+        elif "functional" in csv:
+            fmri=["functional"]*len(result[N])
             result[N]["sequence_type"] = fmri          
        
-        elif "T2w" in csv :
-            t2w=["T2w"]*len(result[N])
+        elif "anatomical" in csv :
+            t2w=["anatomical"]*len(result[N])
             result[N]["sequence_type"] = t2w    
        
         result[N]["Pathes"] = address
         if format_type == "raw":
-            result[N]["sequence name"] = sequence_name
-        result[N]["img"] = img_name
+            result[N]["sequence_name"] = sequence_name
+        result[N]["corresponding_img"] = img_name
         
     return(result)
 
@@ -768,9 +768,9 @@ def QCtable(Path, format_type):
     ML_algorythms["statistical_method"]= statiscal    
     ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]].sum(axis=1))
     if format_type == "raw":              
-        ML_algorythms= ML_algorythms[["Pathes","sequence name", "img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
+        ML_algorythms= ML_algorythms[["Pathes","sequence_name", "corresponding_img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
     elif format_type == "nifti":
-        ML_algorythms= ML_algorythms[["Pathes","img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
+        ML_algorythms= ML_algorythms[["Pathes","corresponding_img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
     ML_algorythms["Voting outliers (from 5)"]=   ML_number 
     ML_algorythms= ML_algorythms[ML_algorythms["Voting outliers (from 5)"]>=1]
     final_result = os.path.join(Path,"votings.csv")
