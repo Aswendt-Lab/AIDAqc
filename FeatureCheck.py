@@ -80,12 +80,19 @@ def CheckingRawFeatures(Path):
 
 
                     tf_key_path = tf + "/acqp"
-                    NameTemp = par.read_param_file(tf_key_path)
-                    MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
-                    MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
-                    KEY = MN + MN2
-                    keys.append(KEY)
-
+                    try:
+                        NameTemp = par.read_param_file(p)
+                        MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
+                        MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
+                        KEY = MN + MN2
+                        keys.append(KEY)
+                    except KeyError:
+                        print("KeyError")
+                        print(tf_key_path)
+                    except UnicodeDecodeError:
+                        print("UnicodeDecodeError")
+                        print(tf_key_path)
+                 
                     tf = str(tf)
                     tf = os.path.normpath(tf)
                     path_split = tf.split(os.sep)
