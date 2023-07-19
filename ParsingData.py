@@ -79,7 +79,7 @@ if __name__ == "__main__":
     #%% Path Construction
     
     if not os.path.exists(saving_path):
-        os.mkdir(saving_path)
+        os.makedirs(saving_path)
     
     #%% Parsing
     
