@@ -223,9 +223,10 @@ if __name__ == "__main__":
 
         
 
-        PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
+        PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii.gz")
+        PathALL2 = os.path.join(initial_path,"**","*" + suffix + ".nii")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
-            text_files = glob.glob(PathALL, recursive = True)
+            text_files = glob.glob(PathALL, recursive = True) + glob.glob(PathALL2, recursive = True)
             kall = len(text_files)
         
         print(( 'Total number of '+ str(kall) + ' files were found:'+'Parsing finished! '.upper()).upper())
