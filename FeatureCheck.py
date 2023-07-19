@@ -81,7 +81,7 @@ def CheckingRawFeatures(Path):
 
                     tf_key_path = tf + "/acqp"
                     try:
-                        NameTemp = par.read_param_file(p)
+                        NameTemp = par.read_param_file(tf_key_path)
                         MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
                         MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
                         KEY = MN + MN2
