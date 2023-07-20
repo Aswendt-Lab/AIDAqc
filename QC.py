@@ -652,21 +652,21 @@ def QCtable(Path, format_type):
     Names =[]
     for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
         
-        if "DTI" in file:
+        if "structural" in file:
             dti_path= file
             dti_features= pd.read_csv(dti_path)
             Abook.append(dti_features)
-            Names.append("DTI")
-        elif "fMRI" in file :
+            Names.append("structural")
+        elif "functional" in file :
             fmri_path= file
             fmri_features= pd.read_csv(fmri_path)
             Abook.append(fmri_features)
-            Names.append("rsfMRI")
-        elif "T2w" in file :    
+            Names.append("functional")
+        elif "anatomical" in file :    
              t2w_path= file
              t2w_features= pd.read_csv(t2w_path)
              Abook.append(t2w_features)
-             Names.append("T2w")    
+             Names.append("anatomical")    
 
     
     
