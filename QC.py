@@ -436,17 +436,17 @@ def QCPlot(Path):
             dti_path= file
             dti_features= pd.read_csv(dti_path)
             Abook.append(dti_features)
-            Names.append("DTI")
+            Names.append("structural")
         elif "functional" in file.upper():
             fmri_path= file
             fmri_features= pd.read_csv(fmri_path)
             Abook.append(fmri_features)
-            Names.append("rsfMRI")
+            Names.append("functional")
         elif "anatomical" in file.upper():    
              t2w_path= file
              t2w_features= pd.read_csv(t2w_path)
              Abook.append(t2w_features)
-             Names.append("T2w")    
+             Names.append("anatomical")    
 
     ST = []
     COE = []
