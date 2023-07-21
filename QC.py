@@ -432,17 +432,17 @@ def QCPlot(Path):
     Names =[]
     for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
         
-        if "structural" in file.upper():
+        if "structural" in file:
             dti_path= file
             dti_features= pd.read_csv(dti_path)
             Abook.append(dti_features)
             Names.append("structural")
-        elif "functional" in file.upper():
+        elif "functional" in file:
             fmri_path= file
             fmri_features= pd.read_csv(fmri_path)
             Abook.append(fmri_features)
             Names.append("functional")
-        elif "anatomical" in file.upper():    
+        elif "anatomical" in file:    
              t2w_path= file
              t2w_features= pd.read_csv(t2w_path)
              Abook.append(t2w_features)
