@@ -79,7 +79,7 @@ if __name__ == "__main__":
     #%% Path Construction
     
     if not os.path.exists(saving_path):
-        os.mkdir(saving_path)
+        os.makedirs(saving_path)
     
     #%% Parsing
     
@@ -113,6 +113,7 @@ if __name__ == "__main__":
         with ap.alive_bar(kall, title='Extracting T1 or T2 weighted, structural and functional sequences:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
             
             for p in text_files:   #filling the Address Book with wanted files
+
             
                 try:
                     NameTemp = par.read_param_file(p)
@@ -222,9 +223,10 @@ if __name__ == "__main__":
 
         
 
-        PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii*")
+        PathALL = os.path.join(initial_path,"**","*" + suffix + ".nii.gz")
+        PathALL2 = os.path.join(initial_path,"**","*" + suffix + ".nii")
         with ap.alive_bar(title='Parsing through folders ...',length=10,stats = False,monitor=False) as bar:
-            text_files = glob.glob(PathALL, recursive = True)
+            text_files = glob.glob(PathALL, recursive = True) + glob.glob(PathALL2, recursive = True)
             kall = len(text_files)
         
         print(( 'Total number of '+ str(kall) + ' files were found:'+'Parsing finished! '.upper()).upper())
@@ -301,7 +303,7 @@ if __name__ == "__main__":
      
     print('Plotting quality features...\n'.upper())
     QC.QCPlot(saving_path)
-    QC.QCtable(saving_path)
+    QC.QCtable(saving_path, format_type)
 
     # remove addressed files
     for file in glob.glob(os.path.join(saving_path, '*data_addreses*.csv')) :
