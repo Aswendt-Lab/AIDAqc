@@ -1,4 +1,4 @@
-<img align="right" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDA_Logo_wide.001.png" width="500">
+<img align="right" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDA_Logo_wide.001.png" width="500">
 <h1>AIDA<i>qc</i></h1>
 
 *An automated and simple tool for fast quality analysis of animal MRI*
@@ -10,19 +10,19 @@
 - **Calculations:** SNR, tSNR, movement variability, data quality categorization (finds bad quality outlier)
 - **Output Format:** CSV sheets & pdf & images
 
-<img align="left" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAqc_workflow.png">
+<img align="left" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_workflow.png">
 
 <br/>
 <br/>
 
-[**See the poster for all details**](https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAqc_Poster_Summary.pdf) 
+[**See the poster for all details**](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_Poster_Summary.pdf) 
 
 <h3>Installation</h3> 
 Download the repository => Install Python 3.6 (Anaconda) => Import AIDAqc conda environment aidaqc.yaml
 
 Main function: *ParsingData*
 
-See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/AIDAqc_v2_1.pdf).
+See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
 
 <h3>The story behind this tool</h3> 
 
