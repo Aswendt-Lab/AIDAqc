@@ -83,8 +83,9 @@ if __name__ == "__main__":
     
     #%% Parsing
     
-    Types = ['Dti','EPI','RARE']
-    Types_new = ['DTI','rsfMRI','T2w']
+    #Types = ['Dti','EPI','RARE']
+    #Types_new = ['DTI','rsfMRI','T2w']
+    type_strs = ['structural', 'functional', 'anatomical']
   
     if format_type == "raw":
         
@@ -106,8 +107,8 @@ if __name__ == "__main__":
         #EPI_flag = ["EPI"]
         
         
-        for i in range(len(Types)):         #Creation of Adress Book
-            ABook[Types[i]] = []
+        for i in range(len(type_strs)):         #Creation of Adress Book
+            ABook[type_strs[i]] = []
     
     
         with ap.alive_bar(kall, title='Extracting T1 or T2 weighted, structural and functional sequences:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
@@ -141,13 +142,13 @@ if __name__ == "__main__":
                 if DateTemp not in CheckDates:
                     
                     if Flag_struct and not Flag_notAllowed:
-                        ABook["Dti"].append(os.path.dirname(p))
+                        ABook["structural"].append(os.path.dirname(p))
                         C = C+1
                     elif Flag_func and not Flag_notAllowed:
-                        ABook["EPI"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
+                        ABook["functional"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                         C = C+1
                     elif Flag_anat and not Flag_notAllowed and not Flag_epi: #T2Star EPIS are usually rsfmri scans
-                        ABook["RARE"].append(os.path.dirname(p))
+                        ABook["anatomical"].append(os.path.dirname(p))
                         C = C+1
                     elif Flag_epi and not Flag_notAllowed:
                         TP = NameTemp[1]["ACQ_time_points"]
@@ -160,11 +161,11 @@ if __name__ == "__main__":
                             C = C+1
                         
                         
- #                   for i,t in enumerate(Types):
+ #                   for i,t in enumerate(type_strs):
  #                   
                        # if t in MN or t in p:
  #                        if t.upper() in MN.upper():
- #                           ABook[Types[i]].append(os.path.dirname(p))
+ #                           ABook[type_strs[i]].append(os.path.dirname(p))
  #                          C = C+1
                     
                 CheckDates.append(DateTemp)
@@ -177,10 +178,10 @@ if __name__ == "__main__":
         #%% Saving parsed files 
        
         #saving in csv file
-        for n,type in enumerate(Types):
-             if len(ABook[type]) !=0:
-                 addreses= pd.DataFrame(ABook[type])
-                 csv_path= "raw_data_addreses_"+Types_new[n]+".csv"
+        for n,type_str in enumerate(type_strs):
+             if len(ABook[type_str]) !=0:
+                 addreses= pd.DataFrame(ABook[type_str])
+                 csv_path= "raw_data_addreses_"+type_str+".csv"
                  csv_path= os.path.join(saving_path,csv_path)
                  addreses.to_csv(csv_path, sep=',',index=False)
         if ErrorList:
@@ -231,8 +232,8 @@ if __name__ == "__main__":
         
         print(( 'Total number of '+ str(kall) + ' files were found:'+'Parsing finished! '.upper()).upper())
         ABook={}
-        for i in range(len(Types)):         #Creation of Adress Book
-            ABook[Types_new[i]] = []
+        for i in range(len(type_strs)):         #Creation of Adress Book
+            ABook[type_strs[i]] = []
         
 # =============================================================================
 #         text_files2 = [os.path.split(t)[-1] for t in text_files]
@@ -241,7 +242,7 @@ if __name__ == "__main__":
 # ============================================================================
 
 
-        for i,T in enumerate(Types_new):
+        for i,T in enumerate(type_strs):
             globals()['df'+ str(i)] = pd.DataFrame(ABook[T])        
         
         for i in text_files :
@@ -271,17 +272,17 @@ if __name__ == "__main__":
                 
               
             if Flag_struct and not Flag_notAllowed:
-                ABook["DTI"].append(i)
+                ABook["structural"].append(i)
             if Flag_func and not Flag_notAllowed:
-                ABook["rsfMRI"].append(i)
+                ABook["functional"].append(i)
             if Flag_anat and not Flag_notAllowed:
-                ABook["T2w"].append(i)
+                ABook["anatomical"].append(i)
 
         #saving in csv file
-        for n,type in enumerate(Types_new):
-             if len(ABook[type]) !=0:
-                 addreses= pd.DataFrame(ABook[type])
-                 csv_path= "nifti_data_addreses_"+type+".csv"
+        for n,type_str in enumerate(type_strs):
+             if len(ABook[type_str]) !=0:
+                 addreses= pd.DataFrame(ABook[type_str])
+                 csv_path= "nifti_data_addreses_"+type_str+".csv"
                  csv_path= os.path.join(saving_path,csv_path)
                  addreses.to_csv(csv_path, sep=',',index=False)
 
