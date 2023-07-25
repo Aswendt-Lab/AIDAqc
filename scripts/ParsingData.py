@@ -69,7 +69,7 @@ if __name__ == "__main__":
     print('Web: https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/')
     print('------------------------------------------------------------')
     
-    DTI_string = ["DTI","STRUCT","DWI"]
+    DTI_string = ["DTI","STRUCT","DWI","DIFFUS"]
     FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
     T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
     NotAllowed = ["LOC","PIL","FISP","WOB","NOIS","SINGL","MRS"]
