@@ -134,13 +134,14 @@ def snrCalclualtor_chang(input_file):
     if mm == 0:
         snrCh = np.nan
         return snrCh
-    
+    """
     cc = 0
     while mm < 1:
         mm = mm *10
         cc = cc+1
     imgData = imgData * (10**cc)
-        
+    """
+    
     Sone = len(imgData.shape)
     if Sone < 3:
         snrCh = np.nan
@@ -157,13 +158,16 @@ def snrCalclualtor_chang(input_file):
             print("Warning: Be aware that the size of the 4th dimension (difusion direction or timepoints) is less than 10. This might result in unstable values")
             print()
         else:
-            fff = 10
+            fff = 5
         
     nd = imgData.ndim
-    
-    ns_lower = int(np.floor(ns/2) - 2)
-    ns_upper = int(np.floor(ns/2) + 2)
-
+    if ns > 4:
+        ns_lower = int(np.floor(ns/2) - 2)
+        ns_upper = int(np.floor(ns/2) + 2)
+    else:
+        ns_lower=0
+        ns_upper=ns
+        
     #print('/NewData/',end=" ")
     #for slc in range(ns_lower,ns_upper):
     for slc in range(ns_lower,ns_upper):    
@@ -180,7 +184,7 @@ def snrCalclualtor_chang(input_file):
             snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
             snr_chang_slice_vec.append(snr_chang_slice)
         else:
-            for bb in range(fff,n_dir):
+            for bb in range(fff,n_dir-1):
                 Slice = imgData[:, :,slc,bb]
                 try:
                     curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
