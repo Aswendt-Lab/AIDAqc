@@ -379,9 +379,9 @@ def mutualInfo(Im1,Im2):
     return MI
 
 
-#%% Movement detection of rsFRI function (based on mutual information)
+#%% Motion detection of rsFRI function (based on mutual information)
 
-def Ismovement(input_file):
+def Ismotion(input_file):
     GMV=[]
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)

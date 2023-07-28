@@ -168,7 +168,7 @@ def CheckingRawFeatures(Path):
                         #print(tf)
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
-                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
+                        Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         
                         GMV_all.append(GMV)
@@ -182,7 +182,7 @@ def CheckingRawFeatures(Path):
                         #temporal signal 2 noise ratio
                         #print(tf)
                         tSNR = TsnrCalclualtor(input_file)
-                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
+                        Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         Max_mov_between_all.append(Max_mov_between)
                         GMV_all.append(GMV)
@@ -372,7 +372,7 @@ def CheckingNiftiFeatures(Path):
                         
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
-                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
+                        Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         GMV_all.append(GMV)
                         LMV_all.append(LMV)
@@ -384,7 +384,7 @@ def CheckingNiftiFeatures(Path):
                     elif N == "functional":
                         #temporal signal 2 noise ratio
                         tSNR = TsnrCalclualtor(input_file)
-                        Final,Max_mov_between,GMV,LMV = Ismovement(input_file)
+                        Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         Max_mov_between_all.append(Max_mov_between)
                         GMV_all.append(GMV)
