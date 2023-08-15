@@ -565,15 +565,10 @@ def QCPlot(Path):
 # machine learning methods
 def ML(Path, format_type) :
 
-    #prepare data
-    #Path= r"C:\Users\Erfan\Downloads\Compressed\qc_test"
- 
-    
-    #csv_path=["caculated_features_DTI.csv","caculated_features_T2w.csv","caculated_features_fMRI.csv"]
     result=[]
     for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
-        
-        csv_path=os.path.join(Path,csv)
+        csv_path = csv
+        #csv_path=os.path.join(Path,csv)
         Abook= pd.read_csv(csv_path)
         if np.any(Abook.isnull().all()[:]):
             print("The following csv file contains NaN values for one or more of its features:")
