@@ -110,6 +110,11 @@ def CheckingRawFeatures(Path):
                             print(tf)
                             print("KeyError: catched")
                             continue
+                        except FileNotFoundError: 
+                            ErorrList.append(tf+"_FileNotFoundError")
+                            print(tf)
+                            print("System Error: catched")
+                            continue
                         
                     else:
                         ErorrList.append(tf)
