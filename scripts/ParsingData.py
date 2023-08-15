@@ -72,7 +72,7 @@ if __name__ == "__main__":
     DTI_string = ["DTI","STRUCT","DWI","DIFFUS"]
     FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
     T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
-    NotAllowed = ["LOC","PIL","FISP","WOB","NOIS","SINGL","MRS"]
+    NotAllowed = ["LOC","PIL","FISP","WOB","NOIS","SINGL","MRS","B0","FIELD"]
     if exclude_param:
         NotAllowed = NotAllowed + [e.upper() for e in exclude_param]
     
@@ -154,10 +154,10 @@ if __name__ == "__main__":
                         TP = NameTemp[1]["ACQ_time_points"]
                         MF = NameTemp[1]["ACQ_n_movie_frames"]
                         if MF != len(TP):
-                            ABook["EPI"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
+                            ABook["functional"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                             C = C+1
                         elif MF == len(TP):
-                            ABook["Dti"].append(os.path.dirname(p)) 
+                            ABook["structural"].append(os.path.dirname(p)) 
                             C = C+1
                         
                         
