@@ -568,7 +568,7 @@ def ML(Path, format_type) :
     result=[]
     for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
         csv_path = csv
-        #csv_path=os.path.join(Path,csv)
+        csv_path=os.path.join(Path,csv)
         Abook= pd.read_csv(csv_path)
         if np.any(Abook.isnull().all()[:]):
             print("The following csv file contains NaN values for one or more of its features:")

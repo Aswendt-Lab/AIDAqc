@@ -32,8 +32,7 @@ def CheckingRawFeatures(Path):
             fmri_path= file
             fmri_addreses= pd.read_csv(fmri_path)
             Abook.append(fmri_addreses)
-            Names.append("functinoal")
-      
+            Names.append("functional")
     
     ErorrList = []
     saving_path = Path
@@ -156,6 +155,7 @@ def CheckingRawFeatures(Path):
                     SpatRes = ResCalculator(input_file)
                     GMetric = GoastCheck(input_file)
                     
+                    
                     if N == 'anatomical':
                         
                         # Signal 2 noise ratio
@@ -195,7 +195,6 @@ def CheckingRawFeatures(Path):
                         MI_vec_all.append(Final)
                         Max_mov_between_all.append(Max_mov_between)
                         tsnr_vec.append(tSNR)
-
                         
                         
                     
