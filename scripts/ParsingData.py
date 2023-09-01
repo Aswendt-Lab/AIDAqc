@@ -72,7 +72,7 @@ if __name__ == "__main__":
     DTI_string = ["DTI","STRUCT","DWI","DIFFUS"]
     FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
     T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
-    NotAllowed = ["LOC","PIL","FISP","WOB","NOIS","SINGL","MRS","B0","FIELD"]
+    NotAllowed = ["LOC","PIL","FISP","WOB","NOIS","SINGL","MRS","B0M","FIELD"]
     if exclude_param:
         NotAllowed = NotAllowed + [e.upper() for e in exclude_param]
     
