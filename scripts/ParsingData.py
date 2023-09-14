@@ -31,7 +31,16 @@ if __name__ == "__main__":
                         help='Set the path where the results should be saved')
     parser.add_argument('-f','--format_type',\
                         help="the format your dataset has:\
-                            nifti or raw Bruker",type=str,required=True,choices=["nifti","raw"])  
+                            nifti or raw Bruker",type=str,required=True,choices=["nifti","raw"]) 
+    parser.add_argument('-m','--method',\
+                        help="The primary SNR calculation method, choose between:\
+                             chang or standard. Both will be calculated, but only one will be used in the majority outlier voting"\
+                             ,type=str,required=True,choices=["chang","standard"]) 
+
+
+
+
+                            
    # parser.add_argument('-t','--sequence_types',\
    #                     help="you need to tell what kind of Sequences should be used in \
    #                          for processing the dataset:\
@@ -55,6 +64,7 @@ if __name__ == "__main__":
     saving_path = args.output_path
     format_type= args.format_type
     exclude_param = args.exclude
+    FlagSNR = args.method
     print(exclude_param)
     #sequence_types = args.sequence_types
     suffix = args.suffix
@@ -295,10 +305,10 @@ if __name__ == "__main__":
     print('\nCalculating features...\n'.upper())
     print('This will take some time depending on the size of the dataset. See the progress bar below.\n\n')
     if format_type=="raw":
-        fc.CheckingRawFeatures(saving_path)
+        fc.CheckingRawFeatures(saving_path,FlagSNR)
         QC.toc()
     elif format_type=="nifti":
-        fc.CheckingNiftiFeatures(saving_path)
+        fc.CheckingNiftiFeatures(saving_path,FlagSNR)
         QC.toc()
     
      

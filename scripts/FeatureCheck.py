@@ -11,7 +11,7 @@ import alive_progress as ap
 import pv_parser as par
 from QC import *
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline     
-def CheckingRawFeatures(Path):
+def CheckingRawFeatures(Path,FlagSNR):
     #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
     Abook = []
     Names =[]
@@ -211,24 +211,37 @@ def CheckingRawFeatures(Path):
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
-            df['Goasting'] = np.array(GMetric_vec)
+            
             
             
             if N == 'anatomical':
-                 df['SNR Chang'] = np.array(snrCh_vec)
-                 df['SNR Normal'] = np.array(snr_normal_vec)
-                 
+                if FlagSNR == "standard":
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['Goasting'] = np.array(GMetric_vec)
+                     
+                elif FlagSNR == "chang":
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['Goasting'] = np.array(GMetric_vec)
             elif N == 'structural':
-                 df['SNR Chang'] = np.array(snrCh_vec)
-                 df['SNR Normal'] = np.array(snr_normal_vec)
-                 df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
-                 #df['Maximal displacement']=AR[4]
-                 
+                if FlagSNR == "standard":
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                     df['Goasting'] = np.array(GMetric_vec)
+                     #df['Maximal displacement']=AR[4]
+                elif FlagSNR == "chang":
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                     df['Goasting'] = np.array(GMetric_vec)
             elif N == "functional":
                  df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
-                 
+                 df['Goasting'] = np.array(GMetric_vec)
+            
             if N=="anatomical":
                 t2w_result= os.path.join(Path,"caculated_features_anatomical.csv")
                 df.to_csv( t2w_result)
@@ -251,7 +264,7 @@ def CheckingRawFeatures(Path):
     print('\n\n%%%%%%%%%%%%% End of the stage 2 %%%%%%%%%%%%%%%\n\n'.upper())
    
 #%% exact above function but this time for nifti format
-def CheckingNiftiFeatures(Path):   
+def CheckingNiftiFeatures(Path,FlagSNR):   
     
     
     Abook = []
@@ -420,23 +433,38 @@ def CheckingNiftiFeatures(Path):
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
-            df['Goasting'] = np.array(GMetric_vec)
+            
             
           
             
             if N == "anatomical":
-                 df['SNR Chang'] = np.array(snrCh_vec)
-                 df['SNR Normal'] = np.array(snr_normal_vec)
-                 
+                if FlagSNR == "standard":
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['Goasting'] = np.array(GMetric_vec)
+                elif FlagSNR == "chang":
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                     df['Goasting'] = np.array(GMetric_vec)
+                     
             elif N == "structural":
-                 df['SNR Chang'] = np.array(snrCh_vec)
-                 df['SNR Normal'] = np.array(snr_normal_vec)
-                 df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
-                 #df['Maximal displacement']=AR[4]
+                 if FlagSNR == "standard":
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                     df['Goasting'] = np.array(GMetric_vec)
+                     #df['Maximal displacement']=AR[4]
+                 elif FlagSNR == "chang":
+                     df['SNR Normal'] = np.array(snr_normal_vec)
+                     df['SNR Chang'] = np.array(snrCh_vec)
+                     df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                     df['Goasting'] = np.array(GMetric_vec)
                  
             elif N == "functional":
                  df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
+                 df['Goasting'] = np.array(GMetric_vec)
                  #df['Maximal displacement']=AR[4]
                  
             if N=="anatomical":

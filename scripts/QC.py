@@ -82,12 +82,45 @@ def GoastCheck(input_file):
     
     if WeekGoast > 2 or StrongGoast > 0:
         GMetric = True
+        return GMetric
     else:
         GMetric = False
+        
+    #doing it again align another dimension
+    img = input_file
+    img_data = img.get_fdata()
+    img_shape = np.shape(img_data)
+    MI_vec = []
+    n = 1
+    Mmos = []
+    MI_vec = []
+    n = 1
+    Mmos = []
+    while (img_shape[0]%(2**n)) == 0:
+        Mmos.append(img_shape[0]/2**n)
+        n = n+1
+    Mmos = np.asarray(Mmos)
+    if len(img_shape)>3:
+        img_data = np.mean(img_data,axis=-1)
+                
     
+    Im_ref = img_data[:,:,int(img_shape[2]/2)]
+    for ii in range(0,int(img_shape[0])):
+        Im_rol = np.roll(Im_ref,ii,axis=0)
+        MI_vec.append(mutualInfo(Im_rol,Im_ref))
+        
+    peaks_strong, prop = signal.find_peaks(MI_vec, height = 0.25*max(MI_vec))
+    peaks_weak, prop = signal.find_peaks(MI_vec)
     
-    #plt.plot((MI_vec))
-    #plt.show()
+    StrongGoast = np.sum(np.isin(peaks_strong,Mmos))
+    WeekGoast = np.sum(np.isin(peaks_weak,Mmos))
+    
+    if WeekGoast > 2 or StrongGoast > 0:
+        GMetric = True
+        return GMetric
+    else:
+        GMetric = False    
+
     
     return GMetric
   
@@ -583,10 +616,16 @@ def ML(Path, format_type) :
         if format_type == "raw":
             sequence_name = [i for i in Abook.iloc[:,2]]
             img_name = [i for i in Abook.iloc[:,3]]
-            X =  Abook.iloc[:,7:]
+            if img_name[0] == "functional":
+                X =  Abook.iloc[:,7:]
+            else:
+                X =  Abook.iloc[:,8:]
         elif format_type == "nifti":
             img_name = [i for i in Abook.iloc[:,2]]
-            X =  Abook.iloc[:,6:]
+            if img_name[0] == "functional":
+                X =  Abook.iloc[:,6:]
+            else:
+                X =  Abook.iloc[:,7:]
 
        #X=preprocessing.normalize(X)
 ############## Fit the One-Class SVM 
