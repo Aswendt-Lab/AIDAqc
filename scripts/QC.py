@@ -27,6 +27,8 @@ from scipy import ndimage
 from scipy import signal
 import changSNR as ch
 from matplotlib.ticker import MaxNLocator
+from matplotlib import font_manager as fm
+from matplotlib.font_manager import FontProperties
 #%% Tic Toc Timer
 
 
@@ -462,104 +464,113 @@ def QCPlot(Path):
     MiN= []
     hh = 1
     rr = 1
-    for nn,N in enumerate(Names):
-
-            
-        d= Abook[nn]
-        COL = Abook[nn].columns
+    # Set font properties
+    title_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'bold', 'size': 10}
+    label_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'normal', 'size': 8}
+    tick_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'normal', 'size': 8}
+    
+    for nn, N in enumerate(Names):
+        COL = list(Abook[nn].columns)
+        COL.pop(0)
+        D = Abook[nn]
         
-        for cc,C in enumerate(COL):
-           
-            Data = list(d[C])
-            if not isinstance(Data[1], str):
-                if sum(np.isnan(Data))> 0.75*len(Data):
-                    print("Column contains only NaN values. Skipping this column")
-                    continue
+        for cc, C in enumerate(COL):
+            Data = list(D[C])
             
-            
-            
-            
-            
-            
-            
-            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C =='SNR Normal' or C == 'Displacement factor (std of Mutual information)':
-             
-             #plot histogrm
-                plt.figure(hh,figsize=(10,5))
-                ax2 = plt.subplot(1,1,1, label="histogram")
-                for dd,DD in enumerate(Data): #If tSNR and SNR chang are also adjusted this section can be eliminated
+            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C == 'SNR Normal' or C == 'Displacement factor (std of Mutual information)':
+                # Plot histogram
+                cm = 1/2.54  # centimeters in inches
+                plt.figure(hh, figsize=(9, 5), dpi=300)
+                ax2 = plt.subplot(1, 1, 1, label="histogram")
+                
+                for dd, DD in enumerate(Data):  # If tSNR and SNR chang are also adjusted, this section can be eliminated
                     if DD == np.inf:
                         Data[dd] = np.nan
                 
-                q75, q25 = np.nanpercentile(Data, [75 ,25])
+                q75, q25 = np.nanpercentile(Data, [75, 25])
                 iqr = q75 - q25
                 
-                B = round((np.nanmax(Data)-np.nanmin(Data)) / (2 * iqr / (len(Data)**(1/3))))
-                if B*5 > 22:
+                B = round((np.nanmax(Data) - np.nanmin(Data)) / (2 * iqr / (len(Data) ** (1/3))))
+                if B * 5 > 22:
                     XX = 22
                 else:
-                    XX = B*5
+                    XX = B * 5
                 
-                y, x, bars = plt.hist(Data, bins= B*7, histtype= 'bar',edgecolor='white')
-                plt.xlabel(N+': '+C + ' [a.u.]')
-                plt.ylabel("Frequency")
+                y, x, bars = plt.hist(Data, bins=B * 7, histtype='bar', edgecolor='white')
+                plt.xlabel(N + ': ' + C + ' [a.u.]', fontdict=label_font)
+                plt.ylabel("Frequency", fontdict=label_font)
                 ax2.spines['right'].set_visible(False)
                 ax2.spines['top'].set_visible(False)
                 plt.locator_params(axis='x', nbins=XX)
                 ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
-                #calculate interquartile range of values in the 'points' column
                 
+                # Calculate interquartile range of values in the 'points' column
                 if C == 'Displacement factor (std of Mutual information)':
-                    ll = q75+1.5*iqr
-                    plt.text(1.07*ll,2*max(y)/3,'Q3 + 1.5*IQ',color='grey')
-                    for b,bar in enumerate(bars):
+                    ll = q75 + 1.5 * iqr
+                    plt.text(1.07 * ll, 2 * max(y) / 3, 'Q3 + 1.5*IQ', color='grey', fontdict=label_font)
+                    for b, bar in enumerate(bars):
                         if bar.get_x() > ll:
-                          bar.set_facecolor("red")
-                          
-                    
+                            bar.set_facecolor("red")
                 else:
-                    ll = q25-1.5*iqr
-                    plt.text(1.001*ll,2*max(y)/3,'Q1 - 1.5*IQ',color='grey')
-                    for b,bar in enumerate(bars):
+                    ll = q25 - 1.5 * iqr
+                    plt.text(1.001 * ll, 2 * max(y) / 3, 'Q1 - 1.5*IQ', color='grey', fontdict=label_font)
+                    for b, bar in enumerate(bars):
                         if bar.get_x() < ll:
                             bar.set_facecolor("red")
-                            
-                plt.axvline(ll,color = 'grey',linestyle='--')
-                plt.suptitle(N+': '+C,weight="bold")
                 
+                plt.axvline(ll, color='grey', linestyle='--')
+                plt.suptitle(N + ': ' + C, fontdict=title_font)
                 
-    
                 red_patch = mpatches.Patch(color='red', label='Discard')
                 blue_patch = mpatches.Patch(color='tab:blue', label='Keep')
-                plt.legend(handles=[blue_patch,red_patch])
-                plt.savefig(os.path.join(QC_fig_path,C+N+".svg"),dpi=250)
+                # Modify the legend with smaller font size and Times New Roman font
+                legend = plt.legend(handles=[blue_patch, red_patch], fontsize=8)
+                #legend.get_frame().set_linewidth(0.0)  # Remove legend border
+
+                # Set Times New Roman font for legend text
+                # Set Times New Roman font for legend text
+                for text in legend.get_texts():
+                   text.set_fontfamily('serif')
+                   text.set_fontsize(8)
+
+                
+                # Set the font for axis ticks
+                ax2.xaxis.set_tick_params(labelsize=8)
+                ax2.yaxis.set_tick_params(labelsize=8)
+                
+                plt.savefig(os.path.join(QC_fig_path, C + N + ".png"), dpi=300)
                 plt.close()
-                   # plt.savefig(os.path.dirname(Path) + "\ResHomogenity.png",dpi=300)
-           
-    hh = hh + 1           
-    plt.figure(hh,figsize=(14, 10))
-    for nn,N in enumerate(Names):
+                
+        hh = hh + 1
+    
+    plt.figure(hh, figsize=(9, 5), dpi=300)
+    for nn, N in enumerate(Names):
         COL = list(Abook[nn].columns)
         COL.pop(0)
         D = Abook[nn]
-        for cc,C in enumerate(COL):
-            Data = list(D[C])           
+        for cc, C in enumerate(COL):
+            Data = list(D[C])
             if C == 'SpatRx' or C == 'SpatRy' or C == 'Slicethick':
-                #plot pieplots
+                # Plot pie plots
                 labels = list(set(Data))
                 sizes = [Data.count(l) for l in labels]
-                labels= list(np.round(labels,3))
-                labels2=[str(l)+' mm' for l in labels]
+                labels = list(np.round(labels, 3))
+                labels2 = [str(l) + ' mm' for l in labels]
                 
-                ax1 = plt.subplot(len(Names),3,rr)           
-                ax1.pie(sizes, labels=labels2, autopct='%1.0f%%', startangle=90)
+                ax1 = plt.subplot(len(Names), 3, rr)
+                ax1.pie(sizes, labels=labels2, autopct='%1.0f%%', startangle=180)
                 ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-                ax1.set_title(N+':'+C)
-                plt.suptitle('Resolution homogeneity between data',weight="bold")
-                rr = rr+1
-    plt.savefig(os.path.join(QC_fig_path,"Spatial_Resolution.svg"),dpi=250)
-    plt.close()
+                ax1.set_title(N + ':' + C, fontdict=title_font)
+                plt.suptitle('Resolution homogeneity between data', weight="bold")
+                
+                # Set the font for axis ticks
+                ax1.xaxis.set_tick_params(labelsize=8)
+                ax1.yaxis.set_tick_params(labelsize=8)
+                
+                rr = rr + 1
     
+    plt.savefig(os.path.join(QC_fig_path, "Spatial_Resolution.png"), dpi=300)
+    plt.close()
 
 #%%
 # machine learning methods
