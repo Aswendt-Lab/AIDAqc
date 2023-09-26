@@ -70,7 +70,7 @@ if __name__ == "__main__":
     print('------------------------------------------------------------')
     
     DTI_string = ["DTI","STRUCT","DWI","DIFFUS"]
-    FMRI_string = ["RESTING","FUN","RSF","RS-","FMRI","BOLD"]
+    FMRI_string = ["RESTING","FUN","RSF","FMRI","BOLD"]#possiblto add "RS-" but had problems when a dti scan was named -64Dirs-(rs-)
     T2_string = ["T2W","T1W","ANAT","RARE","TURBO"]
     NotAllowed = ["LOC","PIL","FISP","WOB","NOIS","SINGL","MRS","B0M","FIELD"]
     if exclude_param:
