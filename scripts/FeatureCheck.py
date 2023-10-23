@@ -207,7 +207,7 @@ def CheckingRawFeatures(Path):
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
             df['sequence name'] = keys
-            df["img name"] = img_names_new
+            df["corresponding_img"] = img_names_new
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
