@@ -219,7 +219,7 @@ def snrCalclualtor_normal(input_file):
     if len(S) == 3:
         imgData = np.squeeze(Data)
     if len(S) == 4:
-        imgData = np.squeeze(Data[:,:,:,int((S[-1]/2))])
+        imgData = np.squeeze(Data[:,:,:,0]) #int((S[-1]/2))
     
     S = np.shape(np.squeeze(imgData))
     
