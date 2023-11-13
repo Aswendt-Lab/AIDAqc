@@ -21,10 +21,10 @@ import FeatureCheck as fc
 #%% Command line interface
 if __name__ == "__main__":
         
-    parser = argparse.ArgumentParser(description='Parser of all MR files: Description:\
+    parser = argparse.ArgumentParser(description="Parser of all MR files: Description:\
           This code will parse through every possible folder behind a defined initial path,\
      looking for MR data files of any type. Then it will extract the wanted files \
-     and eliminate any duplicates(ex:python ParsingData.py -i C:\BME\aida\raw_data -o C:\BME\aida\raw_data -f raw.')
+     and eliminate any duplicates(example:   python ParsingData.py -i C:/raw_data -o C:/raw_data/QCOutput -f raw )")
     parser.add_argument('-i','--initial_path',required=True, \
                         help='initial path to start the parsing')
     parser.add_argument('-o','--output_path',required=True,\
