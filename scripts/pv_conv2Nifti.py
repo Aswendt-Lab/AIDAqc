@@ -70,7 +70,7 @@ class Bruker2Nifti:
 
         # NIfTI header
         #header = nim.header
-        header = nim.get_header()
+        header = nim._header
         #print("header:"); print(header)
         header['pixdim'] = [0.0, hdr[5], hdr[6], hdr[7], hdr[8], 0.0, 0.0, 0.0]
         #nim.setXYZUnit('mm')
