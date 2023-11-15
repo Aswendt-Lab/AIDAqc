@@ -438,21 +438,21 @@ def QCPlot(Path):
     Names =[]
     for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
         
-        if "structural" in file:
+        if "diff" in file:
             dti_path= file
             dti_features= pd.read_csv(dti_path)
             Abook.append(dti_features)
-            Names.append("structural")
-        elif "functional" in file:
+            Names.append("diff")
+        elif "func" in file:
             fmri_path= file
             fmri_features= pd.read_csv(fmri_path)
             Abook.append(fmri_features)
-            Names.append("functional")
-        elif "anatomical" in file:    
+            Names.append("func")
+        elif "anat" in file:    
              t2w_path= file
              t2w_features= pd.read_csv(t2w_path)
              Abook.append(t2w_features)
-             Names.append("anatomical")    
+             Names.append("anat")    
 
     ST = []
     COE = []
@@ -631,16 +631,16 @@ def ML(Path, format_type) :
         result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
         result[N]= result[N][0]
         result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
-        if "structural" in csv:
-            dti=["structural"]*len(result[N])
+        if "diff" in csv:
+            dti=["diff"]*len(result[N])
             result[N]["sequence_type"] = dti
            
-        elif "functional" in csv:
-            fmri=["functional"]*len(result[N])
+        elif "func" in csv:
+            fmri=["func"]*len(result[N])
             result[N]["sequence_type"] = fmri          
        
-        elif "anatomical" in csv :
-            t2w=["anatomical"]*len(result[N])
+        elif "anat" in csv :
+            t2w=["anat"]*len(result[N])
             result[N]["sequence_type"] = t2w    
        
         result[N]["Pathes"] = address
@@ -662,21 +662,21 @@ def QCtable(Path, format_type):
     Names =[]
     for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
         
-        if "structural" in file:
+        if "diff" in file:
             dti_path= file
             dti_features= pd.read_csv(dti_path)
             Abook.append(dti_features)
-            Names.append("structural")
-        elif "functional" in file :
+            Names.append("diff")
+        elif "func" in file :
             fmri_path= file
             fmri_features= pd.read_csv(fmri_path)
             Abook.append(fmri_features)
-            Names.append("functional")
-        elif "anatomical" in file :    
+            Names.append("func")
+        elif "anat" in file :    
              t2w_path= file
              t2w_features= pd.read_csv(t2w_path)
              Abook.append(t2w_features)
-             Names.append("anatomical")    
+             Names.append("anat")    
 
     
     

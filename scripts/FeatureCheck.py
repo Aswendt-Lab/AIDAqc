@@ -17,22 +17,22 @@ def CheckingRawFeatures(Path):
     Names =[]
     for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
         
-        if "anatomical" in file :    
+        if "anat" in file :    
              t2w_path= file
              t2w_addreses= pd.read_csv(t2w_path)
              Abook.append(t2w_addreses)
-             Names.append("anatomical")
+             Names.append("anat")
 
-        elif "structural" in file:
+        elif "diff" in file:
             dti_path= file
             dti_addreses= pd.read_csv(dti_path)
             Abook.append(dti_addreses)
-            Names.append("structural")
-        elif "functional" in file :
+            Names.append("diff")
+        elif "func" in file :
             fmri_path= file
             fmri_addreses= pd.read_csv(fmri_path)
             Abook.append(fmri_addreses)
-            Names.append("functional")
+            Names.append("func")
     
     ErorrList = []
     saving_path = Path
@@ -156,7 +156,7 @@ def CheckingRawFeatures(Path):
                     GMetric = GoastCheck(input_file)
                     
                     
-                    if N == 'anatomical':
+                    if N == 'anat':
                         
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
@@ -168,7 +168,7 @@ def CheckingRawFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    elif N == 'structural':
+                    elif N == 'diff':
                         # Signal 2 noise ratio
                         #print(tf)
                         snrCh = snrCalclualtor_chang(input_file)
@@ -183,7 +183,7 @@ def CheckingRawFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    elif N == 'functional':
+                    elif N == 'func':
                         #temporal signal 2 noise ratio
                         #print(tf)
                         tSNR = TsnrCalclualtor(input_file)
@@ -214,31 +214,31 @@ def CheckingRawFeatures(Path):
             df['Goasting'] = np.array(GMetric_vec)
             
             
-            if N == 'anatomical':
+            if N == 'anat':
                  df['SNR Chang'] = np.array(snrCh_vec)
                  df['SNR Normal'] = np.array(snr_normal_vec)
                  
-            elif N == 'structural':
+            elif N == 'diff':
                  df['SNR Chang'] = np.array(snrCh_vec)
                  df['SNR Normal'] = np.array(snr_normal_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
                  
-            elif N == "functional":
+            elif N == "func":
                  df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
                  
-            if N=="anatomical":
-                t2w_result= os.path.join(Path,"caculated_features_anatomical.csv")
+            if N=="anat":
+                t2w_result= os.path.join(Path,"caculated_features_anat.csv")
                 df.to_csv( t2w_result)
 
-            elif N=="structural":    
-                dti_result= os.path.join(Path,"caculated_features_structural.csv")
+            elif N=="diff":    
+                dti_result= os.path.join(Path,"caculated_features_diff.csv")
                 df.to_csv( dti_result)   
 
-            elif N=="functional":
-                fmri_result= os.path.join(Path,"caculated_features_functional.csv")
+            elif N=="func":
+                fmri_result= os.path.join(Path,"caculated_features_func.csv")
                 df.to_csv(fmri_result)
 
     if ErorrList:            
@@ -258,21 +258,21 @@ def CheckingNiftiFeatures(Path):
     Names =[]
     for file in glob.glob(os.path.join(Path, '*addreses*.csv')) :
 
-        if "anatomical" in file :    
+        if "anat" in file :    
              t2w_path= file
              t2w_addreses= pd.read_csv(t2w_path)
              Abook.append(t2w_addreses)
-             Names.append("anatomical")             
-        elif "structural" in file:
+             Names.append("anat")             
+        elif "diff" in file:
             dti_path= file
             dti_addreses= pd.read_csv(dti_path)
             Abook.append(dti_addreses)
-            Names.append("structural")
-        elif "functional" in file :
+            Names.append("diff")
+        elif "func" in file :
             fmri_path= file
             fmri_addreses= pd.read_csv(fmri_path)
             Abook.append(fmri_addreses)
-            Names.append("functional")
+            Names.append("func")
     
     ErorrList = []
     saving_path = os.path.dirname(Path) 
@@ -360,7 +360,7 @@ def CheckingNiftiFeatures(Path):
                     SpatRes = ResCalculator(input_file)
                     GMetric = GoastCheck(input_file)
                     
-                    if N == "anatomical":
+                    if N == "anat":
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
                         snr_normal = snrCalclualtor_normal(input_file)   
@@ -371,7 +371,7 @@ def CheckingNiftiFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    elif N == "structural":
+                    elif N == "diff":
                         # Signal 2 noise ratio
                         
                         snrCh = snrCalclualtor_chang(input_file)
@@ -385,7 +385,7 @@ def CheckingNiftiFeatures(Path):
                         snr_normal_vec.append(snr_normal)
                         snrCh_vec.append(snrCh)
                         
-                    elif N == "functional":
+                    elif N == "func":
                         #temporal signal 2 noise ratio
                         tSNR = TsnrCalclualtor(input_file)
                         Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
@@ -424,31 +424,31 @@ def CheckingNiftiFeatures(Path):
             
           
             
-            if N == "anatomical":
+            if N == "anat":
                  df['SNR Chang'] = np.array(snrCh_vec)
                  df['SNR Normal'] = np.array(snr_normal_vec)
                  
-            elif N == "structural":
+            elif N == "diff":
                  df['SNR Chang'] = np.array(snrCh_vec)
                  df['SNR Normal'] = np.array(snr_normal_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
                  
-            elif N == "functional":
+            elif N == "func":
                  df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
                  
-            if N=="anatomical":
-                t2w_result= os.path.join(Path,"caculated_features_anatomical.csv")
+            if N=="anat":
+                t2w_result= os.path.join(Path,"caculated_features_anat.csv")
                 df.to_csv( t2w_result)
 
-            elif N=="structural":    
-                dti_result= os.path.join(Path,"caculated_features_structural.csv")
+            elif N=="diff":    
+                dti_result= os.path.join(Path,"caculated_features_diff.csv")
                 df.to_csv( dti_result)   
 
-            elif N=="functional":
-                fmri_result= os.path.join(Path,"caculated_features_functional.csv")
+            elif N=="func":
+                fmri_result= os.path.join(Path,"caculated_features_func.csv")
                 df.to_csv(fmri_result)
 
     if ErorrList:            

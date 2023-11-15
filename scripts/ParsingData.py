@@ -85,7 +85,7 @@ if __name__ == "__main__":
     
     #Types = ['Dti','EPI','RARE']
     #Types_new = ['DTI','rsfMRI','T2w']
-    type_strs = ['structural', 'functional', 'anatomical']
+    type_strs = ['diff', 'func', 'anat']
   
     if format_type == "raw":
         
@@ -111,7 +111,7 @@ if __name__ == "__main__":
             ABook[type_strs[i]] = []
     
     
-        with ap.alive_bar(kall, title='Extracting T1 or T2 weighted, structural and functional sequences:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
+        with ap.alive_bar(kall, title='Extracting T1 or T2 weighted, diff and func sequences:'.upper(),length=10,stats = False,spinner= 'wait') as bar:   
             
             for p in text_files:   #filling the Address Book with wanted files
 
@@ -142,22 +142,22 @@ if __name__ == "__main__":
                 if DateTemp not in CheckDates:
                     
                     if Flag_struct and not Flag_notAllowed:
-                        ABook["structural"].append(os.path.dirname(p))
+                        ABook["diff"].append(os.path.dirname(p))
                         C = C+1
                     elif Flag_func and not Flag_notAllowed:
-                        ABook["functional"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
+                        ABook["func"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                         C = C+1
                     elif Flag_anat and not Flag_notAllowed and not Flag_epi: #T2Star EPIS are usually rsfmri scans
-                        ABook["anatomical"].append(os.path.dirname(p))
+                        ABook["anat"].append(os.path.dirname(p))
                         C = C+1
                     elif Flag_epi and not Flag_notAllowed:
                         TP = NameTemp[1]["ACQ_time_points"]
                         MF = NameTemp[1]["ACQ_n_movie_frames"]
                         if MF != len(TP):
-                            ABook["functional"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
+                            ABook["func"].append(os.path.dirname(p)) #I know it is totally confusing with EPI as the col name for the ABook but sadly EPI can also be a DTI scan
                             C = C+1
                         elif MF == len(TP):
-                            ABook["structural"].append(os.path.dirname(p)) 
+                            ABook["diff"].append(os.path.dirname(p)) 
                             C = C+1
                         
                         
@@ -272,11 +272,11 @@ if __name__ == "__main__":
                 
               
             if Flag_struct and not Flag_notAllowed:
-                ABook["structural"].append(i)
-            if Flag_func and not Flag_notAllowed:
-                ABook["functional"].append(i)
-            if Flag_anat and not Flag_notAllowed:
-                ABook["anatomical"].append(i)
+                ABook["diff"].append(i)
+            elif Flag_func and not Flag_notAllowed:
+                ABook["func"].append(i)
+            elif Flag_anat and not Flag_notAllowed:
+                ABook["anat"].append(i)
 
         #saving in csv file
         for n,type_str in enumerate(type_strs):
