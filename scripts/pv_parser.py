@@ -313,7 +313,8 @@ def read_param_file(filename):
     elif 'JCAMP-DX' in header:
         version = float(header['JCAMP-DX'])
     else:
-        sys.exit("The file header is not correct.")
+        raise KeyError("The file header does not contain the key 'JCAMP-DX'.")
+        #sys.exit("The file header is not correct.")
 
     if (version != 4.24) and (version != 5):
         print("Warning: JCAMP version %s is not supported (%s)." % (version, filename), file=sys.stderr)
