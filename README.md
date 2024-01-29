@@ -6,9 +6,9 @@
 <br/>
 <h3>Features</h3> 
 
-- **Input:** Bruker raw data or NIFTY (T2-weighted MRI, diffusion-weighted MRI or DTI, and rs-fMRI)
-- **Calculations:** SNR, tSNR, movement variability, data quality categorization (finds bad quality outlier)
-- **Output Format:** CSV sheets & pdf & images
+- **Input:** Bruker raw data or NIFTY (T2-weighted MRI, diffusion-weighted MRI, or DTI, and rs-fMRI)
+- **Calculations:** SNR, tSNR, movement variability, data quality categorization (finds bad quality outliers)
+- **Output Format:** CSV sheets, PDFs, & images
 
 <img align="left" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_workflow.png">
 
@@ -26,7 +26,13 @@ See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/
 
 <h3>The story behind this tool</h3> 
 
-It can be challenging to acquire MR images of consistent quality or to decide between good vs. bad quality data in large databases. Manual screening without quantitative criteria is strictly user-dependent and for large databases is neither practical nor in the spirit of good scientific practice. In contrast to clinical MRI, in animal MRI, there is no consensus on the standardization of quality control measures or categorization of good vs. bad quality images. As we were forced for a recent project to screen hundreds of scans, we decided to automate this process as part of our Atlas-based Processing Pipeline (AIDA).
+It can be challenging to acquire MR images of consistent quality or to decide between good vs. bad quality data in large databases. Manual screening without quantitative criteria is strictly user-dependent and for large databases is neither practical nor in the spirit of good scientific practice. In contrast to clinical MRI, in animal MRI, there is no consensus on the standardization of quality control measures or categorization of good vs. bad quality images. As we were forced to screen hundreds of scans for a recent project, we decided to automate this process as part of our Atlas-based Processing Pipeline (AIDA).
+
+<h3>Validation and Datasets</h3> 
+
+This tool has been validated and used in the following publication: [Publication Link](https://gin.g-node.org/Aswendt_Lab/2023_Kalantari_AIDAqc)
+
+A total of 23 datasets from various institutes were used for validation and testing. These datasets can be found via: [Datasets Link](https://gin.g-node.org/Aswendt_Lab/2023_Kalantari_AIDAqc)
 
 <h3>Download test dataset</h3>
 https://gin.g-node.org/Aswendt_Lab/testdata_aidaqc
