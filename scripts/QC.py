@@ -426,10 +426,11 @@ def getrange(numbers):
 
 #%% Plotting QC Histogram and etc.
 
+
 def QCPlot(Path):
     
-    saving_path = (Path) 
-    QC_fig_path = os.path.join( (Path) , "QCfigures")
+    saving_path = Path
+    QC_fig_path = os.path.join(Path, "QCfigures")
     if not os.path.isdir(QC_fig_path):
         os.mkdir(QC_fig_path)
 
@@ -465,7 +466,7 @@ def QCPlot(Path):
     hh = 1
     rr = 1
     # Set font properties
-    title_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'bold', 'size': 10}
+    title_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'bold', 'size': 8}
     label_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'normal', 'size': 8}
     tick_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'normal', 'size': 8}
     
@@ -480,12 +481,17 @@ def QCPlot(Path):
             if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C == 'SNR Normal' or C == 'Displacement factor (std of Mutual information)':
                 # Plot histogram
                 cm = 1/2.54  # centimeters in inches
-                plt.figure(hh, figsize=(9, 5), dpi=300)
+                plt.figure(hh, figsize=(7*cm, 5*cm), dpi=300)
                 ax2 = plt.subplot(1, 1, 1, label="histogram")
                 
-                for dd, DD in enumerate(Data):  # If tSNR and SNR chang are also adjusted, this section can be eliminated
-                    if DD == np.inf:
+                # Loop through the Data list
+                for dd, DD in enumerate(Data):
+                    # If the value is infinite or NaN, replace it with np.nan
+                    if np.isinf(DD) or np.isnan(DD):
                         Data[dd] = np.nan
+                
+                # Drop NaN values from the Data list
+                Data = [value for value in Data if not np.isnan(value)]
                 
                 q75, q25 = np.nanpercentile(Data, [75, 25])
                 iqr = q75 - q25
@@ -496,12 +502,11 @@ def QCPlot(Path):
                 else:
                     XX = B * 5
                 
-                y, x, bars = plt.hist(Data, bins=B * 7, histtype='bar', edgecolor='white')
+                y, x, bars = plt.hist(Data, bins=B * 7, histtype='bar', edgecolor='white',linewidth = 1.5/B)
                 plt.xlabel(N + ': ' + C + ' [a.u.]', fontdict=label_font)
                 plt.ylabel("Frequency", fontdict=label_font)
                 ax2.spines['right'].set_visible(False)
                 ax2.spines['top'].set_visible(False)
-                plt.locator_params(axis='x', nbins=XX)
                 ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
                 
                 # Calculate interquartile range of values in the 'points' column
@@ -511,39 +516,32 @@ def QCPlot(Path):
                     for b, bar in enumerate(bars):
                         if bar.get_x() > ll:
                             bar.set_facecolor("red")
+                    plt.xlabel('Motion Severity (a.u)', fontdict=label_font)  # Adjust x-axis label
                 else:
                     ll = q25 - 1.5 * iqr
                     plt.text(1.001 * ll, 2 * max(y) / 3, 'Q1 - 1.5*IQ', color='grey', fontdict=label_font)
                     for b, bar in enumerate(bars):
                         if bar.get_x() < ll:
                             bar.set_facecolor("red")
+                    if C == 'SNR Normal':
+                        plt.xlabel('SNR Standard (dB)', fontdict=label_font)  # Adjust x-axis label
+                    else:
+                        plt.xlabel(C + " (dB)", fontdict=label_font)  # Adjust x-axis label
                 
                 plt.axvline(ll, color='grey', linestyle='--')
-                plt.suptitle(N + ': ' + C, fontdict=title_font)
-                
-                red_patch = mpatches.Patch(color='red', label='Discard')
-                blue_patch = mpatches.Patch(color='tab:blue', label='Keep')
-                # Modify the legend with smaller font size and Times New Roman font
-                legend = plt.legend(handles=[blue_patch, red_patch], fontsize=8)
-                #legend.get_frame().set_linewidth(0.0)  # Remove legend border
-
-                # Set Times New Roman font for legend text
-                # Set Times New Roman font for legend text
-                for text in legend.get_texts():
-                   text.set_fontfamily('serif')
-                   text.set_fontsize(8)
-
-                
+                plt.suptitle(N,fontdict=title_font)  # Remove title
+                                
                 # Set the font for axis ticks
                 ax2.xaxis.set_tick_params(labelsize=8)
                 ax2.yaxis.set_tick_params(labelsize=8)
-                
+                plt.tight_layout()
                 plt.savefig(os.path.join(QC_fig_path, C + N + ".png"), dpi=300)
                 plt.close()
                 
         hh = hh + 1
     
-    plt.figure(hh, figsize=(9, 5), dpi=300)
+    cm = 1/2.53
+    plt.figure(hh, figsize=(18*cm, 10*cm), dpi=300)
     for nn, N in enumerate(Names):
         COL = list(Abook[nn].columns)
         COL.pop(0)
@@ -557,20 +555,37 @@ def QCPlot(Path):
                 labels = list(np.round(labels, 3))
                 labels2 = [str(l) + ' mm' for l in labels]
                 
+                # Sort sizes and labels in descending order
+                sorted_indices = np.argsort(sizes)[::-1]
+                sizes = [sizes[i] for i in sorted_indices]
+                labels2 = [labels2[i] for i in sorted_indices]
+                
                 ax1 = plt.subplot(len(Names), 3, rr)
-                ax1.pie(sizes, labels=labels2, autopct='%1.0f%%', startangle=180)
+                wedges, texts, autotexts = ax1.pie(sizes, startangle=180, labels=None, autopct='')
                 ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
                 ax1.set_title(N + ':' + C, fontdict=title_font)
-                plt.suptitle('Resolution homogeneity between data', weight="bold")
+                plt.suptitle('Resolution homogeneity between data',fontdict=title_font)
+                
+                # Displaying values only for the three largest slices
+                sorted_sizes = sorted(sizes, reverse=True)
+                for i, p in enumerate(wedges):
+                    if sizes[i] in sorted_sizes[:3]:
+                        ang = (p.theta2 - p.theta1)/2. + p.theta1
+                        y = np.sin(np.deg2rad(ang))
+                        x = np.cos(np.deg2rad(ang))
+                        horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+                        ax1.text(x, y, labels2[i], fontsize=8, ha=horizontalalignment, va='center')
                 
                 # Set the font for axis ticks
                 ax1.xaxis.set_tick_params(labelsize=8)
                 ax1.yaxis.set_tick_params(labelsize=8)
                 
                 rr = rr + 1
-    
+    plt.tight_layout()
     plt.savefig(os.path.join(QC_fig_path, "Spatial_Resolution.png"), dpi=300)
     plt.close()
+
+
 
 #%%
 # machine learning methods
