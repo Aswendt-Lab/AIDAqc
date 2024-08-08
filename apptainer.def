@@ -1,0 +1,47 @@
+BootStrap: docker
+From: ubuntu:latest
+
+%labels
+        APPLICATION_NAME AIDAqc in Apptainer 
+        AUTHOR_NAME Joanes Grandjean
+        YEAR 2024
+        Version 20240808
+
+%help
+        This container is based on ubuntu latest docker and contains AIDAqc. see https://github.com/Aswendt-Lab/AIDAqc
+
+%environment
+        PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+        LANG=C.UTF-8 LC_ALL=C.UTF-8
+
+%post
+
+# Install nvim and python 
+
+        export DEBIAN_FRONTEND=noninteractive
+        ln -fs /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
+        export LANG=C.UTF-8 LC_ALL=C.UTF-8  
+        
+        mkdir -p /opt
+        cd /opt
+        rm -rf AIDAqc
+
+        apt-get update -yy
+        apt-get install -yy --no-install-recommends git python3 python3-pip fonts-unifont
+        apt-get install --reinstall ttf-mscorefonts-installer
+
+        git clone https://github.com/Aswendt-Lab/AIDAqc.git
+        cd AIDAqc
+
+        python3 -m pip --no-cache-dir install --break-system-packages -r requirements.txt
+
+        chmod +x scripts/*.py 
+        mv scripts/* /usr/local/bin/
+        
+# Cleanup
+        apt-get -qq clean
+        rm -rf /var/lib/apt/lists/* 
+
+%runscript
+
+        bash
