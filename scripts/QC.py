@@ -465,9 +465,9 @@ def QCPlot(Path):
     hh = 1
     rr = 1
     # Set font properties
-    title_font = {'family': 'serif', 'fontname': 'DejaVu Sans', 'weight': 'bold'}
-    label_font = {'family': 'serif', 'fontname': 'DejaVu Sans', 'weight': 'normal'}
-    tick_font = {'family': 'serif', 'fontname': 'DejaVu Sans', 'weight': 'normal'}
+    title_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
+    label_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
+    tick_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
     
     for nn, N in enumerate(Names):
         COL = list(Abook[nn].columns)
