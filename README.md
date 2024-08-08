@@ -24,6 +24,22 @@ Main function: *ParsingData*
 
 See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
 
+For installation in a [apptainer](https://apptainer.org/) container for GNU/Linux:
+
+```{bash}
+
+# Download the repository
+git clone https://github.com/Aswendt-Lab/AIDAqc.git
+cd AIDAqc
+
+# Create a new apptainer container
+apptainer build aidaqc.sif apptainer.def
+
+# Get into a bash shell in the container
+apptainer run aidaqc.sif
+
+```
+
 <h3>The story behind this tool</h3> 
 
 It can be challenging to acquire MR images of consistent quality or to decide between good vs. bad quality data in large databases. Manual screening without quantitative criteria is strictly user-dependent and for large databases is neither practical nor in the spirit of good scientific practice. In contrast to clinical MRI, in animal MRI, there is no consensus on the standardization of quality control measures or categorization of good vs. bad quality images. As we were forced to screen hundreds of scans for a recent project, we decided to automate this process as part of our Atlas-based Processing Pipeline (AIDA).
