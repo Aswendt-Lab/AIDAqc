@@ -24,6 +24,10 @@ Main function: *ParsingData*
 
 See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
 
+<h3>Tutorial</h3>
+
+To guide you through running the pipeline, please watch the [YouTube tutorial](https://youtu.be/SP4sWW313DQ?si=4WaTI544FzAkBVbY).
+
 <h3>The story behind this tool</h3> 
 
 It can be challenging to acquire MR images of consistent quality or to decide between good vs. bad quality data in large databases. Manual screening without quantitative criteria is strictly user-dependent and for large databases is neither practical nor in the spirit of good scientific practice. In contrast to clinical MRI, in animal MRI, there is no consensus on the standardization of quality control measures or categorization of good vs. bad quality images. As we were forced to screen hundreds of scans for a recent project, we decided to automate this process as part of our Atlas-based Processing Pipeline (AIDA).
