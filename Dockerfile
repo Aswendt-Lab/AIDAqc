@@ -15,7 +15,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
     && /bin/bash /tmp/miniconda.sh -b -p /opt/conda \
     && rm /tmp/miniconda.sh
 
-COPY aidaqc.yml /tmp/aidaqc.yaml
+COPY aidaqc.yaml /tmp/aidaqc.yaml
 
 # Create the conda environment
 RUN conda env create -n aidaqc python=3.6 -f /tmp/aidaqc.yaml
