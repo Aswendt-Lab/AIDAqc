@@ -11,14 +11,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Miniconda for python3.6
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
-    && /bin/bash /tmp/miniconda.sh -b -p /opt/conda \
-    && rm /tmp/miniconda.sh
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /opy/miniconda.sh \
+    && /bin/bash /opy/miniconda.sh -b -p /opt/conda \
+    && rm /opt/miniconda.sh
 
-COPY aidaqc.yaml /tmp/aidaqc.yaml
+COPY aidaqc.yaml /opt/aidaqc.yaml
 
 # Create the conda environment
-RUN conda env create -f /tmp/aidaqc.yaml 
+RUN conda env create -f /opt/aidaqc.yaml 
 
 # Activate the environment and ensure it's activated
 RUN echo "source activate aidaqc" > ~/.bashrc
