@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Miniconda for python3.6
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /opy/miniconda.sh \
-    && /bin/bash /opy/miniconda.sh -b -p /opt/conda \
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /opt/miniconda.sh \
+    && /bin/bash /opt/miniconda.sh -b -p /opt/conda \
     && rm /opt/miniconda.sh
 
 COPY aidaqc.yaml /opt/aidaqc.yaml
