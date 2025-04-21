@@ -20,7 +20,8 @@ RUN conda create -n aidaqc python=3.6 && \
 
 # Activate the environment and ensure it's activated
 RUN echo "source activate aidaqc" > ~/.bashrc
-ENV PATH "$(dirname (which conda))"/envs/aidaqc/bin:$PATH
+ENV PATH "$(dirname (dirname (which conda)))"/envs/aidaqc/bin:$PATH
+RUN /bin/bash -c "source activate aidaqc"
 
 # Set the working directory
 WORKDIR /app
