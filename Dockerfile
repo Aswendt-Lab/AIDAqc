@@ -14,9 +14,14 @@ FROM continuumio/miniconda:latest
 
 COPY aidaqc.yaml /opt/aidaqc.yaml
 
+SHELL ["/bin/bash", "-l", "-c"]
 # Create the conda environment
 RUN conda create -n aidaqc python=3.6 && \
     conda env update -n aidaqc --file /opt/aidaqc.yaml
+
+RUN useradd -ms /bin/bash aida
+USER aida
+SHELL ["conda", "run", "-n", "aidaqc", "/bin/bash", "-c"]
 
 # Activate the environment and ensure it's activated
 RUN echo "source activate aidaqc" > ~/.bashrc
@@ -29,5 +34,4 @@ WORKDIR /app
 # Copy the rest of the application code to the container
 COPY . /app
 
-# Specify the default command to run the application
-CMD ["python", "/app/scripts/ParsingData.py"]
+ENTRYPOINT ["conda", "run", "-n", "aidaqc", "python", "/app/scripts/ParsingData.py"]
