@@ -1,5 +1,3 @@
-channels:
-  - defaults
 dependencies:
   - alabaster=0.7.12=py36_0
   - appdirs=1.4.4=pyhd3eb1b0_0
