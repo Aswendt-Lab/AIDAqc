@@ -29,4 +29,4 @@ WORKDIR /app
 COPY . /app
 
 # Specify the default command to run the application
-CMD ["python", "/app/ParsingData.py"]
+CMD ["python", "/app/scripts/ParsingData.py"]
