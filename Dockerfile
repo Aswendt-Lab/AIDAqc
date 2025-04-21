@@ -15,8 +15,8 @@ FROM continuumio/miniconda:latest
 COPY aidaqc.yaml /opt/aidaqc.yaml
 
 # Create the conda environment
-RUN conda env create -y -n aidaqc python=3.6 && \
-    conda env install -y -n aidaqc --file /opt/aidaqc.yaml
+RUN conda env create -n aidaqc python=3.6 && \
+    conda env install -n aidaqc --file /opt/aidaqc.yaml
 
 # Activate the environment and ensure it's activated
 RUN echo "source activate aidaqc" > ~/.bashrc
