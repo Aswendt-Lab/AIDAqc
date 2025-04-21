@@ -16,7 +16,7 @@ COPY aidaqc.yaml /opt/aidaqc.yaml
 
 # Create the conda environment
 RUN conda create -n aidaqc python=3.6 && \
-    conda install -n aidaqc --file /opt/aidaqc.yaml
+    conda env update -n aidaqc --file /opt/aidaqc.yaml
 
 # Activate the environment and ensure it's activated
 RUN echo "source activate aidaqc" > ~/.bashrc
