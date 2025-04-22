@@ -24,8 +24,8 @@ USER aida
 SHELL ["conda", "run", "-n", "aidaqc", "/bin/bash", "-c"]
 
 # Activate the environment and ensure it's activated
-RUN echo "source activate aidaqc" > ~/.bashrc
-ENV PATH "$(dirname (dirname (which conda)))"/envs/aidaqc/bin:$PATH
+RUN echo "source activate aidaqc" > /home/aida/.bashrc
+ENV PATH /opt/condaenvs/aidaqc/bin:$PATH
 RUN /bin/bash -c "source activate aidaqc"
 
 # Set the working directory
