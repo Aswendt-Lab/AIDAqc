@@ -24,6 +24,15 @@ Main function: *ParsingData*
 
 See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
 
+<h3>Docker Usage</h3>
+Build:
+
+```docker build aidaqc:2.1 .```
+
+Running the main ParsingData.py:
+
+```docker run -v /your/project/data:/data -v /your/project/qc aidaqc:2.1 -i /data -o /qc -f raw```
+
 <h3>Tutorial</h3>
 
 To guide you through running the pipeline, please watch the [YouTube tutorial](https://youtu.be/SP4sWW313DQ?si=4WaTI544FzAkBVbY).
