@@ -53,8 +53,8 @@ def toc(tempBool=True):
 def tic():
     # Records a time in TicToc, marks the beginning of a time interval
     toc(False)
-#%% Goasing 
-def GoastCheck(input_file):
+#%% Ghosting 
+def GhostCheck(input_file):
     
     #input_file= nib.load(tf)
     img = input_file
@@ -79,10 +79,10 @@ def GoastCheck(input_file):
     peaks_strong, prop = signal.find_peaks(MI_vec, height = 0.25*max(MI_vec))
     peaks_weak, prop = signal.find_peaks(MI_vec)
     
-    StrongGoast = np.sum(np.isin(peaks_strong,Mmos))
-    WeekGoast = np.sum(np.isin(peaks_weak,Mmos))
+    StrongGhost = np.sum(np.isin(peaks_strong,Mmos))
+    WeekGhost = np.sum(np.isin(peaks_weak,Mmos))
     
-    if WeekGoast > 2 or StrongGoast > 0:
+    if WeekGhost > 2 or StrongGhost > 0:
         GMetric = True
     else:
         GMetric = False
