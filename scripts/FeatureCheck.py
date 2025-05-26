@@ -153,7 +153,7 @@ def CheckingRawFeatures(Path):
                     ########### Slice extraction               
                     # other Features
                     SpatRes = ResCalculator(input_file)
-                    GMetric = GoastCheck(input_file)
+                    GMetric = GhostCheck(input_file)
                     
                     
                     if N == 'anat':
@@ -211,7 +211,7 @@ def CheckingRawFeatures(Path):
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
-            df['Goasting'] = np.array(GMetric_vec)
+            df['Ghosting'] = np.array(GMetric_vec)
             
             
             if N == 'anat':
@@ -358,7 +358,7 @@ def CheckingNiftiFeatures(Path):
                     ########### Slice extraction               
                     # other Features
                     SpatRes = ResCalculator(input_file)
-                    GMetric = GoastCheck(input_file)
+                    GMetric = GhostCheck(input_file)
                     
                     if N == "anat":
                         # Signal 2 noise ratio
@@ -420,7 +420,7 @@ def CheckingNiftiFeatures(Path):
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
             df['Slicethick'] = np.array(SpatRes_vec)[:,2]
-            df['Goasting'] = np.array(GMetric_vec)
+            df['Ghosting'] = np.array(GMetric_vec)
             
           
             
