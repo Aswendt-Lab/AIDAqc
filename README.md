@@ -24,6 +24,22 @@ Main function: *ParsingData*
 
 See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
 
+For installation in a [apptainer](https://apptainer.org/) container for GNU/Linux:
+
+```{bash}
+
+# Download the repository
+git clone https://github.com/Aswendt-Lab/AIDAqc.git
+cd AIDAqc
+
+# Create a new apptainer container
+apptainer build aidaqc.sif apptainer.def
+
+# Get into a bash shell in the container
+apptainer run aidaqc.sif
+
+```
+
 <h3>Tutorial</h3>
 
 To guide you through running the pipeline, please watch the [YouTube tutorial](https://youtu.be/SP4sWW313DQ?si=4WaTI544FzAkBVbY).
