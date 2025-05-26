@@ -465,9 +465,9 @@ def QCPlot(Path):
     hh = 1
     rr = 1
     # Set font properties
-    title_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'bold', 'size': 10}
-    label_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'normal', 'size': 8}
-    tick_font = {'family': 'serif', 'fontname': 'Times New Roman', 'weight': 'normal', 'size': 8}
+    title_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
+    label_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
+    tick_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
     
     for nn, N in enumerate(Names):
         COL = list(Abook[nn].columns)
@@ -538,7 +538,10 @@ def QCPlot(Path):
                 ax2.xaxis.set_tick_params(labelsize=8)
                 ax2.yaxis.set_tick_params(labelsize=8)
                 
-                plt.savefig(os.path.join(QC_fig_path, C + N + ".png"), dpi=300)
+                base_filename = os.path.join(QC_fig_path, C + N)
+                plt.savefig(base_filename + ".png", dpi=300)
+                plt.savefig(base_filename + ".svg", format='svg')
+
                 plt.close()
                 
         hh = hh + 1
@@ -569,7 +572,9 @@ def QCPlot(Path):
                 
                 rr = rr + 1
     
-    plt.savefig(os.path.join(QC_fig_path, "Spatial_Resolution.png"), dpi=300)
+    base_filename = os.path.join(QC_fig_path, "Spatial_Resolution")
+    plt.savefig(base_filename + ".png", dpi=300)
+    plt.savefig(base_filename + ".svg", format='svg')
     plt.close()
 
 #%%

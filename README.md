@@ -24,7 +24,7 @@ Main function: *ParsingData*
 
 See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
 
-<h3>Docker Usage</h3>
+<h3>Docker/Apptainer Usage</h3>
 Build:
 
 ```docker build aidaqc:2.1 .```
@@ -32,6 +32,22 @@ Build:
 Running the main ParsingData.py:
 
 ```docker run -v /your/project/data:/data -v /your/project/qc aidaqc:2.1 -i /data -o /qc -f raw```
+=======
+For installation in a [apptainer](https://apptainer.org/) container for GNU/Linux:
+
+```{bash}
+
+# Download the repository
+git clone https://github.com/Aswendt-Lab/AIDAqc.git
+cd AIDAqc
+
+# Create a new apptainer container
+apptainer build aidaqc.sif apptainer.def
+
+# Get into a bash shell in the container
+apptainer run aidaqc.sif
+
+```
 
 <h3>Tutorial</h3>
 
