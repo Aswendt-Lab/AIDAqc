@@ -4,8 +4,8 @@ import pandas as pd
 import glob
 import matplotlib.backends.backend_pdf
 import nibabel as nib
-import nibabel as nii
-import matplotlib.pyplot as plt
+from nilearn.plotting import plot_img
+from nilearn.image import index_img
 import pv_conv2Nifti as pr
 import alive_progress as ap
 import pv_parser as par
@@ -93,7 +93,14 @@ def CheckingRawFeatures(Path):
                     if os.path.isfile(CP_v) and os.path.isfile(CP_a):
                         try:
                             pv.read_2dseq(map_raw=False, pv6=False)
-                            input_file = nii.squeeze_image(pv.nim)
+                            input_file = nib.squeeze_image(pv.nim)
+                            # this is a workaround to convert the data for nilearn plotting
+                            affine = np.eye(4)
+                            affine[0, 0] = pv.nim.header.get('pixdim')[1]
+                            affine[1, 1] = pv.nim.header.get('pixdim')[2]
+                            affine[2, 2] = pv.nim.header.get('pixdim')[3]
+                            affine[3, 3] = pv.nim.header.get('pixdim')[4]
+                            input_file=nib.Nifti1Image(input_file.get_fdata(), affine=affine,dtype=int(32))
                         except ValueError:
                             ErorrList.append(tf+"_Value Error")
                             print(tf)
@@ -135,7 +142,6 @@ def CheckingRawFeatures(Path):
 #                         continue
 # =============================================================================
                     ########### Slice extraction 
-                    selected_img = Image_Selection(input_file)                    
                     qc_path = os.path.join(saving_path,"manual_slice_inspection")
                     if not os.path.isdir(qc_path):
                         os.mkdir(qc_path)
@@ -143,13 +149,14 @@ def CheckingRawFeatures(Path):
                     full_img_name = str(N)+"_" + img_name+"_"+ str(dd)+".png".replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name) 
                     
-                    #plt.figure()          
-                    plt.axis('off')
-                    plt.imshow(selected_img,cmap='gray')
-                    #svg_path = os.path.join(qc_path,+ img_name+".png").replace(".nii","").replace(".gz","")
+                    # grandjean patch to output ortho representation of the image in manual slice inspection
                     svg_path = os.path.join(qc_path,str(N)+"_"+ img_name+"_"+ str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
-                    plt.savefig(svg_path)
+                    if len(input_file.shape) == 4:
+                        input_file_img = index_img(input_file,0)
+                    else:
+                        input_file_img = input_file
+                    plot_img(input_file_img, title=full_img_name, output_file=svg_path)
                     ########### Slice extraction               
                     # other Features
                     SpatRes = ResCalculator(input_file)
@@ -340,7 +347,6 @@ def CheckingNiftiFeatures(Path):
                         continue
                     
                     ########### Slice extraction 
-                    selected_img = Image_Selection(input_file)                    
                     qc_path = os.path.join(Path,"manual_slice_inspection")
                     if not os.path.isdir(qc_path):
                         os.mkdir(qc_path)
@@ -349,12 +355,14 @@ def CheckingNiftiFeatures(Path):
                     full_img_name = (str(N)+"_"+folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name)
                     
-                    #plt.figure()          
-                    plt.axis('off')
-                    plt.imshow(selected_img,cmap='gray')
-                    svg_path = os.path.join(qc_path,str(N)+"_"+folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
+                    # grandjean patch to output ortho representation of the image in manual slice inspection
+                    svg_path = os.path.join(qc_path,str(N)+"_"+ img_name+"_"+ str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
-                    plt.savefig(svg_path)
+                    if len(input_file.shape) == 4:
+                        input_file_img = index_img(input_file,0)
+                    else:
+                        input_file_img = input_file
+                    plot_img(input_file_img, title=full_img_name, output_file=svg_path)
                     ########### Slice extraction               
                     # other Features
                     SpatRes = ResCalculator(input_file)
