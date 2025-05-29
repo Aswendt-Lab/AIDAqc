@@ -27,12 +27,16 @@ See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/
 <h3>Docker/Apptainer Usage</h3>
 Build:
 
-```docker build aidaqc:2.1 .```
+```{bash}
 
-Running the main ParsingData.py:
+docker build aidaqc:2.1 .
 
-```docker run -v /your/project/data:/data -v /your/project/qc aidaqc:2.1 -i /data -o /qc -f raw```
-=======
+# Running the main ParsingData.py:
+
+docker run -v /your/project/data:/data -v /your/project/qc aidaqc:2.1 -i /data -o /qc -f raw
+
+```
+
 For installation in a [apptainer](https://apptainer.org/) container for GNU/Linux:
 
 ```{bash}
@@ -64,7 +68,7 @@ This tool has been validated and used in the following publication: [Publication
 A total of 23 datasets from various institutes were used for validation and testing. These datasets can be found via: [Datasets Link](https://gin.g-node.org/Aswendt_Lab/2023_Kalantari_AIDAqc)
 
 <h3>Download test dataset</h3>
-https://gin.g-node.org/Aswendt_Lab/testdata_aidaqc
+[https://gin.g-node.org/Aswendt_Lab/testdata_aida](https://gin.g-node.org/Aswendt_Lab/testdata_aida)
 
 [<h3><b>CONTACT</h3></b>](https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/)
 Aref Kalantari (aref.kalantari-sarcheshmehATuk-koeln.de) and Markus Aswendt (markus.aswendtATuk-koeln.de)
