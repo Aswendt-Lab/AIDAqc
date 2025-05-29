@@ -217,7 +217,7 @@ def CheckingRawFeatures(Path):
             df["corresponding_img"] = img_names_new
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
-            df['Slicethick'] = np.array(SpatRes_vec)[:,2]
+            df['SpatRz'] = np.array(SpatRes_vec)[:,2]
             df['Ghosting'] = np.array(GMetric_vec)
             
             
@@ -427,7 +427,7 @@ def CheckingNiftiFeatures(Path):
             df["corresponding_img"] = img_names_new
             df['SpatRx'] = np.array(SpatRes_vec)[:,0]
             df['SpatRy'] = np.array(SpatRes_vec)[:,1]
-            df['Slicethick'] = np.array(SpatRes_vec)[:,2]
+            df['SpatRz'] = np.array(SpatRes_vec)[:,2]
             df['Ghosting'] = np.array(GMetric_vec)
             
           

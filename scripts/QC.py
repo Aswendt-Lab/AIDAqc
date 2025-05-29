@@ -534,7 +534,7 @@ def QCPlot(Path):
         D = Abook[nn]
         for cc, C in enumerate(COL):
             Data = list(D[C])
-            if C == 'SpatRx' or C == 'SpatRy' or C == 'Slicethick':
+            if C == 'SpatRx' or C == 'SpatRy' or C == 'SpatRz':
                 # Plot pie plots
                 labels = list(set(Data))
                 sizes = [Data.count(l) for l in labels]
