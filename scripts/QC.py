@@ -96,25 +96,6 @@ def GhostCheck(input_file):
 
 #%% Res function
 
-def Image_Selection(input_file):
-    
-    img = input_file
-    img_data=img.get_fdata()
-    img_shape=img_data.shape 
-    middle=int(img_shape[2]/2)
-    if len(img_shape) == 3:
-            selected_img= img_data[:, :,middle]
-            
-    elif len(img_shape) > 3:
-        time_middle=int(img_shape[3]/2)
-        selected_img= img_data[:, :,middle,time_middle]
-        
-    selected_img= np.rot90(selected_img,k=-1)
-    return selected_img
-
-
-#%% 
-
 
 def ResCalculator(input_file):
     
@@ -553,7 +534,7 @@ def QCPlot(Path):
         D = Abook[nn]
         for cc, C in enumerate(COL):
             Data = list(D[C])
-            if C == 'SpatRx' or C == 'SpatRy' or C == 'Slicethick':
+            if C == 'SpatRx' or C == 'SpatRy' or C == 'SpatRz':
                 # Plot pie plots
                 labels = list(set(Data))
                 sizes = [Data.count(l) for l in labels]
