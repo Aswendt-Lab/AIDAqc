@@ -1,19 +1,12 @@
-packaging
 numpy
 scipy
 nibabel
 alive-progress
 scikit-learn
-scikit-image
 matplotlib
 lmfit
 progressbar
 pandas
 nilearn
 seaborn
-#Not needed for now
-#joblib
-#natsort
-#pydicom
-#nipype
-#dipy
+dict2xml
