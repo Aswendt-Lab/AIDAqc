@@ -1,69 +1,52 @@
-#%% 
-"""
-Version 1.0
-Name: Aref Kalantari
-Email: aref.kalantari-sarcheshmeh@uk-koeln.de
-Date: 24.08.2021 - 02.03.2022
------------------------------
-Code Describtion: Quality Control Toolbox. Every tool (function) needed can be found here and be modified.
------------------------------
-Lab: AG Neuroimaging and neuroengineering of experimental stroke 
-Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
-"""
-
-#%% Loading nececcery libraries
-from sklearn.covariance import EllipticEnvelope
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.svm import OneClassSVM
-from sklearn.preprocessing import StandardScaler
-
-import numpy as np
 import os
 import glob
-import warnings
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator
-from scipy import ndimage, signal
+from scipy import ndimage
 import changSNR as ch
 
-
-# =========================
-# Suppress benign scikit-learn warnings
-# =========================
-warnings.filterwarnings(
-    "ignore",
-    message="The covariance matrix associated to your dataset is not full rank",
-    category=UserWarning,
-    module="sklearn.covariance._robust_covariance"
-)
-warnings.filterwarnings(
-    "ignore",
-    message="n_neighbors .* is greater than the total number of samples",
-    category=UserWarning,
-    module="sklearn.neighbors._lof"
-)
+from sklearn.covariance import EllipticEnvelope
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import OneClassSVM
 
 
 # =========================
 # Compatibility stubs (keep ParsingData.py happy)
 # =========================
 def tic():
-    """Stub for compatibility (no-op timer)."""
+    """No-op timer stub for compatibility."""
     pass
 
-def toc(*args, **kwargs):
-    """Stub for compatibility (no-op timer)."""
+
+def toc(*_, **__):
+    """No-op timer stub for compatibility."""
     pass
 
 
 # =========================
 # Vectorized mutual information
 # =========================
-def mutualInfo(Im1, Im2, bins=20):
-    # Vectorized joint histogram using integer bin indices + bincount
+def mutualInfo(Im1: np.ndarray, Im2: np.ndarray, bins: int = 20) -> float:
+    """
+    Compute mutual information (in nats) between two images using a vectorized 2D histogram.
+
+    Parameters
+    ----------
+    Im1, Im2 : np.ndarray
+        Grayscale images of identical shape.
+    bins : int
+        Number of intensity bins (common: 20–64).
+
+    Returns
+    -------
+    float
+        Mutual information (>= 0).
+    """
     x = Im1.ravel()
     y = Im2.ravel()
 
@@ -87,81 +70,133 @@ def mutualInfo(Im1, Im2, bins=20):
     if s == 0:
         return 0.0
     pxy /= s
+
     px = pxy.sum(axis=1, keepdims=True)
     py = pxy.sum(axis=0, keepdims=True)
     pxpy = px @ py  # outer product
+
     nz = pxy > 0
-    return np.sum(pxy[nz] * (np.log(pxy[nz]) - np.log(pxpy[nz])))
+    return float(np.sum(pxy[nz] * (np.log(pxy[nz]) - np.log(pxpy[nz]))))
 
 
 # =========================
-# Ghosting (ou)
+# Nyquist ghost detection (GSR + Otsu)
 # =========================
-def GhostCheck(input_file):
+def GhostCheck(input_file, gsr_threshold: float = 0.01) -> bool:
     """
-    Detect Nyquist ghosting in MR images using mutual information (MI).
+    Detect Nyquist ghosting via Ghost-to-Signal Ratio (GSR) with an Otsu mask.
+
+    Steps:
+      1) If 4D, average last axis → 3D.
+      2) Central z-slice as reference.
+      3) Otsu threshold to get foreground; keep largest component.
+      4) Object ROI = bbox of mask; Ghost ROIs = same rows, columns shifted ±W/2.
+      5) GSR = mean(ghost1, ghost2) / mean(object). Return True if GSR ≥ gsr_threshold.
+
+    Assumes phase-encode axis is columns (axis=1). If PE is rows, swap row/col logic.
 
     Parameters
     ----------
-    input_file : nibabel image
-        NIfTI or similar object with get_fdata().
+    input_file : nibabel.Nifti1Image
+    gsr_threshold : float
+        Threshold for GSR decision (default 1%).
 
     Returns
     -------
     bool
-        True if ghosting detected, False otherwise.
+        True if ghosting detected, else False.
     """
-    img_data = input_file.get_fdata()
-    if img_data.ndim > 3:
-        img_data = img_data.mean(axis=-1)
 
-    H, W, Z = img_data.shape
-    im_ref = img_data[:, :, Z // 2]
+    def otsu_threshold(x: np.ndarray, bins: int = 256) -> float:
+        v = x[np.isfinite(x)]
+        if v.size == 0:
+            return np.nan
+        hist, edges = np.histogram(v, bins=bins)
+        p = hist.astype(np.float64)
+        s = p.sum()
+        if s == 0:
+            return np.nan
+        p /= s
+        omega = np.cumsum(p)
+        centers = (edges[:-1] + edges[1:]) * 0.5
+        mu = np.cumsum(p * centers)
+        mu_t = mu[-1]
+        denom = omega * (1.0 - omega) + 1e-12
+        sigma_b2 = (mu_t * omega - mu) ** 2 / denom
+        k = int(np.nanargmax(sigma_b2))
+        return float(centers[k])
 
-    # Candidate ghost shifts: W/2, W/4, W/8, ...
-    shifts = []
-    d = W // 2
-    while d >= 1:
-        shifts.append(d)
-        d //= 2
-    shifts = np.unique(np.clip(np.asarray(shifts, dtype=int), 1, W - 1))
+    img = input_file.get_fdata()
+    if img.ndim > 3:
+        img = img.mean(axis=-1)
 
-    if shifts.size == 0:
+    H, W, Z = img.shape
+    sl = img[:, :, Z // 2]
+
+    # --- Otsu mask + largest component ---
+    thr = otsu_threshold(sl)
+    if not np.isfinite(thr):
+        return False
+    mask = sl > thr
+    lbl, nlab = ndimage.label(mask)
+    if nlab == 0:
+        return False
+    sizes = ndimage.sum(mask, lbl, index=np.arange(1, nlab + 1))
+    keep = 1 + int(np.argmax(sizes))
+    mask = (lbl == keep)
+
+    # Object bbox
+    rows = np.where(mask.any(axis=1))[0]
+    cols = np.where(mask.any(axis=0))[0]
+    if rows.size == 0 or cols.size == 0:
+        return False
+    r0, r1 = rows[0], rows[-1] + 1
+    c0, c1 = cols[0], cols[-1] + 1
+
+    obj_vals = sl[r0:r1, c0:c1][mask[r0:r1, c0:c1]]
+    if obj_vals.size == 0:
+        return False
+    mean_obj = float(np.mean(obj_vals))
+    if not np.isfinite(mean_obj) or mean_obj <= 0:
         return False
 
-    cols = np.arange(W)
-    mi_vals = []
-    for s in shifts:
-        idx = (cols - s) % W
-        shifted = im_ref[:, idx]
-        mi_vals.append(mutualInfo(shifted, im_ref))
-    mi_vals = np.asarray(mi_vals)
-
-    if mi_vals.size == 0:
+    # --- Ghost ROIs at ±W/2 (wrap columns) ---
+    half = W // 2
+    if half == 0:
         return False
 
-    # --- Detection thresholds ---
-    med = np.median(mi_vals)
-    mad = np.median(np.abs(mi_vals - med)) + 1e-12  # avoid zero
-    height_thr = 2.0 * np.max(mi_vals)   # 200% of max
-    prom_thr = 0.0 * mad                  # 0×MAD prominence
+    col_span = np.arange(c0, c1)
+    g1_cols = (col_span + half) % W
+    g2_cols = (col_span - half) % W
 
-    hits = (mi_vals >= height_thr) & ((mi_vals - med) >= prom_thr)
+    # Avoid overlap with object columns (edge-case small FOV)
+    obj_set = set(col_span.tolist())
+    g1_eff = [c for c in g1_cols.tolist() if c not in obj_set] or g1_cols.tolist()
+    g2_eff = [c for c in g2_cols.tolist() if c not in obj_set] or g2_cols.tolist()
 
-    return bool(np.any(hits))
+    g1 = sl[r0:r1, :][:, g1_eff]
+    g2 = sl[r0:r1, :][:, g2_eff]
+    mean_g1 = float(np.mean(g1[np.isfinite(g1)])) if g1.size else 0.0
+    mean_g2 = float(np.mean(g2[np.isfinite(g2)])) if g2.size else 0.0
+    mean_ghost = 0.5 * (mean_g1 + mean_g2)
+
+    gsr = mean_ghost / mean_obj
+    return bool(np.isfinite(gsr) and (gsr >= gsr_threshold))
 
 
 # =========================
 # Resolution
 # =========================
 def ResCalculator(input_file):
+    """Return voxel size (pixdim[1:4])."""
     return input_file.header["pixdim"][1:4]
 
 
 # =========================
 # SNR (Chang)
 # =========================
-def snrCalclualtor_chang(input_file):
+def snrCalclualtor_chang(input_file) -> float:
+    """Compute SNR using Chang’s estimator on central slices / directions."""
     IM = np.asanyarray(input_file.dataobj)
     img = np.squeeze(IM.astype("float64"))
 
@@ -201,13 +236,14 @@ def snrCalclualtor_chang(input_file):
 
     vals = np.asarray(vals)
     mask = np.isfinite(vals)
-    return np.mean(vals[mask]) if mask.any() else np.nan
+    return float(np.mean(vals[mask])) if mask.any() else float("nan")
 
 
 # =========================
 # SNR (Normal)
 # =========================
-def snrCalclualtor_normal(input_file):
+def snrCalclualtor_normal(input_file) -> float:
+    """Compute conventional SNR using central spherical ROI and corner noise."""
     IM = np.asanyarray(input_file.dataobj)
     img = np.squeeze(IM.astype("float64"))
 
@@ -224,26 +260,29 @@ def snrCalclualtor_normal(input_file):
 
     S = np.squeeze(img).shape
 
-    # Spherical brain mask around center-of-mass
+    # Spherical mask around center-of-mass
     COM = [int(i) for i in ndimage.center_of_mass(img)]
     r = int(np.floor(0.10 * np.mean(S)))
     r = min(r, S[2])
     Mask = sphere(S, r, COM)
-    signal_val = img[Mask].mean()
+    signal_val = float(img[Mask].mean())
 
-    # Vectorized 8-corner noise regions
-    x = int(np.ceil(S[0] * 0.15)); y = int(np.ceil(S[1] * 0.15)); z = int(np.ceil(S[2] * 0.15))
+    # 8-corner noise regions (vectorized)
+    x = int(np.ceil(S[0] * 0.15))
+    y = int(np.ceil(S[1] * 0.15))
+    z = int(np.ceil(S[2] * 0.15))
     blocks = (
-        img[:x, :y, :z],      img[:x, -y:, :z],      img[-x:, :y, :z],      img[-x:, -y:, :z],
-        img[:x, :y, -z:],     img[:x, -y:, -z:],     img[-x:, :y, -z:],     img[-x:, -y:, -z:]
+        img[:x, :y, :z], img[:x, -y:, :z], img[-x:, :y, :z], img[-x:, -y:, :z],
+        img[:x, :y, -z:], img[:x, -y:, -z:], img[-x:, :y, -z:], img[-x:, -y:, -z:]
     )
-    noise_std = np.std(np.concatenate([b.ravel() for b in blocks]))
+    noise_std = float(np.std(np.concatenate([b.ravel() for b in blocks]))) if x and y and z else float("nan")
+
     snr = 20 * np.log10(signal_val / noise_std)
-    return snr if np.isfinite(snr) else np.nan
+    return snr if np.isfinite(snr) else float("nan")
 
 
-def sphere(shape, radius, position):
-    """Generate an n-D spherical mask."""
+def sphere(shape, radius: int, position) -> np.ndarray:
+    """Generate an n-D spherical (ellipsoidal) mask."""
     assert len(position) == len(shape)
     semisizes = (radius,) * len(shape)
     grid = [slice(-x0, dim - x0) for x0, dim in zip(position, shape)]
@@ -257,7 +296,8 @@ def sphere(shape, radius, position):
 # =========================
 # tSNR
 # =========================
-def TsnrCalclualtor(input_file):
+def TsnrCalclualtor(input_file) -> float:
+    """Compute temporal SNR (tSNR) with initial burn-in (10 volumes if available)."""
     IM = np.asanyarray(input_file.dataobj)
     if IM.ndim == 3:
         IM = IM[:, :, None, :]
@@ -266,19 +306,23 @@ def TsnrCalclualtor(input_file):
     fff = 0 if img.shape[-1] < 10 else 10
 
     sig = img[:, :, :, fff:]
-    tsnr_map = 20 * np.log10(sig.mean(axis=-1) / (sig.std(axis=-1) + 1e-12))  # eps for stability
+    tsnr_map = 20 * np.log10(sig.mean(axis=-1) / (sig.std(axis=-1) + 1e-12))  # epsilon for stability
 
     img_avg = img.mean(axis=-1)
     COM = [int(i) for i in ndimage.center_of_mass(img_avg)]
     r = int(np.floor(0.10 * np.mean(img.shape[:2])))
     Mask = sphere(img.shape[:3], r, COM)
-    return np.mean(tsnr_map[Mask])
+    return float(np.mean(tsnr_map[Mask]))
 
 
 # =========================
 # Motion (rsfMRI)
 # =========================
 def Ismotion(input_file):
+    """
+    Basic motion metric using mutual information change across time
+    on the brightest slice (by mean intensity).
+    """
     IM = np.asanyarray(input_file.dataobj)
     if IM.ndim == 3:
         IM = IM[:, :, None, :]
@@ -299,15 +343,16 @@ def Ismotion(input_file):
         return final, str([0, 0]), 0.0, 0.0
 
     max_mov_between = str([final.argmin() + 10, final.argmax() + 10])
-    gmv = final.max() - final.min()
-    lmv = final.std()
+    gmv = float(final.max() - final.min())
+    lmv = float(final.std())
     return final, max_mov_between, gmv, lmv
 
 
 # =========================
 # QC plotting & pies
 # =========================
-def QCPlot(Path):
+def QCPlot(Path: str) -> None:
+    """Generate QC histograms and spatial resolution pie charts from feature CSVs."""
     qc_fig_path = os.path.join(Path, "QCfigures")
     if not os.path.isdir(qc_fig_path):
         os.mkdir(qc_fig_path)
@@ -345,7 +390,7 @@ def QCPlot(Path):
 
                 q75, q25 = np.percentile(data, [75, 25])
                 iqr = q75 - q25
-                rng = data.max() - data.min()
+                rng = float(data.max() - data.min())
 
                 if rng <= 0 or iqr <= 0:
                     B = 1
@@ -358,7 +403,7 @@ def QCPlot(Path):
 
                 plt.figure(hh, figsize=(9, 5), dpi=300)
                 ax2 = plt.subplot(1, 1, 1, label="hist")
-                y, x, bars = plt.hist(data, bins=nbins, histtype="bar", edgecolor="white")
+                y, _, bars = plt.hist(data, bins=nbins, histtype="bar", edgecolor="white")
 
                 plt.xlabel(f"{N}: {C} [a.u.]", fontdict=label_font)
                 plt.ylabel("Frequency", fontdict=label_font)
@@ -389,17 +434,19 @@ def QCPlot(Path):
                     fontsize=8,
                 )
                 for t in legend.get_texts():
-                    t.set_fontfamily("serif"); t.set_fontsize(8)
+                    t.set_fontfamily("serif")
+                    t.set_fontsize(8)
 
                 ax2.xaxis.set_tick_params(labelsize=8)
                 ax2.yaxis.set_tick_params(labelsize=8)
 
                 out = os.path.join(qc_fig_path, f"{C}{N}.png")
-                plt.savefig(out, dpi=300); plt.close()
+                plt.savefig(out, dpi=300)
+                plt.close()
 
         hh += 1
 
-    # --- Spatial resolution pies ---
+    # Spatial resolution pies
     plt.figure(hh, figsize=(9, 5), dpi=300)
     rr = 1
     for df, N in zip(books, names):
@@ -425,17 +472,25 @@ def QCPlot(Path):
                 rr += 1
 
     out = os.path.join(qc_fig_path, "Spatial_Resolution.png")
-    plt.savefig(out, dpi=300); plt.close()
+    plt.savefig(out, dpi=300)
+    plt.close()
 
 
 # =========================
 # ML voting
 # =========================
-def ML(Path, format_type):
+def ML(Path: str, format_type: str):
+    """
+    Run multiple outlier detectors and return per-row predictions for each *_features_*.csv.
+
+    Returns
+    -------
+    list[pd.DataFrame]
+        One dataframe per input CSV with predictions and metadata.
+    """
     results = []
     for csv in glob.glob(os.path.join(Path, "*_features_*.csv")):
-        A = pd.read_csv(csv)
-        A = A.dropna(how="all", axis="columns")
+        A = pd.read_csv(csv).dropna(how="all", axis="columns")
 
         # Build feature matrix
         if format_type == "raw":
@@ -449,11 +504,10 @@ def ML(Path, format_type):
         X = X.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
         X = X.dropna(how="all", axis="columns").dropna(how="any", axis="index")
 
-        # Align metadata
         idx = X.index
         if len(idx) == 0:
-            # No usable rows; nothing to add for this file
             continue
+
         address = A.iloc[idx, meta_cols["path"]].tolist()
         sequence_name = A.iloc[idx, meta_cols["seq"]].tolist() if "seq" in meta_cols else None
         img_name = A.iloc[idx, meta_cols["img"]].tolist() if "img" in meta_cols else None
@@ -464,16 +518,14 @@ def ML(Path, format_type):
 
         n_samples, n_features = X.shape
 
-        # If no usable feature columns remain, default to all inliers and move on
+        # If no usable feature columns remain, default to all inliers
         if n_features == 0:
-            df = pd.DataFrame(
-                {
-                    "One_class_SVM": np.ones(n_samples, dtype=int),
-                    " EllipticEnvelope": np.ones(n_samples, dtype=int),
-                    "IsolationForest": np.ones(n_samples, dtype=int),
-                    "LocalOutlierFactor": np.ones(n_samples, dtype=int),
-                }
-            )
+            df = pd.DataFrame({
+                "One_class_SVM": np.ones(n_samples, dtype=int),
+                " EllipticEnvelope": np.ones(n_samples, dtype=int),
+                "IsolationForest": np.ones(n_samples, dtype=int),
+                "LocalOutlierFactor": np.ones(n_samples, dtype=int),
+            })
             if "diff" in csv:
                 df["sequence_type"] = "diff"
             elif "func" in csv:
@@ -488,7 +540,7 @@ def ML(Path, format_type):
             results.append(df)
             continue
 
-        # Scale features for stability
+        # Scale features
         X = pd.DataFrame(StandardScaler().fit_transform(X), index=X.index)
 
         # Default predictions = inliers (+1)
@@ -538,6 +590,7 @@ def ML(Path, format_type):
             df["sequence_type"] = "func"
         elif "anat" in csv:
             df["sequence_type"] = "anat"
+
         df["Pathes"] = address
         if sequence_name is not None:
             df["sequence_name"] = sequence_name
@@ -548,10 +601,12 @@ def ML(Path, format_type):
 
     return results
 
+
 # =========================
 # QC table generation
 # =========================
-def QCtable(Path, format_type):
+def QCtable(Path: str, format_type: str) -> None:
+    """Aggregate statistical outliers and ML detections into votings.csv."""
     algs = ML(Path, format_type)
     if not algs:
         return
@@ -582,12 +637,10 @@ def QCtable(Path, format_type):
                 q75, q25 = np.nanpercentile(D, [75, 25])
                 iqr = q75 - q25
                 Index = (D < (q25 - 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
-
             elif C == "Displacement factor (std of Mutual information)":
                 q75, q25 = np.nanpercentile(D, [75, 25])
                 iqr = q75 - q25
                 Index = (D > (q75 + 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
-
             else:
                 continue
 
@@ -616,5 +669,3 @@ def QCtable(Path, format_type):
 
     final_result = os.path.join(Path, "votings.csv")
     algs.to_csv(final_result, index=False)
-
-#%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
