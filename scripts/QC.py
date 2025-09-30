@@ -471,11 +471,19 @@ def QCPlot(Path):
                 q75, q25 = np.nanpercentile(Data, [75, 25])
                 iqr = q75 - q25
                 
-                B = round((np.nanmax(Data) - np.nanmin(Data)) / (2 * iqr / (len(Data) ** (1/3))))
-                if B * 5 > 22:
-                    XX = 22
+                data_range = np.nanmax(Data) - np.nanmin(Data)
+
+                # handle empty / all-NaN / constant data
+                if len(Data) == 0 or not np.isfinite(data_range) or data_range <= 0 or iqr <= 0:
+                    B = 1
                 else:
-                    XX = B * 5
+                    h = 2 * iqr / (len(Data) ** (1/3))
+                if not np.isfinite(h) or h <= 0:
+                    B = 1
+                else:
+                    B = int(np.ceil(data_range / h))
+
+                XX = min(22, B * 5)
                 
                 y, x, bars = plt.hist(Data, bins=B * 7, histtype='bar', edgecolor='white')
                 plt.xlabel(N + ': ' + C + ' [a.u.]', fontdict=label_font)
