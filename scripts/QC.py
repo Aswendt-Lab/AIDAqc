@@ -82,7 +82,7 @@ def mutualInfo(Im1: np.ndarray, Im2: np.ndarray, bins: int = 20) -> float:
 # =========================
 # Nyquist ghost detection (GSR + Otsu)
 # =========================
-def GhostCheck(input_file, gsr_threshold: float = 0.05) -> bool:
+def GhostCheck(input_file, gsr_threshold: float = 0.99) -> bool:
     """
     Detect Nyquist ghosting via Ghost-to-Signal Ratio (GSR) with an Otsu mask.
 
