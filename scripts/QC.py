@@ -521,7 +521,7 @@ def QCPlot(Path):
                 
                 base_filename = os.path.join(QC_fig_path, C + N)
                 plt.savefig(base_filename + ".png", dpi=300)
-                plt.savefig(base_filename + ".svg", format='svg')
+                # plt.savefig(base_filename + ".svg", format='svg')
 
                 plt.close()
                 
@@ -555,7 +555,7 @@ def QCPlot(Path):
     
     base_filename = os.path.join(QC_fig_path, "Spatial_Resolution")
     plt.savefig(base_filename + ".png", dpi=300)
-    plt.savefig(base_filename + ".svg", format='svg')
+    # plt.savefig(base_filename + ".svg", format='svg')
     plt.close()
 
 #%%
