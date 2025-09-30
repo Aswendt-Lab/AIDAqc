@@ -82,50 +82,27 @@ def mutualInfo(Im1: np.ndarray, Im2: np.ndarray, bins: int = 20) -> float:
 # =========================
 # Nyquist ghost detection (GSR + Otsu)
 # =========================
-def GhostCheck(input_file, gsr_threshold: float = 0.2) -> bool:
+def GhostCheck(input_file, gsr_threshold=0.01, pe_axis=1):
     """
-    Detect Nyquist ghosting via Ghost-to-Signal Ratio (GSR) with an Otsu mask.
+    Nyquist ghost detection via background-corrected Ghost-to-Signal Ratio (GSR).
 
-    Steps:
-      1) If 4D, average last axis → 3D.
-      2) Central z-slice as reference.
-      3) Otsu threshold to get foreground; keep largest component.
-      4) Object ROI = bbox of mask; Ghost ROIs = same rows, columns shifted ±W/2.
-      5) GSR = mean(ghost1, ghost2) / mean(object). Return True if GSR ≥ gsr_threshold.
-
-    Assumes phase-encode axis is columns (axis=1). If PE is rows, swap row/col logic.
+    GSR = (Mean_ghost - Mean_background) / (Mean_signal - Mean_background)
 
     Parameters
     ----------
     input_file : nibabel.Nifti1Image
+        3D or 4D NIfTI image.
     gsr_threshold : float
-        Threshold for GSR decision (default 1%).
+        Threshold for ghost detection (default 0.01 = 1%).
+    pe_axis : int
+        Phase-encode axis: 1=columns (default), 0=rows.
 
     Returns
     -------
     bool
-        True if ghosting detected, else False.
+        True if ghosting detected (GSR >= threshold).
     """
-
-    def otsu_threshold(x: np.ndarray, bins: int = 256) -> float:
-        v = x[np.isfinite(x)]
-        if v.size == 0:
-            return np.nan
-        hist, edges = np.histogram(v, bins=bins)
-        p = hist.astype(np.float64)
-        s = p.sum()
-        if s == 0:
-            return np.nan
-        p /= s
-        omega = np.cumsum(p)
-        centers = (edges[:-1] + edges[1:]) * 0.5
-        mu = np.cumsum(p * centers)
-        mu_t = mu[-1]
-        denom = omega * (1.0 - omega) + 1e-12
-        sigma_b2 = (mu_t * omega - mu) ** 2 / denom
-        k = int(np.nanargmax(sigma_b2))
-        return float(centers[k])
-
+    
     img = input_file.get_fdata()
     if img.ndim > 3:
         img = img.mean(axis=-1)
@@ -133,10 +110,9 @@ def GhostCheck(input_file, gsr_threshold: float = 0.2) -> bool:
     H, W, Z = img.shape
     sl = img[:, :, Z // 2]
 
-    # --- Otsu mask + largest component ---
-    thr = otsu_threshold(sl)
-    if not np.isfinite(thr):
-        return False
+    # --- Object mask via Otsu ---
+    v = sl[np.isfinite(sl)]
+    thr = np.percentile(v, 50)  # simple proxy if no skimage available
     mask = sl > thr
     lbl, nlab = ndimage.label(mask)
     if nlab == 0:
@@ -145,43 +121,43 @@ def GhostCheck(input_file, gsr_threshold: float = 0.2) -> bool:
     keep = 1 + int(np.argmax(sizes))
     mask = (lbl == keep)
 
-    # Object bbox
-    rows = np.where(mask.any(axis=1))[0]
-    cols = np.where(mask.any(axis=0))[0]
-    if rows.size == 0 or cols.size == 0:
+    obj_vals = sl[mask]
+    mean_signal = float(np.mean(obj_vals))
+
+    # --- Background ROI = everything outside object bbox ---
+    background = sl[~mask]
+    mean_background = float(np.mean(background[np.isfinite(background)]))
+
+    # --- Ghost ROIs at ±FOV/2 ---
+    if pe_axis == 1:
+        half = W // 2
+        cols = np.where(mask.any(axis=0))[0]
+        if cols.size == 0:
+            return False
+        c0, c1 = cols[0], cols[-1] + 1
+        r0, r1 = 0, H
+        col_span = np.arange(c0, c1)
+        g1 = sl[r0:r1, (col_span + half) % W]
+        g2 = sl[r0:r1, (col_span - half) % W]
+    else:
+        half = H // 2
+        rows = np.where(mask.any(axis=1))[0]
+        if rows.size == 0:
+            return False
+        r0, r1 = rows[0], rows[-1] + 1
+        c0, c1 = 0, W
+        row_span = np.arange(r0, r1)
+        g1 = sl[(row_span + half) % H, c0:c1]
+        g2 = sl[(row_span - half) % H, c0:c1]
+
+    mean_ghost = float(np.mean(np.concatenate([g1.ravel(), g2.ravel()])))
+
+    # --- Ghost-to-Signal Ratio ---
+    denom = (mean_signal - mean_background)
+    if denom <= 0:
         return False
-    r0, r1 = rows[0], rows[-1] + 1
-    c0, c1 = cols[0], cols[-1] + 1
+    gsr = (mean_ghost - mean_background) / denom
 
-    obj_vals = sl[r0:r1, c0:c1][mask[r0:r1, c0:c1]]
-    if obj_vals.size == 0:
-        return False
-    mean_obj = float(np.mean(obj_vals))
-    if not np.isfinite(mean_obj) or mean_obj <= 0:
-        return False
-
-    # --- Ghost ROIs at ±W/2 (wrap columns) ---
-    half = W // 2
-    if half == 0:
-        return False
-
-    col_span = np.arange(c0, c1)
-    g1_cols = (col_span + half) % W
-    g2_cols = (col_span - half) % W
-
-    # Avoid overlap with object columns (edge-case small FOV)
-    obj_set = set(col_span.tolist())
-    g1_eff = [c for c in g1_cols.tolist() if c not in obj_set] or g1_cols.tolist()
-    g2_eff = [c for c in g2_cols.tolist() if c not in obj_set] or g2_cols.tolist()
-
-    g1 = sl[r0:r1, :][:, g1_eff]
-    g2 = sl[r0:r1, :][:, g2_eff]
-    mean_g1 = float(np.mean(g1[np.isfinite(g1)])) if g1.size else 0.0
-    mean_g2 = float(np.mean(g2[np.isfinite(g2)])) if g2.size else 0.0
-    mean_ghost = 0.5 * (mean_g1 + mean_g2)
-
-    gsr = mean_ghost / mean_obj
-    print(gsr)
     return bool(np.isfinite(gsr) and (gsr >= gsr_threshold))
 
 
