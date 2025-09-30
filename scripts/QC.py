@@ -157,7 +157,7 @@ def GhostCheck(input_file, gsr_threshold=0.01, pe_axis=1):
     if denom <= 0:
         return False
     gsr = (mean_ghost - mean_background) / denom
-
+    print(gsr)
     return bool(np.isfinite(gsr) and (gsr >= gsr_threshold))
 
 
