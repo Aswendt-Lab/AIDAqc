@@ -143,7 +143,7 @@ def GhostCheck(input_file):
     # --- Detection thresholds ---
     med = np.median(mi_vals)
     mad = np.median(np.abs(mi_vals - med)) + 1e-12  # avoid zero
-    height_thr = 0.05 * np.max(mi_vals)   # 5% of max
+    height_thr = 0.1 * np.max(mi_vals)   # 10% of max
     prom_thr = 1.0 * mad                  # 1×MAD prominence
 
     hits = (mi_vals >= height_thr) & ((mi_vals - med) >= prom_thr)
