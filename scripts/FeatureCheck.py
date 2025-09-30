@@ -131,7 +131,7 @@ def CheckingRawFeatures(Path):
                     # determine sequence name 
                     NameTemp = par.read_param_file(CP_a)
                     MN = NameTemp[1]["ACQ_method"].upper()  #Here we check what the name of the sequence is
-                    MN2 = NameTemp[1]["ACQ_protocol_name"].upper()
+                    MN2 = NameTemp[1]["ACQ_scan_name"].upper()
                     KEY = MN + MN2
                     keys.append(KEY)
                    
