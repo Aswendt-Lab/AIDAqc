@@ -27,12 +27,24 @@ from matplotlib.ticker import MaxNLocator
 from scipy import ndimage, signal
 import changSNR as ch
 
+
 # =========================
-# Ghosting (kept for external callers)
+# Compatibility stubs
+# =========================
+def tic():
+    """Stub for compatibility (no-op timer)."""
+    return None
+
+def toc(*args, **kwargs):
+    """Stub for compatibility (no-op timer)."""
+    return None
+
+
+# =========================
+# Ghosting
 # =========================
 def GhostCheck(input_file):
-    img = input_file
-    img_data = img.get_fdata()
+    img_data = input_file.get_fdata()
     img_shape = img_data.shape
 
     # candidate ghost positions (powers of two along phase-encode)
@@ -47,10 +59,7 @@ def GhostCheck(input_file):
         img_data = img_data.mean(axis=-1)
 
     im_ref = img_data[:, :, img_shape[2] // 2]
-    mi_vec = []
-    for ii in range(img_shape[1]):
-        # roll along the PE axis
-        mi_vec.append(mutualInfo(np.roll(im_ref, ii, axis=1), im_ref))
+    mi_vec = [mutualInfo(np.roll(im_ref, ii, axis=1), im_ref) for ii in range(img_shape[1])]
 
     peaks_strong, _ = signal.find_peaks(mi_vec, height=0.25 * np.max(mi_vec))
     peaks_weak, _ = signal.find_peaks(mi_vec)
@@ -230,259 +239,6 @@ def Ismotion(input_file):
     gmv = final.max() - final.min()
     lmv = final.std()
     return final, max_mov_between, gmv, lmv
-
-
-# =========================
-# QC plotting & pies
-# =========================
-def QCPlot(Path):
-    qc_fig_path = os.path.join(Path, "QCfigures")
-    if not os.path.isdir(qc_fig_path):
-        os.mkdir(qc_fig_path)
-
-    books, names = [], []
-    for file in glob.glob(os.path.join(Path, "*caculated_features*.csv")):
-        if "diff" in file:
-            books.append(pd.read_csv(file)); names.append("diff")
-        elif "func" in file:
-            books.append(pd.read_csv(file)); names.append("func")
-        elif "anat" in file:
-            books.append(pd.read_csv(file)); names.append("anat")
-
-    title_font = {"family": "serif", "fontname": "DejaVu Sans"}
-    label_font = {"family": "serif", "fontname": "DejaVu Sans"}
-
-    hh = 1
-    for df, N in zip(books, names):
-        cols = list(df.columns)
-        if cols:
-            cols.pop(0)
-
-        for C in cols:
-            if C in (
-                "SNR Chang",
-                "tSNR (Averaged Brain ROI)",
-                "SNR Normal",
-                "Displacement factor (std of Mutual information)",
-            ):
-                # numeric & finite
-                data = pd.to_numeric(df[C], errors="coerce").to_numpy()
-                data = data[np.isfinite(data)]
-                if data.size == 0:
-                    continue
-
-                q75, q25 = np.percentile(data, [75, 25])
-                iqr = q75 - q25
-                data_range = data.max() - data.min()
-
-                # Freedman–Diaconis with guards
-                if data_range <= 0 or iqr <= 0:
-                    B = 1
-                else:
-                    h = 2 * iqr / (data.size ** (1 / 3))
-                    B = 1 if (not np.isfinite(h) or h <= 0) else int(np.ceil(data_range / h))
-
-                XX = min(22, max(1, B) * 5)
-
-                plt.figure(hh, figsize=(9, 5), dpi=300)
-                ax2 = plt.subplot(1, 1, 1, label="hist")
-                y, x, bars = plt.hist(data, bins=max(1, B * 7), histtype="bar", edgecolor="white")
-
-                plt.xlabel(f"{N}: {C} [a.u.]", fontdict=label_font)
-                plt.ylabel("Frequency", fontdict=label_font)
-                ax2.spines["right"].set_visible(False)
-                ax2.spines["top"].set_visible(False)
-                plt.locator_params(axis="x", nbins=XX)
-                ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-                # Outlier threshold only if iqr > 0
-                if iqr > 0:
-                    if C == "Displacement factor (std of Mutual information)":
-                        ll = q75 + 1.5 * iqr
-                        txt_x = 1.07 * ll
-                        mark = lambda bar: bar.get_x() > ll
-                        txt = "Q3 + 1.5*IQ"
-                    else:
-                        ll = q25 - 1.5 * iqr
-                        txt_x = 1.001 * ll
-                        mark = lambda bar: bar.get_x() < ll
-                        txt = "Q1 - 1.5*IQ"
-
-                    if len(y):
-                        plt.text(txt_x, 2 * max(y) / 3, txt, color="grey", fontdict=label_font)
-                    for bar in bars:
-                        if mark(bar):
-                            bar.set_facecolor("red")
-                    plt.axvline(ll, color="grey", linestyle="--")
-
-                plt.suptitle(f"{N}: {C}", fontdict=title_font)
-                legend = plt.legend(
-                    handles=[mpatches.Patch(color="tab:blue", label="Keep"),
-                             mpatches.Patch(color="red", label="Discard")],
-                    fontsize=8,
-                )
-                for t in legend.get_texts():
-                    t.set_fontfamily("serif"); t.set_fontsize(8)
-
-                ax2.xaxis.set_tick_params(labelsize=8)
-                ax2.yaxis.set_tick_params(labelsize=8)
-
-                out = os.path.join(qc_fig_path, f"{C}{N}.png")
-                plt.savefig(out, dpi=300); plt.close()
-
-        hh += 1
-
-    # Spatial resolution pies
-    plt.figure(hh, figsize=(9, 5), dpi=300)
-    rr = 1
-    for df, N in zip(books, names):
-        cols = list(df.columns)
-        if cols:
-            cols.pop(0)
-        for C in cols:
-            if C in ("SpatRx", "SpatRy", "SpatRz"):
-                vals = pd.to_numeric(df[C], errors="coerce").to_numpy()
-                vals = vals[np.isfinite(vals)]
-                if vals.size == 0:
-                    continue
-                labels, counts = np.unique(vals, return_counts=True)
-                labels2 = [f"{l:.3f} mm" for l in labels]
-
-                ax1 = plt.subplot(len(names), 3, rr)
-                ax1.pie(counts, labels=labels2, autopct="%1.0f%%", startangle=180)
-                ax1.axis("equal")
-                ax1.set_title(f"{N}:{C}", fontdict=title_font)
-                plt.suptitle("Resolution homogeneity between data", weight="bold")
-                ax1.xaxis.set_tick_params(labelsize=8)
-                ax1.yaxis.set_tick_params(labelsize=8)
-                rr += 1
-
-    out = os.path.join(qc_fig_path, "Spatial_Resolution.png")
-    plt.savefig(out, dpi=300); plt.close()
-
-
-# =========================
-# ML voting + QC table
-# =========================
-def ML(Path, format_type):
-    results = []
-    for csv in glob.glob(os.path.join(Path, "*_features_*.csv")):
-        A = pd.read_csv(csv)
-
-        if np.any(A.isnull().all()[:]):
-            print("CSV has features entirely NaN, skipping:", csv)
-            continue
-
-        A = A.dropna(how="all", axis="columns").dropna(how="any")
-
-        address = A.iloc[:, 1].tolist()
-        if format_type == "raw":
-            sequence_name = A.iloc[:, 2].tolist()
-            img_name = A.iloc[:, 3].tolist()
-            X = A.iloc[:, 7:]
-        else:  # "nifti" or fallback
-            sequence_name = None
-            img_name = A.iloc[:, 2].tolist()
-            X = A.iloc[:, 6:]
-
-        # Fit models
-        svm_pre = OneClassSVM(gamma="auto", kernel="poly", nu=0.05, shrinking=False).fit(X).predict(X)
-        ell_pred = EllipticEnvelope(contamination=0.025, random_state=1).fit_predict(X)
-        iso_pred = IsolationForest(
-            n_estimators=100, max_samples="auto", contamination=0.05,
-            max_features=1.0, bootstrap=False, n_jobs=-1, random_state=1
-        ).fit_predict(X)
-        local_pred = LocalOutlierFactor(
-            n_neighbors=20, algorithm="auto", metric="minkowski",
-            contamination=0.04, novelty=False, n_jobs=-1
-        ).fit_predict(X)
-
-        df = pd.DataFrame(
-            np.vstack([svm_pre, ell_pred, iso_pred, local_pred]).T,
-            columns=["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"],
-        )
-
-        if "diff" in csv:
-            df["sequence_type"] = "diff"
-        elif "func" in csv:
-            df["sequence_type"] = "func"
-        elif "anat" in csv:
-            df["sequence_type"] = "anat"
-
-        df["Pathes"] = address
-        if format_type == "raw":
-            df["sequence_name"] = sequence_name
-        df["corresponding_img"] = img_name
-        results.append(df)
-
-    return results
-
-
-def QCtable(Path, format_type):
-    algs = ML(Path, format_type)
-    if not algs:
-        return
-    algs = pd.concat(algs, ignore_index=True)
-
-    # convert -1 flags to boolean outlier flags
-    cols_out = ["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"]
-    algs[cols_out] = algs[cols_out] == -1
-
-    books, names = [], []
-    for file in glob.glob(os.path.join(Path, "*caculated_features*.csv")):
-        if "diff" in file:
-            books.append(pd.read_csv(file)); names.append("diff")
-        elif "func" in file:
-            books.append(pd.read_csv(file)); names.append("func")
-        elif "anat" in file:
-            books.append(pd.read_csv(file)); names.append("anat")
-
-    pathes = []
-    ST, COE, AvV, V, Med, MaX, MiN = [], [], [], [], [], [], []
-
-    for df, N in zip(books, names):
-        COL = df.columns
-        for C in COL:
-            D = pd.to_numeric(df[C], errors="coerce").replace([np.inf, -np.inf], np.nan)
-
-            if C in ("SNR Chang", "tSNR (Averaged Brain ROI)", "SNR Normal"):
-                q75, q25 = np.nanpercentile(D, [75, 25])
-                iqr = q75 - q25
-                Index = (D < (q25 - 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
-
-            elif C == "Displacement factor (std of Mutual information)":
-                q75, q25 = np.nanpercentile(D, [75, 25])
-                iqr = q75 - q25
-                Index = (D > (q75 + 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
-
-            else:
-                continue
-
-            P = df[COL[1]][Index]
-            pathes.extend(P)
-            ST.extend([N] * len(P))
-            COE.extend([C] * len(P))
-            AvV.extend([D.mean()] * len(P))
-            V.extend(D[Index])
-            Med.extend([D.median()] * len(P))
-            MiN.extend([D.min()] * len(P))
-            MaX.extend([D.max()] * len(P))
-
-    # mark statistical outliers in ML voting
-    outlier_set = set(pathes)
-    algs["statistical_method"] = algs["Pathes"].isin(outlier_set)
-    vote_cols = ["One_class_SVM", "IsolationForest", "LocalOutlierFactor", " EllipticEnvelope", "statistical_method"]
-    algs["Voting outliers (from 5)"] = algs[vote_cols].sum(axis=1)
-    algs = algs[algs["Voting outliers (from 5)"] >= 1]
-
-    if format_type == "raw":
-        keep_cols = ["Pathes", "sequence_name", "corresponding_img", "sequence_type"] + vote_cols
-    else:
-        keep_cols = ["Pathes", "corresponding_img", "sequence_type"] + vote_cols
-    algs = algs[keep_cols]
-
-    final_result = os.path.join(Path, "votings.csv")
-    algs.to_csv(final_result, index=False)
 
 #%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
 
