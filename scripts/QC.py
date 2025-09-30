@@ -61,7 +61,7 @@ def GhostCheck(input_file):
     im_ref = img_data[:, :, img_shape[2] // 2]
     mi_vec = [mutualInfo(np.roll(im_ref, ii, axis=1), im_ref) for ii in range(img_shape[1])]
 
-    peaks_strong, _ = signal.find_peaks(mi_vec, height=0.25 * np.max(mi_vec))
+    peaks_strong, _ = signal.find_peaks(mi_vec, height=0.1 * np.max(mi_vec))
     peaks_weak, _ = signal.find_peaks(mi_vec)
 
     strong = np.sum(np.isin(peaks_strong, mmos))
