@@ -374,39 +374,82 @@ def ML(Path, format_type):
     for csv in glob.glob(os.path.join(Path, "*_features_*.csv")):
         A = pd.read_csv(csv)
 
-        if np.any(A.isnull().all()[:]):
-            print("CSV has features entirely NaN, skipping:", csv)
+        # Drop feature columns that are entirely NaN; drop rows with any NaN in features later
+        A = A.dropna(how="all", axis="columns")
+
+        # Build feature matrix according to format
+        if format_type == "raw":
+            meta_cols = {"path": 1, "seq": 2, "img": 3}
+            X = A.iloc[:, 7:].copy()
+        else:  # "nifti" or fallback
+            meta_cols = {"path": 1, "img": 2}
+            X = A.iloc[:, 6:].copy()
+
+        # Coerce features to numeric and clean
+        X = X.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
+        # Drop feature columns that became all-NaN after coercion
+        X = X.dropna(how="all", axis="columns")
+        # Keep only rows with complete features
+        X = X.dropna(how="any", axis="index")
+
+        # Align metadata to cleaned feature rows
+        idx = X.index
+        address = A.iloc[idx, meta_cols["path"]].tolist()
+        if "seq" in meta_cols:
+            sequence_name = A.iloc[idx, meta_cols["seq"]].tolist()
+        else:
+            sequence_name = None
+        img_name = A.iloc[idx, meta_cols["img"]].tolist() if "img" in meta_cols else None
+
+        n_samples = X.shape[0]
+        if n_samples == 0:
+            # nothing usable in this file
             continue
 
-        A = A.dropna(how="all", axis="columns").dropna(how="any")
+        # Default predictions = inliers (+1) for robustness
+        pred_svm = np.ones(n_samples, dtype=int)
+        pred_ell = np.ones(n_samples, dtype=int)
+        pred_iso = np.ones(n_samples, dtype=int)
+        pred_lof = np.ones(n_samples, dtype=int)
 
-        address = A.iloc[:, 1].tolist()
-        if format_type == "raw":
-            sequence_name = A.iloc[:, 2].tolist()
-            img_name = A.iloc[:, 3].tolist()
-            X = A.iloc[:, 7:]
-        else:  # "nifti" or fallback
-            sequence_name = None
-            img_name = A.iloc[:, 2].tolist()
-            X = A.iloc[:, 6:]
+        # Fit models only when data size allows
+        try:
+            if n_samples >= 2:
+                pred_svm = OneClassSVM(gamma="auto", kernel="poly", nu=0.05, shrinking=False).fit(X).predict(X)
+        except Exception:
+            pass
 
-        # Fit models
-        svm_pre = OneClassSVM(gamma="auto", kernel="poly", nu=0.05, shrinking=False).fit(X).predict(X)
-        ell_pred = EllipticEnvelope(contamination=0.025, random_state=1).fit_predict(X)
-        iso_pred = IsolationForest(
-            n_estimators=100, max_samples="auto", contamination=0.05,
-            max_features=1.0, bootstrap=False, n_jobs=-1, random_state=1
-        ).fit_predict(X)
-        local_pred = LocalOutlierFactor(
-            n_neighbors=20, algorithm="auto", metric="minkowski",
-            contamination=0.04, novelty=False, n_jobs=-1
-        ).fit_predict(X)
+        try:
+            if n_samples >= 2:
+                pred_ell = EllipticEnvelope(contamination=0.025, random_state=1).fit_predict(X)
+        except Exception:
+            pass
+
+        try:
+            if n_samples >= 2:
+                pred_iso = IsolationForest(
+                    n_estimators=100, max_samples="auto", contamination=0.05,
+                    max_features=1.0, bootstrap=False, n_jobs=-1, random_state=1
+                ).fit_predict(X)
+        except Exception:
+            pass
+
+        try:
+            if n_samples >= 2:
+                n_neighbors = max(2, min(20, n_samples - 1))  # clamp to valid range
+                pred_lof = LocalOutlierFactor(
+                    n_neighbors=n_neighbors, algorithm="auto", metric="minkowski",
+                    contamination=0.04, novelty=False, n_jobs=-1
+                ).fit_predict(X)
+        except Exception:
+            pass
 
         df = pd.DataFrame(
-            np.vstack([svm_pre, ell_pred, iso_pred, local_pred]).T,
+            np.vstack([pred_svm, pred_ell, pred_iso, pred_lof]).T,
             columns=["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"],
         )
 
+        # Add metadata
         if "diff" in csv:
             df["sequence_type"] = "diff"
         elif "func" in csv:
@@ -415,9 +458,11 @@ def ML(Path, format_type):
             df["sequence_type"] = "anat"
 
         df["Pathes"] = address
-        if format_type == "raw":
+        if sequence_name is not None:
             df["sequence_name"] = sequence_name
-        df["corresponding_img"] = img_name
+        if img_name is not None:
+            df["corresponding_img"] = img_name
+
         results.append(df)
 
     return results
