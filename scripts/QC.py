@@ -95,9 +95,22 @@ def mutualInfo(Im1, Im2, bins=20):
 
 
 # =========================
-# Ghosting (Nyquist ghost detection)
+# Ghosting (ou)
 # =========================
 def GhostCheck(input_file):
+    """
+    Detect Nyquist ghosting in MR images using mutual information (MI).
+
+    Parameters
+    ----------
+    input_file : nibabel image
+        NIfTI or similar object with get_fdata().
+
+    Returns
+    -------
+    bool
+        True if ghosting detected, False otherwise.
+    """
     img_data = input_file.get_fdata()
     if img_data.ndim > 3:
         img_data = img_data.mean(axis=-1)
@@ -116,7 +129,6 @@ def GhostCheck(input_file):
     if shifts.size == 0:
         return False
 
-    # Roll via indexing (faster than np.roll in Python loop)
     cols = np.arange(W)
     mi_vals = []
     for s in shifts:
@@ -128,11 +140,15 @@ def GhostCheck(input_file):
     if mi_vals.size == 0:
         return False
 
-    # Strong peaks: >= 10% of max (more sensitive per request)
-    strong_hits = np.sum(mi_vals >= 0.01 * np.max(mi_vals))
-    weak_hits = mi_vals.size  # all are harmonics
+    # --- Detection thresholds ---
+    med = np.median(mi_vals)
+    mad = np.median(np.abs(mi_vals - med)) + 1e-12  # avoid zero
+    height_thr = 0.05 * np.max(mi_vals)   # 5% of max
+    prom_thr = 3.0 * mad                  # 3×MAD prominence
 
-    return (weak_hits > 2) or (strong_hits > 0)
+    hits = (mi_vals >= height_thr) & ((mi_vals - med) >= prom_thr)
+
+    return bool(np.any(hits))
 
 
 # =========================
