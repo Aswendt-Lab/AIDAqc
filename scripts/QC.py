@@ -429,24 +429,52 @@ def ML(Path, format_type):
             meta_cols = {"path": 1, "img": 2}
             X = A.iloc[:, 6:].copy()
 
-        # Coerce to numeric, drop inf/NaN
+        # Coerce to numeric, drop inf/NaN rows and all-NaN cols
         X = X.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
         X = X.dropna(how="all", axis="columns").dropna(how="any", axis="index")
 
         # Align metadata
         idx = X.index
         if len(idx) == 0:
+            # No usable rows; nothing to add for this file
             continue
         address = A.iloc[idx, meta_cols["path"]].tolist()
         sequence_name = A.iloc[idx, meta_cols["seq"]].tolist() if "seq" in meta_cols else None
         img_name = A.iloc[idx, meta_cols["img"]].tolist() if "img" in meta_cols else None
 
-        # Drop zero-variance columns & scale
+        # Drop zero-variance columns
         if hasattr(X, "var"):
             X = X.loc[:, X.var(axis=0, ddof=0) > 0]
+
+        n_samples, n_features = X.shape
+
+        # If no usable feature columns remain, default to all inliers and move on
+        if n_features == 0:
+            df = pd.DataFrame(
+                {
+                    "One_class_SVM": np.ones(n_samples, dtype=int),
+                    " EllipticEnvelope": np.ones(n_samples, dtype=int),
+                    "IsolationForest": np.ones(n_samples, dtype=int),
+                    "LocalOutlierFactor": np.ones(n_samples, dtype=int),
+                }
+            )
+            if "diff" in csv:
+                df["sequence_type"] = "diff"
+            elif "func" in csv:
+                df["sequence_type"] = "func"
+            elif "anat" in csv:
+                df["sequence_type"] = "anat"
+            df["Pathes"] = address
+            if sequence_name is not None:
+                df["sequence_name"] = sequence_name
+            if img_name is not None:
+                df["corresponding_img"] = img_name
+            results.append(df)
+            continue
+
+        # Scale features for stability
         X = pd.DataFrame(StandardScaler().fit_transform(X), index=X.index)
 
-        n_samples = X.shape[0]
         # Default predictions = inliers (+1)
         pred_svm = np.ones(n_samples, dtype=int)
         pred_ell = np.ones(n_samples, dtype=int)
@@ -494,7 +522,6 @@ def ML(Path, format_type):
             df["sequence_type"] = "func"
         elif "anat" in csv:
             df["sequence_type"] = "anat"
-
         df["Pathes"] = address
         if sequence_name is not None:
             df["sequence_name"] = sequence_name
@@ -504,7 +531,6 @@ def ML(Path, format_type):
         results.append(df)
 
     return results
-
 
 # =========================
 # QC table generation
