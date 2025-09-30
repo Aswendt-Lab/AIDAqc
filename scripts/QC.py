@@ -20,139 +20,97 @@ from sklearn.svm import OneClassSVM
 import numpy as np
 import os
 import glob
-import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator
 from scipy import ndimage, signal
-from matplotlib import font_manager as fm  # kept in case of external usage
-from matplotlib.font_manager import FontProperties  # kept for compatibility
 import changSNR as ch
 
-
 # =========================
-# Simple tic/toc utilities
-# =========================
-def TicTocGenerator():
-    ti = 0
-    tf = time.time()
-    while True:
-        ti = tf
-        tf = time.time()
-        yield tf - ti
-
-
-TicToc = TicTocGenerator()
-
-
-def toc(tempBool=True):
-    dt = next(TicToc)
-    if tempBool:
-        print("Elapsed time: %f seconds.\n" % dt)
-
-
-def tic():
-    toc(False)
-
-
-# =========================
-# Ghosting
+# Ghosting (kept for external callers)
 # =========================
 def GhostCheck(input_file):
     img = input_file
     img_data = img.get_fdata()
     img_shape = img_data.shape
 
-    Mmos = []
+    # candidate ghost positions (powers of two along phase-encode)
+    mmos = []
     n = 1
     while (img_shape[1] % (2 ** n)) == 0:
-        Mmos.append(img_shape[1] / 2 ** n)
+        mmos.append(img_shape[1] / 2 ** n)
         n += 1
-    Mmos = np.asarray(Mmos)
+    mmos = np.asarray(mmos)
 
     if img_data.ndim > 3:
         img_data = img_data.mean(axis=-1)
 
-    Im_ref = img_data[:, :, int(img_shape[2] / 2)]
-    MI_vec = []
-    for ii in range(int(img_shape[1])):
-        Im_rol = np.roll(Im_ref, ii, axis=1)
-        MI_vec.append(mutualInfo(Im_rol, Im_ref))
+    im_ref = img_data[:, :, img_shape[2] // 2]
+    mi_vec = []
+    for ii in range(img_shape[1]):
+        # roll along the PE axis
+        mi_vec.append(mutualInfo(np.roll(im_ref, ii, axis=1), im_ref))
 
-    peaks_strong, _ = signal.find_peaks(MI_vec, height=0.25 * max(MI_vec))
-    peaks_weak, _ = signal.find_peaks(MI_vec)
+    peaks_strong, _ = signal.find_peaks(mi_vec, height=0.25 * np.max(mi_vec))
+    peaks_weak, _ = signal.find_peaks(mi_vec)
 
-    StrongGhost = np.sum(np.isin(peaks_strong, Mmos))
-    WeekGhost = np.sum(np.isin(peaks_weak, Mmos))
-
-    return (WeekGhost > 2) or (StrongGhost > 0)
+    strong = np.sum(np.isin(peaks_strong, mmos))
+    weak = np.sum(np.isin(peaks_weak, mmos))
+    return (weak > 2) or (strong > 0)
 
 
 # =========================
 # Resolution
 # =========================
 def ResCalculator(input_file):
-    HDR = input_file.header
-    return HDR["pixdim"][1:4]
+    return input_file.header["pixdim"][1:4]
 
 
 # =========================
 # SNR (Chang)
 # =========================
 def snrCalclualtor_chang(input_file):
-    imgData = input_file
-    IM = np.asanyarray(imgData.dataobj)
-    imgData = np.squeeze(IM.astype("float64"))
+    IM = np.asanyarray(input_file.dataobj)
+    img = np.squeeze(IM.astype("float64"))
 
-    mm = imgData.mean()
-    if mm == 0:
+    if img.mean() == 0 or img.ndim < 3:
         return np.nan
 
-    if imgData.ndim < 3:
-        return np.nan
-
-    snr_chang_slice_vec = []
-    ns = imgData.shape[2]
-    if imgData.ndim > 3:
-        n_dir = imgData.shape[-1]
-        if n_dir < 10:
-            fff = 0
-            print("\nWarning: 4th dim < 10 (unstable values possible)\n")
-        else:
-            fff = 5
+    ns = img.shape[2]
+    if img.ndim > 3:
+        n_dir = img.shape[-1]
+        fff = 0 if n_dir < 10 else 5
 
     if ns > 4:
-        ns_lower = int(np.floor(ns / 2) - 2)
-        ns_upper = int(np.floor(ns / 2) + 2)
+        sl_lo = int(np.floor(ns / 2) - 2)
+        sl_hi = int(np.floor(ns / 2) + 2)
     else:
-        ns_lower = 0
-        ns_upper = ns
+        sl_lo, sl_hi = 0, ns
 
-    if imgData.ndim == 3:
-        for slc in range(ns_lower, ns_upper):
-            Slice = imgData[:, :, slc]
+    vals = []
+    if img.ndim == 3:
+        for sl in range(sl_lo, sl_hi):
+            slc = img[:, :, sl]
             try:
-                _, estStdChang, _ = ch.calcSNR(Slice, 0, 1)
+                _, est_std, _ = ch.calcSNR(slc, 0, 1)
             except ValueError:
-                estStdChang = np.nan
-            snr_chang_slice = 20 * np.log10(np.mean(Slice) / estStdChang)
-            snr_chang_slice_vec.append(snr_chang_slice)
+                est_std = np.nan
+            vals.append(20 * np.log10(np.mean(slc) / est_std))
     else:
-        n_dir = imgData.shape[-1]
-        for slc in range(ns_lower, ns_upper):
+        n_dir = img.shape[-1]
+        for sl in range(sl_lo, sl_hi):
             for bb in range(fff, n_dir - 1):
-                Slice = imgData[:, :, slc, bb]
+                slc = img[:, :, sl, bb]
                 try:
-                    _, estStdChang, _ = ch.calcSNR(Slice, 0, 1)
+                    _, est_std, _ = ch.calcSNR(slc, 0, 1)
                 except ValueError:
-                    estStdChang = np.nan
-                snr_chang_slice = 20 * np.log10(np.mean(Slice) / estStdChang)
-                snr_chang_slice_vec.append(snr_chang_slice)
+                    est_std = np.nan
+                vals.append(20 * np.log10(np.mean(slc) / est_std))
 
-    snr_chang_slice_vec = np.asarray(snr_chang_slice_vec)
-    m = np.mean(snr_chang_slice_vec[~np.isinf(snr_chang_slice_vec) & ~np.isnan(snr_chang_slice_vec)])
-    return m
+    vals = np.asarray(vals)
+    mask = np.isfinite(vals)
+    return np.mean(vals[mask]) if mask.any() else np.nan
 
 
 # =========================
@@ -160,28 +118,27 @@ def snrCalclualtor_chang(input_file):
 # =========================
 def snrCalclualtor_normal(input_file):
     IM = np.asanyarray(input_file.dataobj)
-    imgData = np.squeeze(IM.astype("float64"))
+    img = np.squeeze(IM.astype("float64"))
 
-    if imgData.ndim < 3:
-        imgData = np.tile(imgData[:, :, np.newaxis], (1, 1, 10))
+    if img.ndim < 3:
+        img = np.tile(img[:, :, np.newaxis], (1, 1, 10))
 
-    Data = imgData
+    Data = img
     S = np.squeeze(Data).shape
 
     if len(S) == 3:
-        imgData = np.squeeze(Data)
+        img = np.squeeze(Data)
     elif len(S) == 4:
-        imgData = np.squeeze(Data[:, :, :, 0])
+        img = np.squeeze(Data[:, :, :, 0])
 
-    S = np.squeeze(imgData).shape
+    S = np.squeeze(img).shape
 
-    # CoM + spherical mask
-    COM = [int(i) for i in ndimage.center_of_mass(imgData)]
+    # Spherical brain mask around center-of-mass
+    COM = [int(i) for i in ndimage.center_of_mass(img)]
     r = int(np.floor(0.10 * np.mean(S)))
-    if r > S[2]:
-        r = S[2]
+    r = min(r, S[2])
     Mask = sphere(S, r, COM)
-    Signal = imgData[Mask].mean()
+    signal_val = img[Mask].mean()
 
     x = int(np.ceil(S[0] * 0.15))
     y = int(np.ceil(S[1] * 0.15))
@@ -197,30 +154,22 @@ def snrCalclualtor_normal(input_file):
         (slice(-x, None), slice(None, y), slice(-z, None)),
         (slice(-x, None), slice(-y, None), slice(-z, None)),
     ]
-    noise_blocks = [np.squeeze(imgData[idx]) for idx in corners]
-    Noise_std = np.std(np.array(noise_blocks))
+    noise_blocks = [np.squeeze(img[idx]) for idx in corners]
+    noise_std = np.std(np.array(noise_blocks))
 
-    SNR = 20 * np.log10(Signal / Noise_std)
-    if np.isinf(SNR):
-        SNR = np.nan
-        print("Impossible: SNR = inf (likely zeros around ROI). Replacing with NaN.")
-    return SNR
-
-
-def show_slices(slices):
-    fig, axes = plt.subplots(1, len(slices))
-    for i, Slice in enumerate(slices):
-        axes[i].imshow(Slice.T, cmap="gray", origin="lower")
+    snr = 20 * np.log10(signal_val / noise_std)
+    return snr if np.isfinite(snr) else np.nan
 
 
 def sphere(shape, radius, position):
+    """Generate an n-D spherical mask."""
     assert len(position) == len(shape)
     semisizes = (radius,) * len(shape)
     grid = [slice(-x0, dim - x0) for x0, dim in zip(position, shape)]
-    position = np.ogrid[grid]
+    axes = np.ogrid[grid]
     arr = np.zeros(shape, dtype=float)
-    for x_i, semisize in zip(position, semisizes):
-        arr += (x_i / semisize) ** 2
+    for ax, semi in zip(axes, semisizes):
+        arr += (ax / semi) ** 2
     return arr <= 1.0
 
 
@@ -233,158 +182,111 @@ def TsnrCalclualtor(input_file):
     if len(S) == 3:
         IM = IM.reshape((S[0], S[1], 1, S[2]))
 
-    imgData = IM.astype("float64")
+    img = IM.astype("float64")
+    fff = 0 if IM.shape[-1] < 10 else 10
 
-    if IM.shape[-1] < 10:
-        fff = 0
-    else:
-        fff = 10
+    sig_mean = img[:, :, :, fff:].mean(axis=-1)
+    sig_std = img[:, :, :, fff:].std(axis=-1)
+    tsnr_map = 20 * np.log10(sig_mean / sig_std)
 
-    signal_averge_over_time = imgData[:, :, :, fff:].mean(axis=-1)
-    signal_std_over_time = imgData[:, :, :, fff:].std(axis=-1)
-    tSNR_map = 20 * np.log10(signal_averge_over_time / signal_std_over_time)
-
-    S = IM.shape
-    imgData_average = imgData.mean(axis=-1)
-
-    COM = [int(i) for i in ndimage.center_of_mass(imgData_average)]
-    r = int(np.floor(0.10 * np.mean([S[0:2]])))
-    Mask = sphere(S[0:3], r, COM)
-    tSNR = np.mean(tSNR_map[Mask])
-
-    return tSNR
+    img_avg = img.mean(axis=-1)
+    COM = [int(i) for i in ndimage.center_of_mass(img_avg)]
+    r = int(np.floor(0.10 * np.mean([IM.shape[0:2]])))
+    Mask = sphere(IM.shape[0:3], r, COM)
+    return np.mean(tsnr_map[Mask])
 
 
 # =========================
-# Mutual Information
+# Mutual Information / motion
 # =========================
 def mutualInfo(Im1, Im2):
-    t1_slice = Im1
-    t2_slice = Im2
-
-    hist_2d, x_edges, y_edges = np.histogram2d(t1_slice.ravel(), t2_slice.ravel(), bins=20)
-
-    hist_2d_log = np.zeros_like(hist_2d)
-    non_zeros = hist_2d != 0
-    hist_2d_log[non_zeros] = np.log(hist_2d[non_zeros])
-
-    pxy = hist_2d / float(np.sum(hist_2d))
-    px = np.sum(pxy, axis=1)
-    py = np.sum(pxy, axis=0)
+    h2d, _, _ = np.histogram2d(Im1.ravel(), Im2.ravel(), bins=20)
+    pxy = h2d / float(np.sum(h2d))
+    px = pxy.sum(axis=1)
+    py = pxy.sum(axis=0)
     px_py = px[:, None] * py[None, :]
-    nzs = pxy > 0
-    MI = np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
-    return MI
+    nz = pxy > 0
+    return np.sum(pxy[nz] * np.log(pxy[nz] / px_py[nz]))
 
 
-# =========================
-# Motion detection (rsfMRI)
-# =========================
 def Ismotion(input_file):
-    imgData = input_file
-    IM = np.asanyarray(imgData.dataobj)
+    IM = np.asanyarray(input_file.dataobj)
     S = IM.shape
     if len(S) == 3:
         IM = IM.reshape((S[0], S[1], 1, S[2]))
 
-    if IM.shape[-1] < 11:
-        fff = 0
-    else:
-        fff = 10
+    fff = 0 if IM.shape[-1] < 11 else 10
+    img = IM[:, :, :, fff:].astype("float64")
+    S = img.shape
 
-    imgData = IM[:, :, :, fff:].astype("float64")
-    S = imgData.shape
-    temp_mean = imgData.mean(axis=(0, 1, 3))
+    temp_mean = img.mean(axis=(0, 1, 3))
     temp_max = temp_mean.argmax()
-    temp_Data = imgData[:, :, temp_max, :]
-    Im_fix = temp_Data[:, :, 0]
-    Im_rot = temp_Data
+    stack = img[:, :, temp_max, :]
+    im_fix = stack[:, :, 0]
 
-    MI_all = []
-    for z in range(1, S[-1]):
-        MI_all.append(mutualInfo(Im_fix, Im_rot[:, :, z]))
-
-    Final = np.asarray(MI_all)
-    Max_mov_between = str([Final.argmin() + 10, Final.argmax() + 10])
-    GMV = getrange(Final)
-    LMV = np.std(Final)
-
-    return Final, Max_mov_between, GMV, LMV
-
-
-def getrange(numbers):
-    return max(numbers) - min(numbers)
+    mi_vals = [mutualInfo(im_fix, stack[:, :, z]) for z in range(1, S[-1])]
+    final = np.asarray(mi_vals)
+    max_mov_between = str([final.argmin() + 10, final.argmax() + 10])
+    gmv = final.max() - final.min()
+    lmv = final.std()
+    return final, max_mov_between, gmv, lmv
 
 
 # =========================
-# Plotting QC histograms & resolution pies
+# QC plotting & pies
 # =========================
 def QCPlot(Path):
-    saving_path = Path
-    QC_fig_path = os.path.join(Path, "QCfigures")
-    if not os.path.isdir(QC_fig_path):
-        os.mkdir(QC_fig_path)
+    qc_fig_path = os.path.join(Path, "QCfigures")
+    if not os.path.isdir(qc_fig_path):
+        os.mkdir(qc_fig_path)
 
-    Abook = []
-    Names = []
+    books, names = [], []
     for file in glob.glob(os.path.join(Path, "*caculated_features*.csv")):
         if "diff" in file:
-            Abook.append(pd.read_csv(file))
-            Names.append("diff")
+            books.append(pd.read_csv(file)); names.append("diff")
         elif "func" in file:
-            Abook.append(pd.read_csv(file))
-            Names.append("func")
+            books.append(pd.read_csv(file)); names.append("func")
         elif "anat" in file:
-            Abook.append(pd.read_csv(file))
-            Names.append("anat")
+            books.append(pd.read_csv(file)); names.append("anat")
 
-    hh = 1
-    rr = 1
     title_font = {"family": "serif", "fontname": "DejaVu Sans"}
     label_font = {"family": "serif", "fontname": "DejaVu Sans"}
 
-    for nn, N in enumerate(Names):
-        COL = list(Abook[nn].columns)
-        if COL:
-            COL.pop(0)
-        D = Abook[nn]
+    hh = 1
+    for df, N in zip(books, names):
+        cols = list(df.columns)
+        if cols:
+            cols.pop(0)
 
-        for cc, C in enumerate(COL):
+        for C in cols:
             if C in (
                 "SNR Chang",
                 "tSNR (Averaged Brain ROI)",
                 "SNR Normal",
                 "Displacement factor (std of Mutual information)",
             ):
-                # --- histogram ---
-                plt.figure(hh, figsize=(9, 5), dpi=300)
-                ax2 = plt.subplot(1, 1, 1, label="histogram")
-
-                # Coerce numeric + finite
-                Data = pd.to_numeric(D[C], errors="coerce").to_numpy()
-                Data = Data[np.isfinite(Data)]
-                if Data.size == 0:
-                    plt.close()
+                # numeric & finite
+                data = pd.to_numeric(df[C], errors="coerce").to_numpy()
+                data = data[np.isfinite(data)]
+                if data.size == 0:
                     continue
 
-                q75, q25 = np.percentile(Data, [75, 25])
+                q75, q25 = np.percentile(data, [75, 25])
                 iqr = q75 - q25
-                data_range = Data.max() - Data.min()
+                data_range = data.max() - data.min()
 
-                # Freedman–Diaconis with guards; ensure >=1 bin
+                # Freedman–Diaconis with guards
                 if data_range <= 0 or iqr <= 0:
                     B = 1
                 else:
-                    h = 2 * iqr / (Data.size ** (1 / 3))
-                    if not np.isfinite(h) or h <= 0:
-                        B = 1
-                    else:
-                        B = int(np.ceil(data_range / h))
+                    h = 2 * iqr / (data.size ** (1 / 3))
+                    B = 1 if (not np.isfinite(h) or h <= 0) else int(np.ceil(data_range / h))
 
                 XX = min(22, max(1, B) * 5)
-                y, x, bars = plt.hist(
-                    Data, bins=max(1, B * 7), histtype="bar", edgecolor="white"
-                )
+
+                plt.figure(hh, figsize=(9, 5), dpi=300)
+                ax2 = plt.subplot(1, 1, 1, label="hist")
+                y, x, bars = plt.hist(data, bins=max(1, B * 7), histtype="bar", edgecolor="white")
 
                 plt.xlabel(f"{N}: {C} [a.u.]", fontdict=label_font)
                 plt.ylabel("Frequency", fontdict=label_font)
@@ -397,69 +299,57 @@ def QCPlot(Path):
                 if iqr > 0:
                     if C == "Displacement factor (std of Mutual information)":
                         ll = q75 + 1.5 * iqr
-                        plt.text(
-                            1.07 * ll,
-                            2 * max(y) / 3,
-                            "Q3 + 1.5*IQ",
-                            color="grey",
-                            fontdict=label_font,
-                        )
-                        for bar in bars:
-                            if bar.get_x() > ll:
-                                bar.set_facecolor("red")
+                        txt_x = 1.07 * ll
+                        mark = lambda bar: bar.get_x() > ll
+                        txt = "Q3 + 1.5*IQ"
                     else:
                         ll = q25 - 1.5 * iqr
-                        plt.text(
-                            1.001 * ll,
-                            2 * max(y) / 3,
-                            "Q1 - 1.5*IQ",
-                            color="grey",
-                            fontdict=label_font,
-                        )
-                        for bar in bars:
-                            if bar.get_x() < ll:
-                                bar.set_facecolor("red")
+                        txt_x = 1.001 * ll
+                        mark = lambda bar: bar.get_x() < ll
+                        txt = "Q1 - 1.5*IQ"
+
+                    if len(y):
+                        plt.text(txt_x, 2 * max(y) / 3, txt, color="grey", fontdict=label_font)
+                    for bar in bars:
+                        if mark(bar):
+                            bar.set_facecolor("red")
                     plt.axvline(ll, color="grey", linestyle="--")
 
                 plt.suptitle(f"{N}: {C}", fontdict=title_font)
-
-                red_patch = mpatches.Patch(color="red", label="Discard")
-                blue_patch = mpatches.Patch(color="tab:blue", label="Keep")
-                legend = plt.legend(handles=[blue_patch, red_patch], fontsize=8)
-                for text in legend.get_texts():
-                    text.set_fontfamily("serif")
-                    text.set_fontsize(8)
+                legend = plt.legend(
+                    handles=[mpatches.Patch(color="tab:blue", label="Keep"),
+                             mpatches.Patch(color="red", label="Discard")],
+                    fontsize=8,
+                )
+                for t in legend.get_texts():
+                    t.set_fontfamily("serif"); t.set_fontsize(8)
 
                 ax2.xaxis.set_tick_params(labelsize=8)
                 ax2.yaxis.set_tick_params(labelsize=8)
 
-                base_filename = os.path.join(QC_fig_path, C + N)
-                plt.savefig(base_filename + ".png", dpi=300)
-                plt.close()
+                out = os.path.join(qc_fig_path, f"{C}{N}.png")
+                plt.savefig(out, dpi=300); plt.close()
 
         hh += 1
 
-    # --- Spatial resolution pies ---
+    # Spatial resolution pies
     plt.figure(hh, figsize=(9, 5), dpi=300)
-    for nn, N in enumerate(Names):
-        COL = list(Abook[nn].columns)
-        if COL:
-            COL.pop(0)
-        D = Abook[nn]
-        for cc, C in enumerate(COL):
+    rr = 1
+    for df, N in zip(books, names):
+        cols = list(df.columns)
+        if cols:
+            cols.pop(0)
+        for C in cols:
             if C in ("SpatRx", "SpatRy", "SpatRz"):
-                Data = pd.to_numeric(D[C], errors="coerce").to_numpy()
-                Data = Data[np.isfinite(Data)]
-                if Data.size == 0:
+                vals = pd.to_numeric(df[C], errors="coerce").to_numpy()
+                vals = vals[np.isfinite(vals)]
+                if vals.size == 0:
                     continue
+                labels, counts = np.unique(vals, return_counts=True)
+                labels2 = [f"{l:.3f} mm" for l in labels]
 
-                labels = np.unique(Data)
-                sizes = [(Data == l).sum() for l in labels]
-                labels_rounded = np.round(labels, 3)
-                labels2 = [f"{l} mm" for l in labels_rounded]
-
-                ax1 = plt.subplot(len(Names), 3, rr)
-                ax1.pie(sizes, labels=labels2, autopct="%1.0f%%", startangle=180)
+                ax1 = plt.subplot(len(names), 3, rr)
+                ax1.pie(counts, labels=labels2, autopct="%1.0f%%", startangle=180)
                 ax1.axis("equal")
                 ax1.set_title(f"{N}:{C}", fontdict=title_font)
                 plt.suptitle("Resolution homogeneity between data", weight="bold")
@@ -467,226 +357,132 @@ def QCPlot(Path):
                 ax1.yaxis.set_tick_params(labelsize=8)
                 rr += 1
 
-    base_filename = os.path.join(QC_fig_path, "Spatial_Resolution")
-    plt.savefig(base_filename + ".png", dpi=300)
-    plt.close()
+    out = os.path.join(qc_fig_path, "Spatial_Resolution.png")
+    plt.savefig(out, dpi=300); plt.close()
 
 
 # =========================
-# ML voting
+# ML voting + QC table
 # =========================
 def ML(Path, format_type):
-    result = []
-    for N, csv in enumerate(glob.glob(os.path.join(Path, "*_features_*.csv"))):
-        csv_path = os.path.join(Path, csv)
-        Abook = pd.read_csv(csv_path)
+    results = []
+    for csv in glob.glob(os.path.join(Path, "*_features_*.csv")):
+        A = pd.read_csv(csv)
 
-        if np.any(Abook.isnull().all()[:]):
-            print("The following csv file contains NaN values for one or more of its features:")
-            print(csv_path)
-            print("Voting can not be conducted.")
-            print("Analyzing next sequence...")
+        if np.any(A.isnull().all()[:]):
+            print("CSV has features entirely NaN, skipping:", csv)
             continue
 
-        Abook = Abook.dropna(how="all", axis="columns")
-        Abook = Abook.dropna(how="any")
+        A = A.dropna(how="all", axis="columns").dropna(how="any")
 
-        address = [i for i in Abook.iloc[:, 1]]
-
+        address = A.iloc[:, 1].tolist()
         if format_type == "raw":
-            sequence_name = [i for i in Abook.iloc[:, 2]]
-            img_name = [i for i in Abook.iloc[:, 3]]
-            X = Abook.iloc[:, 7:]
-        elif format_type == "nifti":
-            img_name = [i for i in Abook.iloc[:, 2]]
-            X = Abook.iloc[:, 6:]
-        else:
-            # default fallback
-            img_name = [i for i in Abook.iloc[:, 2]]
-            X = Abook.iloc[:, 6:]
+            sequence_name = A.iloc[:, 2].tolist()
+            img_name = A.iloc[:, 3].tolist()
+            X = A.iloc[:, 7:]
+        else:  # "nifti" or fallback
+            sequence_name = None
+            img_name = A.iloc[:, 2].tolist()
+            X = A.iloc[:, 6:]
 
-        # Models
-        nu = 0.05
-        clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu, shrinking=False).fit(X)
-        svm_pre = clf.predict(X)
+        # Fit models
+        svm_pre = OneClassSVM(gamma="auto", kernel="poly", nu=0.05, shrinking=False).fit(X).predict(X)
+        ell_pred = EllipticEnvelope(contamination=0.025, random_state=1).fit_predict(X)
+        iso_pred = IsolationForest(
+            n_estimators=100, max_samples="auto", contamination=0.05,
+            max_features=1.0, bootstrap=False, n_jobs=-1, random_state=1
+        ).fit_predict(X)
+        local_pred = LocalOutlierFactor(
+            n_neighbors=20, algorithm="auto", metric="minkowski",
+            contamination=0.04, novelty=False, n_jobs=-1
+        ).fit_predict(X)
 
-        elpenv = EllipticEnvelope(contamination=0.025, random_state=1)
-        ell_pred = elpenv.fit_predict(X)
-
-        iforest = IsolationForest(
-            n_estimators=100,
-            max_samples="auto",
-            contamination=0.05,
-            max_features=1.0,
-            bootstrap=False,
-            n_jobs=-1,
-            random_state=1,
-        )
-        iso_pred = iforest.fit_predict(X)
-
-        lof = LocalOutlierFactor(
-            n_neighbors=20,
-            algorithm="auto",
-            metric="minkowski",
-            contamination=0.04,
-            novelty=False,
-            n_jobs=-1,
-        )
-        local_pred = lof.fit_predict(X)
-
-        algorythms = [svm_pre, ell_pred, iso_pred, local_pred]
-        arr = np.vstack(algorythms).T
         df = pd.DataFrame(
-            arr,
+            np.vstack([svm_pre, ell_pred, iso_pred, local_pred]).T,
             columns=["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"],
         )
 
         if "diff" in csv:
-            df["sequence_type"] = ["diff"] * len(df)
+            df["sequence_type"] = "diff"
         elif "func" in csv:
-            df["sequence_type"] = ["func"] * len(df)
+            df["sequence_type"] = "func"
         elif "anat" in csv:
-            df["sequence_type"] = ["anat"] * len(df)
+            df["sequence_type"] = "anat"
 
         df["Pathes"] = address
         if format_type == "raw":
             df["sequence_name"] = sequence_name
         df["corresponding_img"] = img_name
+        results.append(df)
 
-        result.append(df)
-
-    return result
+    return results
 
 
 def QCtable(Path, format_type):
-    ML_algorythms = ML(Path, format_type)
-    if not ML_algorythms:
+    algs = ML(Path, format_type)
+    if not algs:
         return
-    ML_algorythms = pd.concat(ML_algorythms)
+    algs = pd.concat(algs, ignore_index=True)
 
     # convert -1 flags to boolean outlier flags
     cols_out = ["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"]
-    ML_algorythms[cols_out] = ML_algorythms[cols_out] == -1
+    algs[cols_out] = algs[cols_out] == -1
 
-    Abook = []
-    Names = []
+    books, names = [], []
     for file in glob.glob(os.path.join(Path, "*caculated_features*.csv")):
         if "diff" in file:
-            Abook.append(pd.read_csv(file))
-            Names.append("diff")
+            books.append(pd.read_csv(file)); names.append("diff")
         elif "func" in file:
-            Abook.append(pd.read_csv(file))
-            Names.append("func")
+            books.append(pd.read_csv(file)); names.append("func")
         elif "anat" in file:
-            Abook.append(pd.read_csv(file))
-            Names.append("anat")
+            books.append(pd.read_csv(file)); names.append("anat")
 
-    ST, COE, AvV, V, Pathes, Med, MaX, MiN = [], [], [], [], [], [], [], []
+    pathes = []
+    ST, COE, AvV, V, Med, MaX, MiN = [], [], [], [], [], [], []
 
-    for nn, N in enumerate(Names):
-        d = Abook[nn]
-        COL = d.columns
-
-        for cc, C in enumerate(COL):
-            D = d[C]
+    for df, N in zip(books, names):
+        COL = df.columns
+        for C in COL:
+            D = pd.to_numeric(df[C], errors="coerce").replace([np.inf, -np.inf], np.nan)
 
             if C in ("SNR Chang", "tSNR (Averaged Brain ROI)", "SNR Normal"):
-                D = pd.to_numeric(D, errors="coerce")
-                D = D.replace([np.inf, -np.inf], np.nan)
                 q75, q25 = np.nanpercentile(D, [75, 25])
                 iqr = q75 - q25
-                if iqr > 0:
-                    ll = q25 - 1.5 * iqr
-                    Index = D < ll
-                else:
-                    Index = pd.Series([False] * len(D), index=D.index)
+                Index = (D < (q25 - 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
 
-                P = d[COL[1]][Index]
-                M, Me, Mi, Ma = D.mean(), D.median(), D.min(), D.max()
-
-                Pathes.extend(P)
-                ST.extend([N] * len(P))
-                COE.extend([C] * len(P))
-                AvV.extend([M] * len(P))
-                V.extend(D[Index])
-                Med.extend([Me] * len(P))
-                MiN.extend([Mi] * len(P))
-                MaX.extend([Ma] * len(P))
-
-            if C == "Displacement factor (std of Mutual information)":
-                D = pd.to_numeric(D, errors="coerce")
-                D = D.replace([np.inf, -np.inf], np.nan)
+            elif C == "Displacement factor (std of Mutual information)":
                 q75, q25 = np.nanpercentile(D, [75, 25])
                 iqr = q75 - q25
-                if iqr > 0:
-                    ul = q75 + 1.5 * iqr
-                    Index = D > ul
-                else:
-                    Index = pd.Series([False] * len(D), index=D.index)
+                Index = (D > (q75 + 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
 
-                P = d[COL[1]][Index]
-                M, Me, Mi, Ma = D.mean(), D.median(), D.min(), D.max()
+            else:
+                continue
 
-                Pathes.extend(P)
-                ST.extend([N] * len(P))
-                COE.extend([C] * len(P))
-                AvV.extend([M] * len(P))
-                V.extend(D[Index])
-                Med.extend([Me] * len(P))
-                MiN.extend([Mi] * len(P))
-                MaX.extend([Ma] * len(P))
+            P = df[COL[1]][Index]
+            pathes.extend(P)
+            ST.extend([N] * len(P))
+            COE.extend([C] * len(P))
+            AvV.extend([D.mean()] * len(P))
+            V.extend(D[Index])
+            Med.extend([D.median()] * len(P))
+            MiN.extend([D.min()] * len(P))
+            MaX.extend([D.max()] * len(P))
 
-            if N == "ErrorData":
-                D = d[C]
-                Pathes.extend(D)
-                S = "Faulty Data"
-                ST.extend([S] * len(D))
-                COE.extend(["-"] * len(D))
-                AvV.extend(["-"] * len(D))
-                V.extend(["-"] * len(D))
-                Med.extend(["-"] * len(D))
-                MiN.extend(["-"] * len(D))
-                MaX.extend(["-"] * len(D))
-
-    # prepare outliers for voting
-    statiscal = [path in set(Pathes) for path in ML_algorythms["Pathes"]]
-    ML_algorythms["statistical_method"] = statiscal
-
-    ML_number = list(ML_algorythms[["One_class_SVM", "IsolationForest", "LocalOutlierFactor", " EllipticEnvelope", "statistical_method"]].sum(axis=1))
+    # mark statistical outliers in ML voting
+    outlier_set = set(pathes)
+    algs["statistical_method"] = algs["Pathes"].isin(outlier_set)
+    vote_cols = ["One_class_SVM", "IsolationForest", "LocalOutlierFactor", " EllipticEnvelope", "statistical_method"]
+    algs["Voting outliers (from 5)"] = algs[vote_cols].sum(axis=1)
+    algs = algs[algs["Voting outliers (from 5)"] >= 1]
 
     if format_type == "raw":
-        ML_algorythms = ML_algorythms[
-            [
-                "Pathes",
-                "sequence_name",
-                "corresponding_img",
-                "sequence_type",
-                "One_class_SVM",
-                "IsolationForest",
-                "LocalOutlierFactor",
-                " EllipticEnvelope",
-                "statistical_method",
-            ]
-        ]
-    elif format_type == "nifti":
-        ML_algorythms = ML_algorythms[
-            [
-                "Pathes",
-                "corresponding_img",
-                "sequence_type",
-                "One_class_SVM",
-                "IsolationForest",
-                "LocalOutlierFactor",
-                " EllipticEnvelope",
-                "statistical_method",
-            ]
-        ]
-
-    ML_algorythms["Voting outliers (from 5)"] = ML_number
-    ML_algorythms = ML_algorythms[ML_algorythms["Voting outliers (from 5)"] >= 1]
+        keep_cols = ["Pathes", "sequence_name", "corresponding_img", "sequence_type"] + vote_cols
+    else:
+        keep_cols = ["Pathes", "corresponding_img", "sequence_type"] + vote_cols
+    algs = algs[keep_cols]
 
     final_result = os.path.join(Path, "votings.csv")
-    ML_algorythms.to_csv(final_result, index=False)
+    algs.to_csv(final_result, index=False)
 
 #%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
 
