@@ -16,16 +16,35 @@ from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import OneClassSVM
+from sklearn.preprocessing import StandardScaler
 
 import numpy as np
 import os
 import glob
+import warnings
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator
 from scipy import ndimage, signal
 import changSNR as ch
+
+
+# =========================
+# Suppress benign scikit-learn warnings
+# =========================
+warnings.filterwarnings(
+    "ignore",
+    message="The covariance matrix associated to your dataset is not full rank",
+    category=UserWarning,
+    module="sklearn.covariance._robust_covariance"
+)
+warnings.filterwarnings(
+    "ignore",
+    message="n_neighbors .* is greater than the total number of samples",
+    category=UserWarning,
+    module="sklearn.neighbors._lof"
+)
 
 
 # =========================
@@ -41,32 +60,79 @@ def toc(*args, **kwargs):
 
 
 # =========================
-# Ghosting
+# Vectorized mutual information
+# =========================
+def mutualInfo(Im1, Im2, bins=20):
+    # Vectorized joint histogram using integer bin indices + bincount
+    x = Im1.ravel()
+    y = Im2.ravel()
+
+    x_min, x_max = np.min(x), np.max(x)
+    y_min, y_max = np.min(y), np.max(y)
+    if x_min == x_max:
+        x_max = x_min + 1.0
+    if y_min == y_max:
+        y_max = y_min + 1.0
+
+    x_idx = np.floor((x - x_min) * (bins / (x_max - x_min))).astype(np.int64)
+    y_idx = np.floor((y - y_min) * (bins / (y_max - y_min))).astype(np.int64)
+    x_idx = np.clip(x_idx, 0, bins - 1)
+    y_idx = np.clip(y_idx, 0, bins - 1)
+
+    joint_idx = x_idx * bins + y_idx
+    h2d = np.bincount(joint_idx, minlength=bins * bins).reshape(bins, bins)
+
+    pxy = h2d.astype(np.float64)
+    s = pxy.sum()
+    if s == 0:
+        return 0.0
+    pxy /= s
+    px = pxy.sum(axis=1, keepdims=True)
+    py = pxy.sum(axis=0, keepdims=True)
+    pxpy = px @ py  # outer product
+    nz = pxy > 0
+    return np.sum(pxy[nz] * (np.log(pxy[nz]) - np.log(pxpy[nz])))
+
+
+# =========================
+# Ghosting (Nyquist ghost detection)
 # =========================
 def GhostCheck(input_file):
     img_data = input_file.get_fdata()
-    img_shape = img_data.shape
-
-    # candidate ghost positions (powers of two along phase-encode)
-    mmos = []
-    n = 1
-    while (img_shape[1] % (2 ** n)) == 0:
-        mmos.append(img_shape[1] / 2 ** n)
-        n += 1
-    mmos = np.asarray(mmos)
-
     if img_data.ndim > 3:
         img_data = img_data.mean(axis=-1)
 
-    im_ref = img_data[:, :, img_shape[2] // 2]
-    mi_vec = [mutualInfo(np.roll(im_ref, ii, axis=1), im_ref) for ii in range(img_shape[1])]
+    H, W, Z = img_data.shape
+    im_ref = img_data[:, :, Z // 2]
 
-    peaks_strong, _ = signal.find_peaks(mi_vec, height=0.1 * np.max(mi_vec))
-    peaks_weak, _ = signal.find_peaks(mi_vec)
+    # Candidate ghost shifts: W/2, W/4, W/8, ...
+    shifts = []
+    d = W // 2
+    while d >= 1:
+        shifts.append(d)
+        d //= 2
+    shifts = np.unique(np.clip(np.asarray(shifts, dtype=int), 1, W - 1))
 
-    strong = np.sum(np.isin(peaks_strong, mmos))
-    weak = np.sum(np.isin(peaks_weak, mmos))
-    return (weak > 2) or (strong > 0)
+    if shifts.size == 0:
+        return False
+
+    # Roll via indexing (faster than np.roll in Python loop)
+    cols = np.arange(W)
+    mi_vals = []
+    for s in shifts:
+        idx = (cols - s) % W
+        shifted = im_ref[:, idx]
+        mi_vals.append(mutualInfo(shifted, im_ref))
+    mi_vals = np.asarray(mi_vals)
+
+    if mi_vals.size == 0:
+        return False
+
+    # Strong peaks: >= 10% of max (more sensitive per request)
+    strong_hits = np.sum(mi_vals >= 0.01 * np.max(mi_vals))
+    weak_hits = mi_vals.size  # all are harmonics
+
+    return (weak_hits > 2) or (strong_hits > 0)
 
 
 # =========================
@@ -83,7 +149,7 @@ def snrCalclualtor_chang(input_file):
     IM = np.asanyarray(input_file.dataobj)
     img = np.squeeze(IM.astype("float64"))
 
-    if img.mean() == 0 or img.ndim < 3:
+    if img.ndim < 3 or img.mean() == 0:
         return np.nan
 
     ns = img.shape[2]
@@ -149,23 +215,13 @@ def snrCalclualtor_normal(input_file):
     Mask = sphere(S, r, COM)
     signal_val = img[Mask].mean()
 
-    x = int(np.ceil(S[0] * 0.15))
-    y = int(np.ceil(S[1] * 0.15))
-    z = int(np.ceil(S[2] * 0.15))
-
-    corners = [
-        (slice(None, x), slice(None, y), slice(None, z)),
-        (slice(None, x), slice(-y, None), slice(None, z)),
-        (slice(-x, None), slice(None, y), slice(None, z)),
-        (slice(-x, None), slice(-y, None), slice(None, z)),
-        (slice(None, x), slice(None, y), slice(-z, None)),
-        (slice(None, x), slice(-y, None), slice(-z, None)),
-        (slice(-x, None), slice(None, y), slice(-z, None)),
-        (slice(-x, None), slice(-y, None), slice(-z, None)),
-    ]
-    noise_blocks = [np.squeeze(img[idx]) for idx in corners]
-    noise_std = np.std(np.array(noise_blocks))
-
+    # Vectorized 8-corner noise regions
+    x = int(np.ceil(S[0] * 0.15)); y = int(np.ceil(S[1] * 0.15)); z = int(np.ceil(S[2] * 0.15))
+    blocks = (
+        img[:x, :y, :z],      img[:x, -y:, :z],      img[-x:, :y, :z],      img[-x:, -y:, :z],
+        img[:x, :y, -z:],     img[:x, -y:, -z:],     img[-x:, :y, -z:],     img[-x:, -y:, -z:]
+    )
+    noise_std = np.std(np.concatenate([b.ravel() for b in blocks]))
     snr = 20 * np.log10(signal_val / noise_std)
     return snr if np.isfinite(snr) else np.nan
 
@@ -187,54 +243,45 @@ def sphere(shape, radius, position):
 # =========================
 def TsnrCalclualtor(input_file):
     IM = np.asanyarray(input_file.dataobj)
-    S = IM.shape
-    if len(S) == 3:
-        IM = IM.reshape((S[0], S[1], 1, S[2]))
+    if IM.ndim == 3:
+        IM = IM[:, :, None, :]
 
     img = IM.astype("float64")
-    fff = 0 if IM.shape[-1] < 10 else 10
+    fff = 0 if img.shape[-1] < 10 else 10
 
-    sig_mean = img[:, :, :, fff:].mean(axis=-1)
-    sig_std = img[:, :, :, fff:].std(axis=-1)
-    tsnr_map = 20 * np.log10(sig_mean / sig_std)
+    sig = img[:, :, :, fff:]
+    tsnr_map = 20 * np.log10(sig.mean(axis=-1) / (sig.std(axis=-1) + 1e-12))  # eps for stability
 
     img_avg = img.mean(axis=-1)
     COM = [int(i) for i in ndimage.center_of_mass(img_avg)]
-    r = int(np.floor(0.10 * np.mean([IM.shape[0:2]])))
-    Mask = sphere(IM.shape[0:3], r, COM)
+    r = int(np.floor(0.10 * np.mean(img.shape[:2])))
+    Mask = sphere(img.shape[:3], r, COM)
     return np.mean(tsnr_map[Mask])
 
 
 # =========================
-# Mutual Information / motion
+# Motion (rsfMRI)
 # =========================
-def mutualInfo(Im1, Im2):
-    h2d, _, _ = np.histogram2d(Im1.ravel(), Im2.ravel(), bins=20)
-    pxy = h2d / float(np.sum(h2d))
-    px = pxy.sum(axis=1)
-    py = pxy.sum(axis=0)
-    px_py = px[:, None] * py[None, :]
-    nz = pxy > 0
-    return np.sum(pxy[nz] * np.log(pxy[nz] / px_py[nz]))
-
-
 def Ismotion(input_file):
     IM = np.asanyarray(input_file.dataobj)
-    S = IM.shape
-    if len(S) == 3:
-        IM = IM.reshape((S[0], S[1], 1, S[2]))
+    if IM.ndim == 3:
+        IM = IM[:, :, None, :]
 
-    fff = 0 if IM.shape[-1] < 11 else 10
-    img = IM[:, :, :, fff:].astype("float64")
-    S = img.shape
+    img = IM.astype("float64")
+    fff = 0 if img.shape[-1] < 11 else 10
+    sig = img[:, :, :, fff:]
 
-    temp_mean = img.mean(axis=(0, 1, 3))
-    temp_max = temp_mean.argmax()
-    stack = img[:, :, temp_max, :]
-    im_fix = stack[:, :, 0]
+    # Choose slice with highest mean intensity across time
+    temp_mean = sig.mean(axis=(0, 1, 3))
+    k = int(np.argmax(temp_mean))
+    stack = sig[:, :, k, :]  # (H, W, T)
+    ref = stack[:, :, 0]
 
-    mi_vals = [mutualInfo(im_fix, stack[:, :, z]) for z in range(1, S[-1])]
+    mi_vals = [mutualInfo(ref, stack[:, :, t]) for t in range(1, stack.shape[-1])]
     final = np.asarray(mi_vals)
+    if final.size == 0:
+        return final, str([0, 0]), 0.0, 0.0
+
     max_mov_between = str([final.argmin() + 10, final.argmax() + 10])
     gmv = final.max() - final.min()
     lmv = final.std()
@@ -242,7 +289,7 @@ def Ismotion(input_file):
 
 
 # =========================
-# QC plotting & pies (kept)
+# QC plotting & pies
 # =========================
 def QCPlot(Path):
     qc_fig_path = os.path.join(Path, "QCfigures")
@@ -274,28 +321,28 @@ def QCPlot(Path):
                 "SNR Normal",
                 "Displacement factor (std of Mutual information)",
             ):
-                # numeric & finite
                 data = pd.to_numeric(df[C], errors="coerce").to_numpy()
                 data = data[np.isfinite(data)]
-                if data.size == 0:
+                n = data.size
+                if n < 2:
                     continue
 
                 q75, q25 = np.percentile(data, [75, 25])
                 iqr = q75 - q25
-                data_range = data.max() - data.min()
+                rng = data.max() - data.min()
 
-                # Freedman–Diaconis with guards (bins >= 1)
-                if data_range <= 0 or iqr <= 0:
+                if rng <= 0 or iqr <= 0:
                     B = 1
                 else:
-                    h = 2 * iqr / (data.size ** (1 / 3))
-                    B = 1 if (not np.isfinite(h) or h <= 0) else int(np.ceil(data_range / h))
+                    h = 2 * iqr / (n ** (1 / 3))
+                    B = 1 if (not np.isfinite(h) or h <= 0) else int(np.ceil(rng / h))
 
+                nbins = max(1, B * 7)
                 XX = min(22, max(1, B) * 5)
 
                 plt.figure(hh, figsize=(9, 5), dpi=300)
                 ax2 = plt.subplot(1, 1, 1, label="hist")
-                y, x, bars = plt.hist(data, bins=max(1, B * 7), histtype="bar", edgecolor="white")
+                y, x, bars = plt.hist(data, bins=nbins, histtype="bar", edgecolor="white")
 
                 plt.xlabel(f"{N}: {C} [a.u.]", fontdict=label_font)
                 plt.ylabel("Frequency", fontdict=label_font)
@@ -304,7 +351,6 @@ def QCPlot(Path):
                 plt.locator_params(axis="x", nbins=XX)
                 ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-                # Outlier threshold only if iqr > 0
                 if iqr > 0:
                     if C == "Displacement factor (std of Mutual information)":
                         ll = q75 + 1.5 * iqr
@@ -367,17 +413,15 @@ def QCPlot(Path):
 
 
 # =========================
-# ML voting + QC table (kept)
+# ML voting
 # =========================
 def ML(Path, format_type):
     results = []
     for csv in glob.glob(os.path.join(Path, "*_features_*.csv")):
         A = pd.read_csv(csv)
-
-        # Drop feature columns that are entirely NaN; drop rows with any NaN in features later
         A = A.dropna(how="all", axis="columns")
 
-        # Build feature matrix according to format
+        # Build feature matrix
         if format_type == "raw":
             meta_cols = {"path": 1, "seq": 2, "img": 3}
             X = A.iloc[:, 7:].copy()
@@ -385,46 +429,41 @@ def ML(Path, format_type):
             meta_cols = {"path": 1, "img": 2}
             X = A.iloc[:, 6:].copy()
 
-        # Coerce features to numeric and clean
+        # Coerce to numeric, drop inf/NaN
         X = X.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
-        # Drop feature columns that became all-NaN after coercion
-        X = X.dropna(how="all", axis="columns")
-        # Keep only rows with complete features
-        X = X.dropna(how="any", axis="index")
+        X = X.dropna(how="all", axis="columns").dropna(how="any", axis="index")
 
-        # Align metadata to cleaned feature rows
+        # Align metadata
         idx = X.index
+        if len(idx) == 0:
+            continue
         address = A.iloc[idx, meta_cols["path"]].tolist()
-        if "seq" in meta_cols:
-            sequence_name = A.iloc[idx, meta_cols["seq"]].tolist()
-        else:
-            sequence_name = None
+        sequence_name = A.iloc[idx, meta_cols["seq"]].tolist() if "seq" in meta_cols else None
         img_name = A.iloc[idx, meta_cols["img"]].tolist() if "img" in meta_cols else None
 
-        n_samples = X.shape[0]
-        if n_samples == 0:
-            # nothing usable in this file
-            continue
+        # Drop zero-variance columns & scale
+        if hasattr(X, "var"):
+            X = X.loc[:, X.var(axis=0, ddof=0) > 0]
+        X = pd.DataFrame(StandardScaler().fit_transform(X), index=X.index)
 
-        # Default predictions = inliers (+1) for robustness
+        n_samples = X.shape[0]
+        # Default predictions = inliers (+1)
         pred_svm = np.ones(n_samples, dtype=int)
         pred_ell = np.ones(n_samples, dtype=int)
         pred_iso = np.ones(n_samples, dtype=int)
         pred_lof = np.ones(n_samples, dtype=int)
 
-        # Fit models only when data size allows
+        # Fit models with guards
         try:
             if n_samples >= 2:
                 pred_svm = OneClassSVM(gamma="auto", kernel="poly", nu=0.05, shrinking=False).fit(X).predict(X)
         except Exception:
             pass
-
         try:
             if n_samples >= 2:
                 pred_ell = EllipticEnvelope(contamination=0.025, random_state=1).fit_predict(X)
         except Exception:
             pass
-
         try:
             if n_samples >= 2:
                 pred_iso = IsolationForest(
@@ -433,10 +472,9 @@ def ML(Path, format_type):
                 ).fit_predict(X)
         except Exception:
             pass
-
         try:
             if n_samples >= 2:
-                n_neighbors = max(2, min(20, n_samples - 1))  # clamp to valid range
+                n_neighbors = max(2, min(20, n_samples - 1))
                 pred_lof = LocalOutlierFactor(
                     n_neighbors=n_neighbors, algorithm="auto", metric="minkowski",
                     contamination=0.04, novelty=False, n_jobs=-1
@@ -449,7 +487,7 @@ def ML(Path, format_type):
             columns=["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"],
         )
 
-        # Add metadata
+        # Metadata
         if "diff" in csv:
             df["sequence_type"] = "diff"
         elif "func" in csv:
@@ -468,6 +506,9 @@ def ML(Path, format_type):
     return results
 
 
+# =========================
+# QC table generation
+# =========================
 def QCtable(Path, format_type):
     algs = ML(Path, format_type)
     if not algs:
