@@ -111,7 +111,7 @@ def GhostCheck(input_file, pe_axis: int = 0) -> float:
     thr = otsu_threshold(sl)
     if not np.isfinite(thr):
         return False
-    mask = sl > thr
+    mask = sl > thr*0.85
     lbl, nlab = ndimage.label(mask)
     if nlab == 0:
         return False
