@@ -94,7 +94,7 @@ def otsu_threshold(x: np.ndarray, bins: int = 256) -> float:
 # =========================
 # Nyquist ghost detection (GSR + Otsu)
 # =========================
-def GhostCheck(input_file, gsr_threshold: float = 0.01, pe_axis: int = 1) -> bool:
+def GhostCheck(input_file, gsr_threshold: float = 0.05, pe_axis: int = 1) -> bool:
     """
     Detect Nyquist ghosting via background-corrected Ghost-to-Signal Ratio using rolled masks.
 
@@ -145,6 +145,10 @@ def GhostCheck(input_file, gsr_threshold: float = 0.01, pe_axis: int = 1) -> boo
 
     # --- GSR ---
     gsr = (mean_ghost - mean_background) / median_signal
+    print("mean_ghost:",mean_ghost)
+    print("mean_background:",mean_background)
+    print("median_signal:",median_signal)
+    print("gsr:",gsr)
     return bool(np.isfinite(gsr) and (gsr >= gsr_threshold))
 
 
