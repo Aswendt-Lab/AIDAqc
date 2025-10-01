@@ -118,13 +118,13 @@ def GhostCheck(input_file, pe_axis: int = 0) -> float:
     sizes = ndimage.sum(mask, lbl, index=np.arange(1, nlab + 1))
     keep = 1 + int(np.argmax(sizes))
     mask = (lbl == keep)
-    
+
     # Roll data of mask through the appropriate axis
     n2_mask = np.roll(mask, mask.shape[pe_axis] // 2, axis=pe_axis)
-    
+
     # Step 3: remove from n2_mask pixels inside the brain
     n2_mask = n2_mask * (1 - mask)
-    
+
     # Step 4: non-ghost background region is labeled as 2
     n2_mask = n2_mask + 2 * (1 - n2_mask - mask)
 
