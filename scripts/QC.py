@@ -94,7 +94,7 @@ def otsu_threshold(x: np.ndarray, bins: int = 256) -> float:
 # =========================
 # Nyquist ghost detection (GSR + Otsu)
 # =========================
-def GhostCheck(input_file, gsr_threshold: float = 0.05, pe_axis: int = 1) -> bool:
+def GhostCheck(input_file, gsr_threshold: float = 0.05, pe_axis: int = 0) -> bool:
     """
     Detect Nyquist ghosting via background-corrected Ghost-to-Signal Ratio using rolled masks.
 
@@ -118,39 +118,21 @@ def GhostCheck(input_file, gsr_threshold: float = 0.05, pe_axis: int = 1) -> boo
     sizes = ndimage.sum(mask, lbl, index=np.arange(1, nlab + 1))
     keep = 1 + int(np.argmax(sizes))
     mask = (lbl == keep)
+    
+    # Roll data of mask through the appropriate axis
+    n2_mask = np.roll(mask, mask.shape[pe_axis] // 2, axis=pe_axis)
+    
+    # Step 3: remove from n2_mask pixels inside the brain
+    n2_mask = n2_mask * (1 - mask)
+    
+    # Step 4: non-ghost background region is labeled as 2
+    n2_mask = n2_mask + 2 * (1 - n2_mask - mask)
 
-    # Object signal (median)
-    obj_vals = sl[mask]
-    if obj_vals.size == 0:
-        return False
-    median_signal = float(np.median(obj_vals))
-    if not np.isfinite(median_signal) or median_signal <= 0:
-        return False
-
-    # --- Ghost masks via np.roll along phase-encode axis ---
-    half = (H // 2) if pe_axis == 0 else (W // 2)
-    if half == 0:
-        return False
-    mask_g1 = np.roll(mask, shift=half, axis=pe_axis)
-    mask_g2 = np.roll(mask, shift=-half, axis=pe_axis)
-
-    # Ghost mean
-    ghost_vals = sl[mask_g1 | mask_g2]
-    mean_ghost = float(np.mean(ghost_vals[np.isfinite(ghost_vals)])) if ghost_vals.size else 0.0
-
-    # Background mean = everything not in object or ghost masks
-    bg_mask = ~(mask | mask_g1 | mask_g2)
-    bg_vals = sl[bg_mask]
-    mean_background = float(np.mean(bg_vals[np.isfinite(bg_vals)])) if bg_vals.size else 0.0
-
-    # --- GSR ---
-    gsr = (mean_ghost - mean_background) / median_signal
-    print("mean_ghost:",mean_ghost)
-    print("mean_background:",mean_background)
-    print("median_signal:",median_signal)
-    print("gsr:",gsr)
-    return bool(np.isfinite(gsr) and (gsr >= gsr_threshold))
-
+    # Step 5: signal is the entire foreground image
+    ghost = np.mean(sl[n2_mask == 1]) - np.mean(sl[n2_mask == 2])
+    signal = np.median(sl[n2_mask == 0])
+    gsr = ghost / signal
+    return bool(np.isfinite(gsr) and gsr >= gsr_threshold)
 
 # =========================
 # Resolution
