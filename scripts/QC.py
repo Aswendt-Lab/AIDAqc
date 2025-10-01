@@ -34,18 +34,6 @@ def toc(*_, **__):
 def mutualInfo(Im1: np.ndarray, Im2: np.ndarray, bins: int = 20) -> float:
     """
     Compute mutual information (in nats) between two images using a vectorized 2D histogram.
-
-    Parameters
-    ----------
-    Im1, Im2 : np.ndarray
-        Grayscale images of identical shape.
-    bins : int
-        Number of intensity bins (common: 20–64).
-
-    Returns
-    -------
-    float
-        Mutual information (>= 0).
     """
     x = Im1.ravel()
     y = Im2.ravel()
@@ -79,40 +67,50 @@ def mutualInfo(Im1: np.ndarray, Im2: np.ndarray, bins: int = 20) -> float:
     return float(np.sum(pxy[nz] * (np.log(pxy[nz]) - np.log(pxpy[nz]))))
 
 
+def otsu_threshold(x: np.ndarray, bins: int = 256) -> float:
+    """
+    Otsu threshold using finite data only; sqrt(N) bins (capped) for stability.
+    """
+    v = x[np.isfinite(x)]
+    if v.size == 0:
+        return np.nan
+    nb = int(min(bins, max(32, np.sqrt(v.size))))
+    hist, edges = np.histogram(v, bins=nb)
+    p = hist.astype(np.float64)
+    s = p.sum()
+    if s == 0:
+        return np.nan
+    p /= s
+    omega = np.cumsum(p)
+    centers = (edges[:-1] + edges[1:]) * 0.5
+    mu = np.cumsum(p * centers)
+    mu_t = mu[-1]
+    denom = omega * (1.0 - omega) + 1e-12
+    sigma_b2 = (mu_t * omega - mu) ** 2 / denom
+    k = int(np.nanargmax(sigma_b2))
+    return float(centers[k])
+
+
 # =========================
 # Nyquist ghost detection (GSR + Otsu)
 # =========================
-def GhostCheck(input_file, gsr_threshold=0.01, pe_axis=1):
+def GhostCheck(input_file, gsr_threshold: float = 0.01, pe_axis: int = 1) -> bool:
     """
-    Nyquist ghost detection via background-corrected Ghost-to-Signal Ratio (GSR).
+    Detect Nyquist ghosting via background-corrected Ghost-to-Signal Ratio using rolled masks.
 
-    GSR = (Mean_ghost - Mean_background) / (Mean_signal - Mean_background)
-
-    Parameters
-    ----------
-    input_file : nibabel.Nifti1Image
-        3D or 4D NIfTI image.
-    gsr_threshold : float
-        Threshold for ghost detection (default 0.01 = 1%).
-    pe_axis : int
-        Phase-encode axis: 1=columns (default), 0=rows.
-
-    Returns
-    -------
-    bool
-        True if ghosting detected (GSR >= threshold).
+    GSR = (Mean_ghost - Mean_background) / Median_signal
     """
-    
+    # --- Load & reduce ---
     img = input_file.get_fdata()
     if img.ndim > 3:
         img = img.mean(axis=-1)
-
     H, W, Z = img.shape
     sl = img[:, :, Z // 2]
 
-    # --- Object mask via Otsu ---
-    v = sl[np.isfinite(sl)]
-    thr = np.percentile(v, 50)  # simple proxy if no skimage available
+    # --- Object mask via Otsu (largest component) ---
+    thr = otsu_threshold(sl)
+    if not np.isfinite(thr):
+        return False
     mask = sl > thr
     lbl, nlab = ndimage.label(mask)
     if nlab == 0:
@@ -121,46 +119,32 @@ def GhostCheck(input_file, gsr_threshold=0.01, pe_axis=1):
     keep = 1 + int(np.argmax(sizes))
     mask = (lbl == keep)
 
+    # Object signal (median)
     obj_vals = sl[mask]
-    mean_signal = float(np.mean(obj_vals))
-
-    # --- Background ROI = everything outside object bbox ---
-    background = sl[~mask]
-    mean_background = float(np.mean(background[np.isfinite(background)]))
-
-    # --- Ghost ROIs at ±FOV/2 ---
-    if pe_axis == 1:
-        half = W // 2
-        cols = np.where(mask.any(axis=0))[0]
-        if cols.size == 0:
-            return False
-        c0, c1 = cols[0], cols[-1] + 1
-        r0, r1 = 0, H
-        col_span = np.arange(c0, c1)
-        g1 = sl[r0:r1, (col_span + half) % W]
-        g2 = sl[r0:r1, (col_span - half) % W]
-    else:
-        half = H // 2
-        rows = np.where(mask.any(axis=1))[0]
-        if rows.size == 0:
-            return False
-        r0, r1 = rows[0], rows[-1] + 1
-        c0, c1 = 0, W
-        row_span = np.arange(r0, r1)
-        g1 = sl[(row_span + half) % H, c0:c1]
-        g2 = sl[(row_span - half) % H, c0:c1]
-
-    mean_ghost = float(np.mean(np.concatenate([g1.ravel(), g2.ravel()])))
-
-    # --- Ghost-to-Signal Ratio ---
-    denom = (mean_signal - mean_background)
-    if denom <= 0:
+    if obj_vals.size == 0:
         return False
-    gsr = (mean_ghost - mean_background) / denom
-    print("mean_signal:",mean_signal)
-    print("mean_ghost:",mean_ghost)
-    print("mean_background:",mean_background)
-    print("gsr:",gsr)
+    median_signal = float(np.median(obj_vals))
+    if not np.isfinite(median_signal) or median_signal <= 0:
+        return False
+
+    # --- Ghost masks via np.roll along phase-encode axis ---
+    half = (H // 2) if pe_axis == 0 else (W // 2)
+    if half == 0:
+        return False
+    mask_g1 = np.roll(mask, shift=half, axis=pe_axis)
+    mask_g2 = np.roll(mask, shift=-half, axis=pe_axis)
+
+    # Ghost mean
+    ghost_vals = sl[mask_g1 | mask_g2]
+    mean_ghost = float(np.mean(ghost_vals[np.isfinite(ghost_vals)])) if ghost_vals.size else 0.0
+
+    # Background mean = everything not in object or ghost masks
+    bg_mask = ~(mask | mask_g1 | mask_g2)
+    bg_vals = sl[bg_mask]
+    mean_background = float(np.mean(bg_vals[np.isfinite(bg_vals)])) if bg_vals.size else 0.0
+
+    # --- GSR ---
+    gsr = (mean_ghost - mean_background) / median_signal
     return bool(np.isfinite(gsr) and (gsr >= gsr_threshold))
 
 
@@ -222,6 +206,20 @@ def snrCalclualtor_chang(input_file) -> float:
 # =========================
 # SNR (Normal)
 # =========================
+def sphere(shape, radius: int, position) -> np.ndarray:
+    """Generate an n-D spherical (ellipsoidal) mask with guards."""
+    if radius is None or radius <= 0:
+        return np.zeros(shape, dtype=bool)
+    assert len(position) == len(shape)
+    semisizes = (float(radius),) * len(shape)
+    grid = [slice(-x0, dim - x0) for x0, dim in zip(position, shape)]
+    axes = np.ogrid[grid]
+    arr = np.zeros(shape, dtype=float)
+    for ax, semi in zip(axes, semisizes):
+        arr += (ax / semi) ** 2
+    return arr <= 1.0
+
+
 def snrCalclualtor_normal(input_file) -> float:
     """Compute conventional SNR using central spherical ROI and corner noise."""
     IM = np.asanyarray(input_file.dataobj)
@@ -245,32 +243,25 @@ def snrCalclualtor_normal(input_file) -> float:
     r = int(np.floor(0.10 * np.mean(S)))
     r = min(r, S[2])
     Mask = sphere(S, r, COM)
+    if not np.any(Mask):
+        return float("nan")
     signal_val = float(img[Mask].mean())
 
     # 8-corner noise regions (vectorized)
     x = int(np.ceil(S[0] * 0.15))
     y = int(np.ceil(S[1] * 0.15))
     z = int(np.ceil(S[2] * 0.15))
+    if x == 0 or y == 0 or z == 0:
+        return float("nan")
+
     blocks = (
         img[:x, :y, :z], img[:x, -y:, :z], img[-x:, :y, :z], img[-x:, -y:, :z],
         img[:x, :y, -z:], img[:x, -y:, -z:], img[-x:, :y, -z:], img[-x:, -y:, -z:]
     )
-    noise_std = float(np.std(np.concatenate([b.ravel() for b in blocks]))) if x and y and z else float("nan")
+    noise_std = float(np.std(np.concatenate([b.ravel() for b in blocks])))
 
     snr = 20 * np.log10(signal_val / noise_std)
     return snr if np.isfinite(snr) else float("nan")
-
-
-def sphere(shape, radius: int, position) -> np.ndarray:
-    """Generate an n-D spherical (ellipsoidal) mask."""
-    assert len(position) == len(shape)
-    semisizes = (radius,) * len(shape)
-    grid = [slice(-x0, dim - x0) for x0, dim in zip(position, shape)]
-    axes = np.ogrid[grid]
-    arr = np.zeros(shape, dtype=float)
-    for ax, semi in zip(axes, semisizes):
-        arr += (ax / semi) ** 2
-    return arr <= 1.0
 
 
 # =========================
@@ -280,7 +271,7 @@ def TsnrCalclualtor(input_file) -> float:
     """Compute temporal SNR (tSNR) with initial burn-in (10 volumes if available)."""
     IM = np.asanyarray(input_file.dataobj)
     if IM.ndim == 3:
-        IM = IM[:, :, None, :]
+        IM = IM.reshape(IM.shape[0], IM.shape[1], 1, IM.shape[2])  # (H,W,1,T)
 
     img = IM.astype("float64")
     fff = 0 if img.shape[-1] < 10 else 10
@@ -305,7 +296,7 @@ def Ismotion(input_file):
     """
     IM = np.asanyarray(input_file.dataobj)
     if IM.ndim == 3:
-        IM = IM[:, :, None, :]
+        IM = IM.reshape(IM.shape[0], IM.shape[1], 1, IM.shape[2])  # (H,W,1,T)
 
     img = IM.astype("float64")
     fff = 0 if img.shape[-1] < 11 else 10
@@ -462,11 +453,7 @@ def QCPlot(Path: str) -> None:
 def ML(Path: str, format_type: str):
     """
     Run multiple outlier detectors and return per-row predictions for each *_features_*.csv.
-
-    Returns
-    -------
-    list[pd.DataFrame]
-        One dataframe per input CSV with predictions and metadata.
+    Returns list[pd.DataFrame].
     """
     results = []
     for csv in glob.glob(os.path.join(Path, "*_features_*.csv")):
@@ -570,7 +557,6 @@ def ML(Path: str, format_type: str):
             df["sequence_type"] = "func"
         elif "anat" in csv:
             df["sequence_type"] = "anat"
-
         df["Pathes"] = address
         if sequence_name is not None:
             df["sequence_name"] = sequence_name
