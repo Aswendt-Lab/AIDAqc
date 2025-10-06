@@ -1,792 +1,623 @@
-#%% 
-"""
-Version 1.0
-Name: Aref Kalantari
-Email: aref.kalantari-sarcheshmeh@uk-koeln.de
-Date: 24.08.2021 - 02.03.2022
------------------------------
-Code Describtion: Quality Control Toolbox. Every tool (function) needed can be found here and be modified.
------------------------------
-Lab: AG Neuroimaging and neuroengineering of experimental stroke 
-Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
-"""
-
-#%% Loading nececcery libraries
-from sklearn.covariance import EllipticEnvelope   
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor 
-from sklearn.svm import OneClassSVM
-import numpy as np
 import os
-import pandas as pd
 import glob
-import matplotlib.patches as mpatches
-import time
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from scipy import ndimage
-from scipy import signal
-import changSNR as ch
+import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator
-from matplotlib import font_manager as fm
-from matplotlib.font_manager import FontProperties
-#%% Tic Toc Timer
+from scipy import ndimage
+import changSNR as ch
+
+from sklearn.covariance import EllipticEnvelope
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import OneClassSVM
 
 
-def TicTocGenerator():
-    # Generator that returns time differences
-    ti = 0           # initial time
-    tf = time.time() # final time
-    while True:
-        ti = tf
-        tf = time.time()
-        yield tf-ti # returns the time difference
-
-TicToc = TicTocGenerator() # create an instance of the TicTocGen generator
-
-# This will be the main function through which we define both tic() and toc()
-def toc(tempBool=True):
-    # Prints the time difference yielded by generator instance TicToc
-    tempTimeInterval = next(TicToc)
-    if tempBool:
-        print( "Elapsed time: %f seconds.\n" %tempTimeInterval )
-
+# =========================
+# Compatibility stubs (keep ParsingData.py happy)
+# =========================
 def tic():
-    # Records a time in TicToc, marks the beginning of a time interval
-    toc(False)
-#%% Ghosting 
-def GhostCheck(input_file):
-    
-    #input_file= nib.load(tf)
-    img = input_file
-    img_data = img.get_fdata()
-    img_shape = np.shape(img_data)
-    MI_vec = []
-    n = 1
-    Mmos = []
-    while (img_shape[1]%(2**n)) == 0:
-        Mmos.append(img_shape[1]/2**n)
-        n = n+1
-    Mmos = np.asarray(Mmos)
-    if len(img_shape)>3:
-        img_data = np.mean(img_data,axis=-1)
-                
-    
-    Im_ref = img_data[:,:,int(img_shape[2]/2)]
-    for ii in range(0,int(img_shape[1])):
-        Im_rol = np.roll(Im_ref,ii)
-        MI_vec.append(mutualInfo(Im_rol,Im_ref))
-        
-    peaks_strong, prop = signal.find_peaks(MI_vec, height = 0.25*max(MI_vec))
-    peaks_weak, prop = signal.find_peaks(MI_vec)
-    
-    StrongGhost = np.sum(np.isin(peaks_strong,Mmos))
-    WeekGhost = np.sum(np.isin(peaks_weak,Mmos))
-    
-    if WeekGhost > 2 or StrongGhost > 0:
-        GMetric = True
-    else:
-        GMetric = False
-    
-    
-    #plt.plot((MI_vec))
-    #plt.show()
-    
-    return GMetric
-  
-
-#%% Res function
+    """No-op timer stub for compatibility."""
+    pass
 
 
+def toc(*_, **__):
+    """No-op timer stub for compatibility."""
+    pass
+
+
+# =========================
+# Vectorized mutual information
+# =========================
+def mutualInfo(Im1: np.ndarray, Im2: np.ndarray, bins: int = 20) -> float:
+    """
+    Compute mutual information (in nats) between two images using a vectorized 2D histogram.
+    """
+    x = Im1.ravel()
+    y = Im2.ravel()
+
+    x_min, x_max = np.min(x), np.max(x)
+    y_min, y_max = np.min(y), np.max(y)
+    if x_min == x_max:
+        x_max = x_min + 1.0
+    if y_min == y_max:
+        y_max = y_min + 1.0
+
+    x_idx = np.floor((x - x_min) * (bins / (x_max - x_min))).astype(np.int64)
+    y_idx = np.floor((y - y_min) * (bins / (y_max - y_min))).astype(np.int64)
+    x_idx = np.clip(x_idx, 0, bins - 1)
+    y_idx = np.clip(y_idx, 0, bins - 1)
+
+    joint_idx = x_idx * bins + y_idx
+    h2d = np.bincount(joint_idx, minlength=bins * bins).reshape(bins, bins)
+
+    pxy = h2d.astype(np.float64)
+    s = pxy.sum()
+    if s == 0:
+        return 0.0
+    pxy /= s
+
+    px = pxy.sum(axis=1, keepdims=True)
+    py = pxy.sum(axis=0, keepdims=True)
+    pxpy = px @ py  # outer product
+
+    nz = pxy > 0
+    return float(np.sum(pxy[nz] * (np.log(pxy[nz]) - np.log(pxpy[nz]))))
+
+
+def otsu_threshold(x: np.ndarray, bins: int = 256) -> float:
+    """
+    Otsu threshold using finite data only; sqrt(N) bins (capped) for stability.
+    """
+    v = x[np.isfinite(x)]
+    if v.size == 0:
+        return np.nan
+    nb = int(min(bins, max(32, np.sqrt(v.size))))
+    hist, edges = np.histogram(v, bins=nb)
+    p = hist.astype(np.float64)
+    s = p.sum()
+    if s == 0:
+        return np.nan
+    p /= s
+    omega = np.cumsum(p)
+    centers = (edges[:-1] + edges[1:]) * 0.5
+    mu = np.cumsum(p * centers)
+    mu_t = mu[-1]
+    denom = omega * (1.0 - omega) + 1e-12
+    sigma_b2 = (mu_t * omega - mu) ** 2 / denom
+    k = int(np.nanargmax(sigma_b2))
+    return float(centers[k])
+
+
+# =========================
+# Nyquist ghost detection (GSR + Otsu)
+# =========================
+def GhostCheck(input_file, pe_axis: int = 0) -> float:
+    """
+    Detect Nyquist ghosting via background-corrected Ghost-to-Signal Ratio using rolled masks.
+
+    GSR = (Mean_ghost - Mean_background) / Median_signal
+    """
+    # --- Load & reduce ---
+    img = input_file.get_fdata()
+    if img.ndim > 3:
+        img = img.mean(axis=-1)
+    H, W, Z = img.shape
+    sl = img[:, :, Z // 2]
+
+    # --- Object mask via Otsu (largest component) ---
+    thr = otsu_threshold(sl)
+    if not np.isfinite(thr):
+        return False
+    mask = sl > thr*0.85
+    lbl, nlab = ndimage.label(mask)
+    if nlab == 0:
+        return False
+    sizes = ndimage.sum(mask, lbl, index=np.arange(1, nlab + 1))
+    keep = 1 + int(np.argmax(sizes))
+    mask = (lbl == keep)
+
+    # Roll data of mask through the appropriate axis
+    n2_mask = np.roll(mask, mask.shape[pe_axis] // 2, axis=pe_axis)
+
+    # Step 3: remove from n2_mask pixels inside the brain
+    n2_mask = n2_mask * (1 - mask)
+
+    # Step 4: non-ghost background region is labeled as 2
+    n2_mask = n2_mask + 2 * (1 - n2_mask - mask)
+
+    # Step 5: signal is the entire foreground image
+    ghost = np.mean(sl[n2_mask == 1]) - np.mean(sl[n2_mask == 2])
+    signal = np.median(sl[n2_mask == 0])
+    gsr = ghost / signal
+    return float(ghost / signal)
+
+# =========================
+# Resolution
+# =========================
 def ResCalculator(input_file):
-    
-    HDR = input_file.header
-    Spati_Res = HDR['pixdim'][1:4]
-    
-    return Spati_Res
+    """Return voxel size (pixdim[1:4])."""
+    return input_file.header["pixdim"][1:4]
 
 
-
-#%% SNR function
-def snrCalclualtor_chang(input_file):
-
-    imgData = input_file
-    IM = np.asanyarray(imgData.dataobj)
-    imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
-
-    mm = imgData.mean()
-    if mm == 0:
-        snrCh = np.nan
-        return snrCh
-    """
-    cc = 0
-    while mm < 1:
-        mm = mm *10
-        cc = cc+1
-    imgData = imgData * (10**cc)
-    """
-    
-    Sone = len(imgData.shape)
-    if Sone < 3:
-        snrCh = np.nan
-        return snrCh
-        
-    
-    snr_chang_slice_vec = []
-    ns = imgData.shape[2]  # Number of slices
-    n_dir = imgData.shape[-1]  # Number of directions if dti dataset
-    if len(imgData.shape) > 3:    
-        if n_dir < 10 :
-            fff = 0
-            print()
-            print("Warning: Be aware that the size of the 4th dimension (difusion direction or timepoints) is less than 10. This might result in unstable values")
-            print()
-        else:
-            fff = 5
-        
-    nd = imgData.ndim
-    if ns > 4:
-        ns_lower = int(np.floor(ns/2) - 2)
-        ns_upper = int(np.floor(ns/2) + 2)
-    else:
-        ns_lower=0
-        ns_upper=ns
-        
-    #print('/NewData/',end=" ")
-    #for slc in range(ns_lower,ns_upper):
-    for slc in range(ns_lower,ns_upper):    
-        #   Print % of progress
-        #print('S' + str(slc + 1), end=",")
-
-        # Decision if the input data is DTI type or T2w
-        if nd == 3:
-            Slice = imgData[:, :, slc]
-            try:
-                curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
-            except ValueError:
-                estStdChang = np.nan
-            snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
-            snr_chang_slice_vec.append(snr_chang_slice)
-        else:
-            for bb in range(fff,n_dir-1):
-                Slice = imgData[:, :,slc,bb]
-                try:
-                    curSnrCHMap, estStdChang, estStdChangNorm = ch.calcSNR(Slice, 0, 1)
-                except ValueError:
-                    estStdChang = np.nan
-                snr_chang_slice = 20 * np.log10(np.mean(Slice)/estStdChang)
-                snr_chang_slice_vec.append(snr_chang_slice)
-        
-    snr_chang_slice_vec = np.array(snr_chang_slice_vec)    
-    snrCh = np.mean(snr_chang_slice_vec[~np.isinf(snr_chang_slice_vec) *  ~np.isnan(snr_chang_slice_vec)])
-
-    return snrCh
-
-#%% SNR function 2
-def snrCalclualtor_normal(input_file):
-    
-    
-    
+# =========================
+# SNR (Chang)
+# =========================
+def snrCalclualtor_chang(input_file) -> float:
+    """Compute SNR using Chang’s estimator on central slices / directions."""
     IM = np.asanyarray(input_file.dataobj)
-    imgData = np.squeeze(np.ndarray.astype(IM, 'float64'))
-    
-    Sone = len(imgData.shape)
-    if Sone < 3:
-        imgData = np.tile(imgData[:, :, np.newaxis], (1, 1, 10))
-    
-    Data = imgData
-    
-    S = np.shape(np.squeeze(Data))
-    #print(S)
-    if len(S) == 3:
-        imgData = np.squeeze(Data)
-    if len(S) == 4:
-        imgData = np.squeeze(Data[:,:,:,0]) #int((S[-1]/2))
-    
-    S = np.shape(np.squeeze(imgData))
-    
-    #local thresholding
-    #imgData_new = np.zeros(S[0:3]);
-# =============================================================================
-#     for ii in range(0,S[2]):
-#         temp_image = imgData[:,:,ii]
-#         global_thresh = threshold_isodata(temp_image)
-#         binary_global = temp_image > global_thresh
-#         imgData_new[:,:,ii] = binary_global
-        
-# =============================================================================
-    
-    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData))]
-    r = np.floor(0.10*(np.mean(S)))
-    
-    if r > S[2]:
-        r = S[2]
-    
-    Mask = sphere(S, int(r) , COM)
-    Singal = np.mean(imgData[Mask])
-    
-    
-    x = int(np.ceil(S[0]*0.15))
-    y = int(np.ceil(S[1]*0.15))
-    z = int(np.ceil(S[2]*0.15))
-    
-    MaskN = np.zeros(S[0:3]);
-    MaskN[:x,:y,:z] = 2
-    MaskN[:x,-y:,:z] = 2
-    MaskN[-x:,:y,:z] = 2
-    MaskN[-x:,-y:,:z] = 2
-    MaskN[:x,:y,-z:] = 2
-    MaskN[:x,-y:,-z:] = 2
-    MaskN[-x:,:y,-z:] = 2
-    MaskN[-x:,-y:,-z:] = 2
-    
-    
-    
-    n1 = np.squeeze(imgData[:x,:y,:z])
-    n2 = np.squeeze(imgData[:x,-y:,:z])
-    n3 = np.squeeze(imgData[-x:,:y,:z])
-    n4 = np.squeeze(imgData[-x:,-y:,:z])
-    n5 = np.squeeze(imgData[:x,:y,-z:])
-    n6 = np.squeeze(imgData[:x,-y:,-z:])
-    n7 = np.squeeze(imgData[-x:,:y,-z:])
-    n8 = np.squeeze(imgData[-x:,-y:,-z:])
-    
-    
-    Noise_std = np.std(np.array([n1,n2,n3,n4,n5,n6,n7,n8]))
-    #show_slices([n8[:,:,3],np.squeeze(imgData[:,:,3])])
-    #plt.show()
-    SNR = 20 * np.log10(Singal/Noise_std)
-    if np.isinf(SNR):
-        SNR = np.nan
-        print("Impossible: Infinite values were the result of SNR")
-        print("Possible reason: already ROI extracted/preprocessed data with zeros around the ROI. S/0=inf'")
-        print("for continuity, inf is replaced with NaN ...")
-    return SNR
+    img = np.squeeze(IM.astype("float64"))
+
+    if img.ndim < 3 or img.mean() == 0:
+        return np.nan
+
+    ns = img.shape[2]
+    if img.ndim > 3:
+        n_dir = img.shape[-1]
+        fff = 0 if n_dir < 10 else 5
+
+    if ns > 4:
+        sl_lo = int(np.floor(ns / 2) - 2)
+        sl_hi = int(np.floor(ns / 2) + 2)
+    else:
+        sl_lo, sl_hi = 0, ns
+
+    vals = []
+    if img.ndim == 3:
+        for sl in range(sl_lo, sl_hi):
+            slc = img[:, :, sl]
+            try:
+                _, est_std, _ = ch.calcSNR(slc, 0, 1)
+            except ValueError:
+                est_std = np.nan
+            vals.append(20 * np.log10(np.mean(slc) / est_std))
+    else:
+        n_dir = img.shape[-1]
+        for sl in range(sl_lo, sl_hi):
+            for bb in range(fff, n_dir - 1):
+                slc = img[:, :, sl, bb]
+                try:
+                    _, est_std, _ = ch.calcSNR(slc, 0, 1)
+                except ValueError:
+                    est_std = np.nan
+                vals.append(20 * np.log10(np.mean(slc) / est_std))
+
+    vals = np.asarray(vals)
+    mask = np.isfinite(vals)
+    return float(np.mean(vals[mask])) if mask.any() else float("nan")
 
 
-
-def show_slices(slices):
-   """ Function to display row of image slices """
-   fig, axes = plt.subplots(1, len(slices))
-   for i, Slice in enumerate(slices):
-       axes[i].imshow(Slice.T, cmap="gray", origin="lower")
-       
-
-def sphere(shape, radius, position):
-    """Generate an n-dimensional spherical mask."""
-    # assume shape and position have the same length and contain ints
-    # the units are pixels / voxels (px for short)
-    # radius is a int or float in px
+# =========================
+# SNR (Normal)
+# =========================
+def sphere(shape, radius: int, position) -> np.ndarray:
+    """Generate an n-D spherical (ellipsoidal) mask with guards."""
+    if radius is None or radius <= 0:
+        return np.zeros(shape, dtype=bool)
     assert len(position) == len(shape)
-    n = len(shape)
-    semisizes = (radius,) * len(shape)
-
-    # genereate the grid for the support points
-    # centered at the position indicated by position
+    semisizes = (float(radius),) * len(shape)
     grid = [slice(-x0, dim - x0) for x0, dim in zip(position, shape)]
-    position = np.ogrid[grid]
-    # calculate the distance of all points from `position` center
-    # scaled by the radius
+    axes = np.ogrid[grid]
     arr = np.zeros(shape, dtype=float)
-    for x_i, semisize in zip(position, semisizes):
-        # this can be generalized for exponent != 2
-        # in which case `(x_i / semisize)`
-        # would become `np.abs(x_i / semisize)`
-        arr += (x_i / semisize) ** 2
-
-    # the inner part of the sphere will have distance below or equal to 1
+    for ax, semi in zip(axes, semisizes):
+        arr += (ax / semi) ** 2
     return arr <= 1.0
 
-#%% TSNR function
 
-def TsnrCalclualtor(input_file):
-    imgData = input_file
-    IM = np.asanyarray(imgData.dataobj)
-    S=IM.shape
-    if len(S) == 3:    
-        IM = IM.reshape((S[0],S[1],1,S[2]))
-    
-    
-    imgData = np.ndarray.astype(IM, 'float64')
-    if IM.shape[-1] < 10:
-        fff = 0
-    else:
-        fff = 10
- 
-    signal_averge_over_time = imgData[:,:,:,fff:].mean(axis=-1) 
-    signal_std_over_time = imgData[:,:,:,fff:].std(axis=-1) 
-    tSNR_map = 20 * np.log10(signal_averge_over_time/signal_std_over_time)
-    
-    S = np.shape(IM)
-     #local thresholding
-    #imgData_new = np.zeros(S[0:3])
-    imgData_average = np.mean(imgData,axis=-1)
-# =============================================================================
-#     for ii in range(0,S[2]):
-#         temp_image = imgData_average[:,:,ii]
-#         global_thresh = threshold_isodata(temp_image)
-#         binary_global = temp_image > global_thresh
-#         imgData_new[:,:,ii] = binary_global
-#         
-# =============================================================================
-    
-    COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData_average))]
-    r = np.floor(0.10*(np.mean([S[0:2]])))
-    Mask = sphere(S[0:3], int(r) , COM)
-    tSNR = np.mean(tSNR_map[Mask])
-    
-    return tSNR
+def snrCalclualtor_normal(input_file) -> float:
+    """Compute conventional SNR using central spherical ROI and corner noise."""
+    IM = np.asanyarray(input_file.dataobj)
+    img = np.squeeze(IM.astype("float64"))
 
+    if img.ndim < 3:
+        img = np.tile(img[:, :, np.newaxis], (1, 1, 10))
 
-#%% Calculating Mutual Information: based on https://matthew-brett.github.io/teaching/mutual_information.html
+    Data = img
+    S = np.squeeze(Data).shape
 
+    if len(S) == 3:
+        img = np.squeeze(Data)
+    elif len(S) == 4:
+        img = np.squeeze(Data[:, :, :, 0])
 
-def mutualInfo(Im1,Im2):
+    S = np.squeeze(img).shape
 
-    t1_slice = Im1
-    t2_slice = Im2
+    # Spherical mask around center-of-mass
+    COM = [int(i) for i in ndimage.center_of_mass(img)]
+    r = int(np.floor(0.10 * np.mean(S)))
+    r = min(r, S[2])
+    Mask = sphere(S, r, COM)
+    if not np.any(Mask):
+        return float("nan")
+    signal_val = float(img[Mask].mean())
 
-    hist_2d, x_edges, y_edges = np.histogram2d(t1_slice.ravel(),t2_slice.ravel(),bins=20)
+    # 8-corner noise regions (vectorized)
+    x = int(np.ceil(S[0] * 0.15))
+    y = int(np.ceil(S[1] * 0.15))
+    z = int(np.ceil(S[2] * 0.15))
+    if x == 0 or y == 0 or z == 0:
+        return float("nan")
 
-    hist_2d_log = np.zeros(hist_2d.shape)
-    non_zeros = hist_2d != 0
-    hist_2d_log[non_zeros] = np.log(hist_2d[non_zeros])
-    
-    pxy = hist_2d / float(np.sum(hist_2d))
-    px = np.sum(pxy, axis=1) # marginal for x over y
-    py = np.sum(pxy, axis=0) # marginal for y over x
-    px_py = px[:, None] * py[None, :] # Broadcast to multiply marginals
-    # Now we can do the calculation using the pxy, px_py 2D arrays
-    nzs = pxy > 0 # Only non-zero pxy values contribute to the sum
-    MI = np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
-    
-    return MI
+    blocks = (
+        img[:x, :y, :z], img[:x, -y:, :z], img[-x:, :y, :z], img[-x:, -y:, :z],
+        img[:x, :y, -z:], img[:x, -y:, -z:], img[-x:, :y, -z:], img[-x:, -y:, -z:]
+    )
+    noise_std = float(np.std(np.concatenate([b.ravel() for b in blocks])))
+
+    snr = 20 * np.log10(signal_val / noise_std)
+    return snr if np.isfinite(snr) else float("nan")
 
 
-#%% Motion detection of rsFRI function (based on mutual information)
+# =========================
+# tSNR
+# =========================
+def TsnrCalclualtor(input_file) -> float:
+    """Compute temporal SNR (tSNR) with initial burn-in (10 volumes if available)."""
+    IM = np.asanyarray(input_file.dataobj)
+    if IM.ndim == 3:
+        IM = IM.reshape(IM.shape[0], IM.shape[1], 1, IM.shape[2])  # (H,W,1,T)
 
+    img = IM.astype("float64")
+    fff = 0 if img.shape[-1] < 10 else 10
+
+    sig = img[:, :, :, fff:]
+    tsnr_map = 20 * np.log10(sig.mean(axis=-1) / (sig.std(axis=-1) + 1e-12))  # epsilon for stability
+
+    img_avg = img.mean(axis=-1)
+    COM = [int(i) for i in ndimage.center_of_mass(img_avg)]
+    r = int(np.floor(0.10 * np.mean(img.shape[:2])))
+    Mask = sphere(img.shape[:3], r, COM)
+    return float(np.mean(tsnr_map[Mask]))
+
+
+# =========================
+# Motion (rsfMRI)
+# =========================
 def Ismotion(input_file):
-    GMV=[]
-    imgData = input_file
-    IM = np.asanyarray(imgData.dataobj)
-    S = IM.shape
-    if len(S) == 3:    
-        IM = IM.reshape((S[0],S[1],1,S[2]))
-    
-    
-    if IM.shape[-1] < 11 :
-        fff = 0
-    else:
-        fff = 10
- 
-    imgData = np.ndarray.astype(IM[:,:,:,fff:], 'float64')
-    S = np.shape(imgData)
-    temp_mean = imgData.mean(axis=(0,1,3))
-    temp_max = temp_mean.argmax()
-    temp_Data = imgData[:,:,temp_max,:]
-    Im_fix = temp_Data[:,:,0]
-    Im_rot = temp_Data
-    
-    MI_all = []
-    for z in range(1,S[-1]):
-        
-        MI = mutualInfo(Im_fix,Im_rot[:,:,z])
-        MI_all.append(MI)
-    
-    Final = np.asarray(MI_all)
-    Max_mov_between = str([Final.argmin()+10,Final.argmax()+10])
-    GMV = getrange(Final)
-    LMV = np.std(Final)
-    
-    return Final,Max_mov_between,GMV,LMV
+    """
+    Basic motion metric using mutual information change across time
+    on the brightest slice (by mean intensity).
+    """
+    IM = np.asanyarray(input_file.dataobj)
+    if IM.ndim == 3:
+        IM = IM.reshape(IM.shape[0], IM.shape[1], 1, IM.shape[2])  # (H,W,1,T)
 
-#%% Getting range 
+    img = IM.astype("float64")
+    fff = 0 if img.shape[-1] < 11 else 10
+    sig = img[:, :, :, fff:]
 
-def getrange(numbers):
-    return max(numbers) - min(numbers)
+    # Choose slice with highest mean intensity across time
+    temp_mean = sig.mean(axis=(0, 1, 3))
+    k = int(np.argmax(temp_mean))
+    stack = sig[:, :, k, :]  # (H, W, T)
+    ref = stack[:, :, 0]
+
+    mi_vals = [mutualInfo(ref, stack[:, :, t]) for t in range(1, stack.shape[-1])]
+    final = np.asarray(mi_vals)
+    if final.size == 0:
+        return final, str([0, 0]), 0.0, 0.0
+
+    max_mov_between = str([final.argmin() + 10, final.argmax() + 10])
+    gmv = float(final.max() - final.min())
+    lmv = float(final.std())
+    return final, max_mov_between, gmv, lmv
 
 
-#%% Plotting QC Histogram and etc.
+# =========================
+# QC plotting & pies
+# =========================
+def QCPlot(Path: str) -> None:
+    """Generate QC histograms and spatial resolution pie charts from feature CSVs."""
+    qc_fig_path = os.path.join(Path, "QCfigures")
+    if not os.path.isdir(qc_fig_path):
+        os.mkdir(qc_fig_path)
 
-def QCPlot(Path):
-    
-    saving_path = (Path) 
-    QC_fig_path = os.path.join( (Path) , "QCfigures")
-    if not os.path.isdir(QC_fig_path):
-        os.mkdir(QC_fig_path)
-
-       
-    Abook = []
-    Names =[]
-    for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
-        
+    books, names = [], []
+    for file in glob.glob(os.path.join(Path, "*caculated_features*.csv")):
         if "diff" in file:
-            dti_path= file
-            dti_features= pd.read_csv(dti_path)
-            Abook.append(dti_features)
-            Names.append("diff")
+            books.append(pd.read_csv(file)); names.append("diff")
         elif "func" in file:
-            fmri_path= file
-            fmri_features= pd.read_csv(fmri_path)
-            Abook.append(fmri_features)
-            Names.append("func")
-        elif "anat" in file:    
-             t2w_path= file
-             t2w_features= pd.read_csv(t2w_path)
-             Abook.append(t2w_features)
-             Names.append("anat")    
+            books.append(pd.read_csv(file)); names.append("func")
+        elif "anat" in file:
+            books.append(pd.read_csv(file)); names.append("anat")
 
-    ST = []
-    COE = []
-    AvV = []
-    V = []
-    Pathes = []
-    Med = []
-    MaX = []
-    MiN= []
+    title_font = {"family": "serif", "fontname": "DejaVu Sans"}
+    label_font = {"family": "serif", "fontname": "DejaVu Sans"}
+
     hh = 1
-    rr = 1
-    # Set font properties
-    title_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
-    label_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
-    tick_font = {'family': 'serif', 'fontname': 'DejaVu Sans'}
-    
-    for nn, N in enumerate(Names):
-        COL = list(Abook[nn].columns)
-        COL.pop(0)
-        D = Abook[nn]
-        
-        for cc, C in enumerate(COL):
-            Data = list(D[C])
-            
-            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C == 'SNR Normal' or C == 'Displacement factor (std of Mutual information)':
-                # Plot histogram
-                cm = 1/2.54  # centimeters in inches
-                plt.figure(hh, figsize=(9, 5), dpi=300)
-                ax2 = plt.subplot(1, 1, 1, label="histogram")
-                
-                for dd, DD in enumerate(Data):  # If tSNR and SNR chang are also adjusted, this section can be eliminated
-                    if DD == np.inf:
-                        Data[dd] = np.nan
-                
-                q75, q25 = np.nanpercentile(Data, [75, 25])
+    for df, N in zip(books, names):
+        cols = list(df.columns)
+        if cols:
+            cols.pop(0)
+
+        for C in cols:
+            if C in (
+                "SNR Chang",
+                "tSNR (Averaged Brain ROI)",
+                "SNR Normal",
+                "Displacement factor (std of Mutual information)",
+            ):
+                data = pd.to_numeric(df[C], errors="coerce").to_numpy()
+                data = data[np.isfinite(data)]
+                n = data.size
+                if n < 2:
+                    continue
+
+                q75, q25 = np.percentile(data, [75, 25])
                 iqr = q75 - q25
-                
-                B = round((np.nanmax(Data) - np.nanmin(Data)) / (2 * iqr / (len(Data) ** (1/3))))
-                if B * 5 > 22:
-                    XX = 22
+                rng = float(data.max() - data.min())
+
+                if rng <= 0 or iqr <= 0:
+                    B = 1
                 else:
-                    XX = B * 5
-                
-                y, x, bars = plt.hist(Data, bins=B * 7, histtype='bar', edgecolor='white')
-                plt.xlabel(N + ': ' + C + ' [a.u.]', fontdict=label_font)
+                    h = 2 * iqr / (n ** (1 / 3))
+                    B = 1 if (not np.isfinite(h) or h <= 0) else int(np.ceil(rng / h))
+
+                nbins = max(1, B * 7)
+                XX = min(22, max(1, B) * 5)
+
+                plt.figure(hh, figsize=(9, 5), dpi=300)
+                ax2 = plt.subplot(1, 1, 1, label="hist")
+                y, _, bars = plt.hist(data, bins=nbins, histtype="bar", edgecolor="white")
+
+                plt.xlabel(f"{N}: {C} [a.u.]", fontdict=label_font)
                 plt.ylabel("Frequency", fontdict=label_font)
-                ax2.spines['right'].set_visible(False)
-                ax2.spines['top'].set_visible(False)
-                plt.locator_params(axis='x', nbins=XX)
+                ax2.spines["right"].set_visible(False)
+                ax2.spines["top"].set_visible(False)
+                plt.locator_params(axis="x", nbins=XX)
                 ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
-                
-                # Calculate interquartile range of values in the 'points' column
-                if C == 'Displacement factor (std of Mutual information)':
-                    ll = q75 + 1.5 * iqr
-                    plt.text(1.07 * ll, 2 * max(y) / 3, 'Q3 + 1.5*IQ', color='grey', fontdict=label_font)
-                    for b, bar in enumerate(bars):
-                        if bar.get_x() > ll:
-                            bar.set_facecolor("red")
-                else:
-                    ll = q25 - 1.5 * iqr
-                    plt.text(1.001 * ll, 2 * max(y) / 3, 'Q1 - 1.5*IQ', color='grey', fontdict=label_font)
-                    for b, bar in enumerate(bars):
-                        if bar.get_x() < ll:
-                            bar.set_facecolor("red")
-                
-                plt.axvline(ll, color='grey', linestyle='--')
-                plt.suptitle(N + ': ' + C, fontdict=title_font)
-                
-                red_patch = mpatches.Patch(color='red', label='Discard')
-                blue_patch = mpatches.Patch(color='tab:blue', label='Keep')
-                # Modify the legend with smaller font size and Times New Roman font
-                legend = plt.legend(handles=[blue_patch, red_patch], fontsize=8)
-                #legend.get_frame().set_linewidth(0.0)  # Remove legend border
 
-                # Set Times New Roman font for legend text
-                # Set Times New Roman font for legend text
-                for text in legend.get_texts():
-                   text.set_fontfamily('serif')
-                   text.set_fontsize(8)
+                if iqr > 0:
+                    if C == "Displacement factor (std of Mutual information)":
+                        ll = q75 + 1.5 * iqr
+                        annotate = ("Q3 + 1.5*IQ", lambda bar: bar.get_x() > ll)
+                    else:
+                        ll = q25 - 1.5 * iqr
+                        annotate = ("Q1 - 1.5*IQ", lambda bar: bar.get_x() < ll)
 
-                
-                # Set the font for axis ticks
+                    if len(y):
+                        plt.text(ll, 2 * max(y) / 3, annotate[0], color="grey", fontdict=label_font)
+                    for bar in bars:
+                        if annotate[1](bar):
+                            bar.set_facecolor("red")
+                    plt.axvline(ll, color="grey", linestyle="--")
+
+                plt.suptitle(f"{N}: {C}", fontdict=title_font)
+                legend = plt.legend(
+                    handles=[mpatches.Patch(color="tab:blue", label="Keep"),
+                             mpatches.Patch(color="red", label="Discard")],
+                    fontsize=8,
+                )
+                for t in legend.get_texts():
+                    t.set_fontfamily("serif")
+                    t.set_fontsize(8)
+
                 ax2.xaxis.set_tick_params(labelsize=8)
                 ax2.yaxis.set_tick_params(labelsize=8)
-                
-                base_filename = os.path.join(QC_fig_path, C + N)
-                plt.savefig(base_filename + ".png", dpi=300)
-                plt.savefig(base_filename + ".svg", format='svg')
 
+                out = os.path.join(qc_fig_path, f"{C}{N}.png")
+                plt.savefig(out, dpi=300)
                 plt.close()
-                
-        hh = hh + 1
-    
+
+        hh += 1
+
+    # Spatial resolution pies
     plt.figure(hh, figsize=(9, 5), dpi=300)
-    for nn, N in enumerate(Names):
-        COL = list(Abook[nn].columns)
-        COL.pop(0)
-        D = Abook[nn]
-        for cc, C in enumerate(COL):
-            Data = list(D[C])
-            if C == 'SpatRx' or C == 'SpatRy' or C == 'SpatRz':
-                # Plot pie plots
-                labels = list(set(Data))
-                sizes = [Data.count(l) for l in labels]
-                labels = list(np.round(labels, 3))
-                labels2 = [str(l) + ' mm' for l in labels]
-                
-                ax1 = plt.subplot(len(Names), 3, rr)
-                ax1.pie(sizes, labels=labels2, autopct='%1.0f%%', startangle=180)
-                ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-                ax1.set_title(N + ':' + C, fontdict=title_font)
-                plt.suptitle('Resolution homogeneity between data', weight="bold")
-                
-                # Set the font for axis ticks
+    rr = 1
+    for df, N in zip(books, names):
+        cols = list(df.columns)
+        if cols:
+            cols.pop(0)
+        for C in cols:
+            if C in ("SpatRx", "SpatRy", "SpatRz"):
+                vals = pd.to_numeric(df[C], errors="coerce").to_numpy()
+                vals = vals[np.isfinite(vals)]
+                if vals.size == 0:
+                    continue
+                labels, counts = np.unique(vals, return_counts=True)
+                labels2 = [f"{l:.3f} mm" for l in labels]
+
+                ax1 = plt.subplot(len(names), 3, rr)
+                ax1.pie(counts, labels=labels2, autopct="%1.0f%%", startangle=180)
+                ax1.axis("equal")
+                ax1.set_title(f"{N}:{C}", fontdict=title_font)
+                plt.suptitle("Resolution homogeneity between data", weight="bold")
                 ax1.xaxis.set_tick_params(labelsize=8)
                 ax1.yaxis.set_tick_params(labelsize=8)
-                
-                rr = rr + 1
-    
-    base_filename = os.path.join(QC_fig_path, "Spatial_Resolution")
-    plt.savefig(base_filename + ".png", dpi=300)
-    plt.savefig(base_filename + ".svg", format='svg')
+                rr += 1
+
+    out = os.path.join(qc_fig_path, "Spatial_Resolution.png")
+    plt.savefig(out, dpi=300)
     plt.close()
 
-#%%
-# machine learning methods
-def ML(Path, format_type) :
 
-    result=[]
-    for N, csv in enumerate(glob.glob(os.path.join(Path, '*_features_*.csv'))):
-        csv_path = csv
-        csv_path=os.path.join(Path,csv)
-        Abook= pd.read_csv(csv_path)
-        if np.any(Abook.isnull().all()[:]):
-            print("The following csv file contains NaN values for one or more of its features:")
-            print(csv_path)
-            print("Voting can not be conducted.")
-            print("Analyzing next sequence...")
+# =========================
+# ML voting
+# =========================
+def ML(Path: str, format_type: str):
+    """
+    Run multiple outlier detectors and return per-row predictions for each *_features_*.csv.
+    Returns list[pd.DataFrame].
+    """
+    results = []
+    for csv in glob.glob(os.path.join(Path, "*_features_*.csv")):
+        A = pd.read_csv(csv).dropna(how="all", axis="columns")
+
+        # Build feature matrix
+        if format_type == "raw":
+            meta_cols = {"path": 1, "seq": 2, "img": 3}
+            X = A.iloc[:, 7:].copy()
+        else:  # "nifti" or fallback
+            meta_cols = {"path": 1, "img": 2}
+            X = A.iloc[:, 6:].copy()
+
+        # Coerce to numeric, drop inf/NaN rows and all-NaN cols
+        X = X.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
+        X = X.dropna(how="all", axis="columns").dropna(how="any", axis="index")
+
+        idx = X.index
+        if len(idx) == 0:
             continue
-                 
-        Abook= Abook.dropna(how='all',axis='columns')
-        Abook= Abook.dropna(how='any')
-        address= [i for i in Abook.iloc[:,1]]
-        if format_type == "raw":
-            sequence_name = [i for i in Abook.iloc[:,2]]
-            img_name = [i for i in Abook.iloc[:,3]]
-            X =  Abook.iloc[:,7:]
-        elif format_type == "nifti":
-            img_name = [i for i in Abook.iloc[:,2]]
-            X =  Abook.iloc[:,6:]
 
-       #X=preprocessing.normalize(X)
-############## Fit the One-Class SVM 
-        nu = 0.05
-        gamma = 2.0
-        clf = OneClassSVM(gamma="auto", kernel="poly", nu=nu,shrinking=False).fit(X)
-        svm_pre =clf.predict(X)
-############## EllipticEnvelope
-        
-        elpenv = EllipticEnvelope(contamination=0.025, random_state=1)
-        ell_pred = elpenv.fit_predict(X)
-    
-############## IsolationForest
-   
-        iforest = IsolationForest(n_estimators=100, max_samples='auto', 
-                              contamination=0.05, max_features=1.0, 
-                              bootstrap=False, n_jobs=-1, random_state=1)
-        iso_pred = iforest.fit_predict(X)
-    
-############## LocalOutlierFactor
-    
-        lof = LocalOutlierFactor(n_neighbors=20, algorithm='auto',
-                             metric='minkowski', contamination=0.04,
-                             novelty=False, n_jobs=-1)
-        local_pred = lof.fit_predict(X)
-    
-        
-############## saving result
-        algorythms=[svm_pre,ell_pred,iso_pred,local_pred]
-        result.append(algorythms)
-        result[N]= np.dstack((result[N][0], result[N][1],result[N][2],result[N][3]))
-        result[N]= result[N][0]
-        result[N]= pd.DataFrame(result[N], columns = ['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"])
+        address = A.iloc[idx, meta_cols["path"]].tolist()
+        sequence_name = A.iloc[idx, meta_cols["seq"]].tolist() if "seq" in meta_cols else None
+        img_name = A.iloc[idx, meta_cols["img"]].tolist() if "img" in meta_cols else None
+
+        # Drop zero-variance columns
+        if hasattr(X, "var"):
+            X = X.loc[:, X.var(axis=0, ddof=0) > 0]
+
+        n_samples, n_features = X.shape
+
+        # If no usable feature columns remain, default to all inliers
+        if n_features == 0:
+            df = pd.DataFrame({
+                "One_class_SVM": np.ones(n_samples, dtype=int),
+                " EllipticEnvelope": np.ones(n_samples, dtype=int),
+                "IsolationForest": np.ones(n_samples, dtype=int),
+                "LocalOutlierFactor": np.ones(n_samples, dtype=int),
+            })
+            if "diff" in csv:
+                df["sequence_type"] = "diff"
+            elif "func" in csv:
+                df["sequence_type"] = "func"
+            elif "anat" in csv:
+                df["sequence_type"] = "anat"
+            df["Pathes"] = address
+            if sequence_name is not None:
+                df["sequence_name"] = sequence_name
+            if img_name is not None:
+                df["corresponding_img"] = img_name
+            results.append(df)
+            continue
+
+        # Scale features
+        X = pd.DataFrame(StandardScaler().fit_transform(X), index=X.index)
+
+        # Default predictions = inliers (+1)
+        pred_svm = np.ones(n_samples, dtype=int)
+        pred_ell = np.ones(n_samples, dtype=int)
+        pred_iso = np.ones(n_samples, dtype=int)
+        pred_lof = np.ones(n_samples, dtype=int)
+
+        # Fit models with guards
+        try:
+            if n_samples >= 2:
+                pred_svm = OneClassSVM(gamma="auto", kernel="poly", nu=0.05, shrinking=False).fit(X).predict(X)
+        except Exception:
+            pass
+        try:
+            if n_samples >= 2:
+                pred_ell = EllipticEnvelope(contamination=0.025, random_state=1).fit_predict(X)
+        except Exception:
+            pass
+        try:
+            if n_samples >= 2:
+                pred_iso = IsolationForest(
+                    n_estimators=100, max_samples="auto", contamination=0.05,
+                    max_features=1.0, bootstrap=False, n_jobs=-1, random_state=1
+                ).fit_predict(X)
+        except Exception:
+            pass
+        try:
+            if n_samples >= 2:
+                n_neighbors = max(2, min(20, n_samples - 1))
+                pred_lof = LocalOutlierFactor(
+                    n_neighbors=n_neighbors, algorithm="auto", metric="minkowski",
+                    contamination=0.04, novelty=False, n_jobs=-1
+                ).fit_predict(X)
+        except Exception:
+            pass
+
+        df = pd.DataFrame(
+            np.vstack([pred_svm, pred_ell, pred_iso, pred_lof]).T,
+            columns=["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"],
+        )
+
+        # Metadata
         if "diff" in csv:
-            dti=["diff"]*len(result[N])
-            result[N]["sequence_type"] = dti
-           
+            df["sequence_type"] = "diff"
         elif "func" in csv:
-            fmri=["func"]*len(result[N])
-            result[N]["sequence_type"] = fmri          
-       
-        elif "anat" in csv :
-            t2w=["anat"]*len(result[N])
-            result[N]["sequence_type"] = t2w    
-       
-        result[N]["Pathes"] = address
-        if format_type == "raw":
-            result[N]["sequence_name"] = sequence_name
-        result[N]["corresponding_img"] = img_name
-        
-    return(result)
+            df["sequence_type"] = "func"
+        elif "anat" in csv:
+            df["sequence_type"] = "anat"
+        df["Pathes"] = address
+        if sequence_name is not None:
+            df["sequence_name"] = sequence_name
+        if img_name is not None:
+            df["corresponding_img"] = img_name
+
+        results.append(df)
+
+    return results
 
 
-#%% Adjusting the existing feature table by adding a new sheet to it with the data that need to be discarded
+# =========================
+# QC table generation
+# =========================
+def QCtable(Path: str, format_type: str) -> None:
+    """Aggregate statistical outliers and ML detections into votings.csv."""
+    algs = ML(Path, format_type)
+    if not algs:
+        return
+    algs = pd.concat(algs, ignore_index=True)
 
-def QCtable(Path, format_type):
-    
-    ML_algorythms= ML(Path, format_type)
-    ML_algorythms=pd.concat(ML_algorythms) 
-    ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
-    Abook = []
-    Names =[]
-    for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
-        
+    # convert -1 flags to boolean outlier flags
+    cols_out = ["One_class_SVM", " EllipticEnvelope", "IsolationForest", "LocalOutlierFactor"]
+    algs[cols_out] = algs[cols_out] == -1
+
+    books, names = [], []
+    for file in glob.glob(os.path.join(Path, "*caculated_features*.csv")):
         if "diff" in file:
-            dti_path= file
-            dti_features= pd.read_csv(dti_path)
-            Abook.append(dti_features)
-            Names.append("diff")
-        elif "func" in file :
-            fmri_path= file
-            fmri_features= pd.read_csv(fmri_path)
-            Abook.append(fmri_features)
-            Names.append("func")
-        elif "anat" in file :    
-             t2w_path= file
-             t2w_features= pd.read_csv(t2w_path)
-             Abook.append(t2w_features)
-             Names.append("anat")    
+            books.append(pd.read_csv(file)); names.append("diff")
+        elif "func" in file:
+            books.append(pd.read_csv(file)); names.append("func")
+        elif "anat" in file:
+            books.append(pd.read_csv(file)); names.append("anat")
 
-    
-    
-  
-    ST = []
-    COE = []
-    AvV = []
-    V = []
-    Pathes = []
-    Med = []
-    MaX = []
-    MiN= []
-    for nn,N in enumerate(Names):
+    pathes = []
+    ST, COE, AvV, V, Med, MaX, MiN = [], [], [], [], [], [], []
 
-            
-        d= Abook[nn]
-        COL = Abook[nn].columns
-        
-        for cc,C in enumerate(COL):
-            
-            D = d[C]
-            
-            
-            if C == 'SNR Chang' or C == 'tSNR (Averaged Brain ROI)' or C =='SNR Normal':
-                
-                for dd,DD in enumerate(D):
-                    
-                    if DD == np.inf:
-                        D[dd] = np.nan
-                        
-                
-                q75, q25 = np.nanpercentile(D, [75 ,25])
-                
+    for df, N in zip(books, names):
+        COL = df.columns
+        for C in COL:
+            D = pd.to_numeric(df[C], errors="coerce").replace([np.inf, -np.inf], np.nan)
+
+            if C in ("SNR Chang", "tSNR (Averaged Brain ROI)", "SNR Normal"):
+                q75, q25 = np.nanpercentile(D, [75, 25])
                 iqr = q75 - q25
-                ll = q25-1.5*iqr #lower limit
-                Index = D<ll
-                
-                P = d[COL[1]][Index]
-                
-                M = D.mean()
-                Me = D.median()
-                Mi = D.min()
-                Ma = D.max()
-              
-         
-                Pathes.extend(P)
-                ST.extend([N]*len(P))
-                COE.extend([C]*len(P))
-                AvV.extend([M]*len(P))
-                V.extend(D[Index])
-                Med.extend([Me]*len(P))
-                MiN.extend([Mi]*len(P))
-                MaX.extend([Ma]*len(P))
-                
-                
-            if C == 'Displacement factor (std of Mutual information)':
-                q75, q25 = np.nanpercentile(D, [75 ,25])
+                Index = (D < (q25 - 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
+            elif C == "Displacement factor (std of Mutual information)":
+                q75, q25 = np.nanpercentile(D, [75, 25])
                 iqr = q75 - q25
-                ul = q75+1.5*iqr #upper limit
-                Index = D>ul
-                P = d[COL[1]][Index]
-                M = D.mean()
-                Me = D.median()
-                Mi = D.min()
-                Ma = D.max()
-                 
-                Pathes.extend(P)
-                ST.extend([N]*len(P))
-                COE.extend([C]*len(P))
-                AvV.extend([M]*len(P))
-                V.extend(D[Index])
-                Med.extend([Me]*len(P))
-                MiN.extend([Mi]*len(P))
-                MaX.extend([Ma]*len(P))
-                
-    
-            if N == 'ErrorData': 
-                Pathes.extend(D)
-                S = 'Faulty Data'
-                ST.extend([S]*len(D))
-                COE.extend(['-']*len(D))
-                AvV.extend(['-']*len(D))
-                V.extend('-'*len(D))
-                Med.extend('-'*len(D))
-                MiN.extend('-'*len(D))
-                MaX.extend('-'*len(D))
- 
+                Index = (D > (q75 + 1.5 * iqr)) if iqr > 0 else pd.Series(False, index=D.index)
+            else:
+                continue
 
-         
-         
+            P = df[COL[1]][Index]
+            pathes.extend(P)
+            ST.extend([N] * len(P))
+            COE.extend([C] * len(P))
+            AvV.extend([D.mean()] * len(P))
+            V.extend(D[Index])
+            Med.extend([D.median()] * len(P))
+            MiN.extend([D.min()] * len(P))
+            MaX.extend([D.max()] * len(P))
 
-    
- 
-    
-    #prepare outliers
-    statiscal=[True if path in Pathes else False for path in ML_algorythms["Pathes"] ]
+    # mark statistical outliers in ML voting
+    outlier_set = set(pathes)
+    algs["statistical_method"] = algs["Pathes"].isin(outlier_set)
+    vote_cols = ["One_class_SVM", "IsolationForest", "LocalOutlierFactor", " EllipticEnvelope", "statistical_method"]
+    algs["Voting outliers (from 5)"] = algs[vote_cols].sum(axis=1)
+    algs = algs[algs["Voting outliers (from 5)"] >= 1]
 
-            
-    ML_algorythms["statistical_method"]= statiscal    
-    ML_number=list(ML_algorythms[["One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]].sum(axis=1))
-    if format_type == "raw":              
-        ML_algorythms= ML_algorythms[["Pathes","sequence_name", "corresponding_img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
-    elif format_type == "nifti":
-        ML_algorythms= ML_algorythms[["Pathes","corresponding_img","sequence_type","One_class_SVM" ,'IsolationForest',"LocalOutlierFactor",' EllipticEnvelope',"statistical_method"]]
-    ML_algorythms["Voting outliers (from 5)"]=   ML_number 
-    ML_algorythms= ML_algorythms[ML_algorythms["Voting outliers (from 5)"]>=1]
-    final_result = os.path.join(Path,"votings.csv")
-    ML_algorythms.to_csv( final_result)
+    if format_type == "raw":
+        keep_cols = ["Pathes", "sequence_name", "corresponding_img", "sequence_type"] + vote_cols
+    else:
+        keep_cols = ["Pathes", "corresponding_img", "sequence_type"] + vote_cols
+    algs = algs[keep_cols]
 
-
-    
-
-    
-
-    
- 
-    
- 
-#%%  
-
-
-
-#%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
-
-
-
-
+    final_result = os.path.join(Path, "votings.csv")
+    algs.to_csv(final_result, index=False)
