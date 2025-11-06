@@ -50,6 +50,13 @@ apptainer build aidaqc.sif apptainer.def
 apptainer shell aidaqc.sif
 
 ```
+<h3>Branches</h3>
+
+AIDAqc is organized into multiple branches to support development:
+
+- **`main`** – the stable branch containing officially released and validated versions of AIDAqc.  
+- **`open-dev`** – the public development branch that can be used by external contributors to implement code modifications, enhancements, or bug fixes.  
+  *Researchers and developers are welcome to fork the repository, work within the `open-dev` branch, and submit pull requests for review.*   
 
 <h3>Tutorial</h3>
 
