@@ -50,6 +50,13 @@ apptainer build aidaqc.sif apptainer.def
 apptainer shell aidaqc.sif
 
 ```
+<h3>Branches</h3>
+
+AIDAqc is organized into multiple branches to support development:
+
+- **`main`** – the stable branch containing officially released and validated versions of AIDAqc.  
+- **`open-dev`** – the public development branch that can be used by external contributors to implement code modifications, enhancements, or bug fixes.  
+  *Researchers and developers are welcome to fork the repository, work within the `open-dev` branch, and submit pull requests for review.*   
 
 <h3>Tutorial</h3>
 
@@ -66,10 +73,17 @@ This tool has been validated and used in the following publication: [Publication
 A total of 23 datasets from various institutes were used for validation and testing. These datasets can be found via: [Datasets Link](https://gin.g-node.org/Aswendt_Lab/2023_Kalantari_AIDAqc)
 
 <h3>Download test dataset</h3>
+
 [Dataset Link](https://gin.g-node.org/Aswendt_Lab/testdata_aida)
 
-[<h3><b>CONTACT</h3></b>](https://neurologie.uk-koeln.de/forschung/ag-neuroimaging-neuroengineering/)
-Aref Kalantari (aref.kalantari-sarcheshmehATuk-koeln.de) and Markus Aswendt (markus.aswendtATuk-koeln.de)
+<h3><b>CONTACT</h3></b>
+ 
+If you encounter problems, report directly in [![Gitter](https://badges.gitter.im/AIDA_tools/community.svg)](https://gitter.im/AIDA_tools/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+or 
+join our Open Office Hour - each Thursday 3:00 pm (UTC+2) [![Google Meet](https://img.shields.io/badge/Google%20Meet-00897B?style=for-the-badge&logo=google-meet&logoColor=white)](https://meet.google.com/hsk-bmpj-meg)
+
+
+For all other inquiries: Markus Aswendt (aswendtATmed.uni-frankfurt.de)
 
 <h3><b>LICENSE</h3></b>
 
