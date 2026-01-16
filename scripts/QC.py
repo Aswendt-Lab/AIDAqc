@@ -92,8 +92,123 @@ def GhostCheck(input_file):
     #plt.show()
     
     return GMetric
+
+
+#%% Ghosting numeric metric (for MI_diff.csv / MI_func.csv extra outputs)
+def GhostCheckValue(input_file):
+    """Return a numeric ghosting score derived from the same peak-count logic as GhostCheck.
+
+    - GhostCheck() returns a boolean (ghosting present / not present).
+    - This function returns an integer score:
+        score = WeekGhost + StrongGhost
+
+    Where WeekGhost/StrongGhost are the counts of MI peaks that fall on the expected
+    ghost offsets (Mmos). This keeps the *decision logic* unchanged while exposing
+    a magnitude-like value for reporting.
+    """
+
+    img = input_file
+    img_data = img.get_fdata()
+    img_shape = np.shape(img_data)
+    MI_vec = []
+
+    n = 1
+    Mmos = []
+    while (img_shape[1] % (2 ** n)) == 0:
+        Mmos.append(img_shape[1] / 2 ** n)
+        n = n + 1
+    Mmos = np.asarray(Mmos)
+
+    if len(img_shape) > 3:
+        img_data = np.mean(img_data, axis=-1)
+
+    Im_ref = img_data[:, :, int(img_shape[2] / 2)]
+    for ii in range(0, int(img_shape[1])):
+        Im_rol = np.roll(Im_ref, ii)
+        MI_vec.append(mutualInfo(Im_rol, Im_ref))
+
+    peaks_strong, _ = signal.find_peaks(MI_vec, height=0.25 * max(MI_vec))
+    peaks_weak, _ = signal.find_peaks(MI_vec)
+
+    StrongGhost = int(np.sum(np.isin(peaks_strong, Mmos)))
+    WeekGhost = int(np.sum(np.isin(peaks_weak, Mmos)))
+
+    return WeekGhost + StrongGhost
   
 
+
+
+#%% Ghosting intensity-based metric (Ghost-to-Signal Ratio, GSR)
+def GhostGSRValue(input_file, percentile=70, ghost_shift_fraction=0.5, phase_axis=1):
+    """Return a continuous ghosting score using an intensity-based Ghost-to-Signal Ratio (GSR).
+
+    This is designed for reporting in the MI_* extra outputs only (does not affect the main pipeline logic).
+
+    Method (single mid-slice):
+      1) Create a foreground/object mask using a percentile threshold on positive intensities.
+      2) Shift that mask by ~half FOV along the phase-encode axis to where EPI-like ghosts appear.
+      3) Measure mean background-corrected absolute intensity in the shifted (ghost-only) region
+         relative to the mean object intensity.
+
+    Returns:
+      GhostingScore = mean(|I_ghost - median(I_bg)|) / (mean(I_obj) + eps)
+
+    Notes:
+      - For 4D data, uses the temporal mean image (same as GhostCheck).
+      - phase_axis defaults to 1 to match the original GhostCheck loop over img_shape[1].
+    """
+
+    img = input_file
+    img_data = img.get_fdata()
+    img_shape = np.shape(img_data)
+
+    if len(img_shape) > 3:
+        img_data = np.mean(img_data, axis=-1)
+
+    # Mid-slice
+    slc = img_data[:, :, int(img_shape[2] / 2)]
+    slc = np.asarray(slc, dtype=np.float64)
+
+    pos = slc[slc > 0]
+    if pos.size < 10:
+        return np.nan
+
+    thr = np.percentile(pos, percentile)
+    obj_mask = slc > thr
+
+    # Fallback if the mask is too small
+    if np.sum(obj_mask) < 10:
+        thr = np.percentile(pos, 50)
+        obj_mask = slc > thr
+
+    if np.sum(obj_mask) < 10:
+        return np.nan
+
+    # Determine shift (half FOV by default)
+    try:
+        n_phase = slc.shape[phase_axis]
+    except Exception:
+        return np.nan
+
+    shift = int(round(n_phase * ghost_shift_fraction))
+    if shift == 0:
+        shift = n_phase // 2
+
+    ghost_mask = np.roll(obj_mask, shift=shift, axis=phase_axis)
+    ghost_only = ghost_mask & (~obj_mask)
+
+    if np.sum(ghost_only) < 10:
+        # No valid ghost-only region
+        return 0.0
+
+    bg = slc[~obj_mask]
+    bg_med = float(np.median(bg)) if bg.size else 0.0
+
+    s = float(np.mean(slc[obj_mask]))
+    g = float(np.mean(np.abs(slc[ghost_only] - bg_med)))
+
+    eps = 1e-12
+    return g / (s + eps)
 #%% Res function
 
 
@@ -417,7 +532,7 @@ def QCPlot(Path):
        
     Abook = []
     Names =[]
-    for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
+    for file in glob.glob(os.path.join(Path, '*calculated_features*.csv')) :
         
         if "diff" in file:
             dti_path= file
@@ -646,7 +761,7 @@ def QCtable(Path, format_type):
     ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]=ML_algorythms[['One_class_SVM',' EllipticEnvelope','IsolationForest',"LocalOutlierFactor"]]==-1 
     Abook = []
     Names =[]
-    for file in glob.glob(os.path.join(Path, '*caculated_features*.csv')) :
+    for file in glob.glob(os.path.join(Path, '*calculated_features*.csv')) :
         
         if "diff" in file:
             dti_path= file
