@@ -10,6 +10,7 @@ import pv_conv2Nifti as pr
 import alive_progress as ap
 import pv_parser as par
 from QC import *
+import QC
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline     
 def CheckingRawFeatures(Path):
     #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
@@ -38,6 +39,9 @@ def CheckingRawFeatures(Path):
     saving_path = Path
     
 
+
+    # ensure QC sphere overlays are written to the same output folder
+    QC.set_qc_output_dir(saving_path)
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
@@ -150,6 +154,12 @@ def CheckingRawFeatures(Path):
                     full_img_name = str(N)+"_" + img_name+"_"+ str(dd)+".png".replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name) 
                     
+                    # grandjean patch
+
+                    # Use the same per-scan basename as manual slice inspection for sphere overlays
+                    current_dd = dd
+                    QC.set_qc_name_prefix(f"{N}_{img_name}_{current_dd}")
+
                     # grandjean patch to output ortho representation of the image in manual slice inspection
                     svg_path = os.path.join(qc_path,str(N)+"_"+ img_name+"_"+ str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
@@ -173,7 +183,7 @@ def CheckingRawFeatures(Path):
                         
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         
                         LMV_all = np.nan
                         GMV_all = np.nan
@@ -185,7 +195,7 @@ def CheckingRawFeatures(Path):
                         # Signal 2 noise ratio
                         #print(tf)
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         
@@ -310,6 +320,9 @@ def CheckingNiftiFeatures(Path):
     saving_path = os.path.dirname(Path) 
     
 
+
+    # ensure QC sphere overlays are written to the same output folder
+    QC.set_qc_output_dir(Path)
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
@@ -381,6 +394,12 @@ def CheckingNiftiFeatures(Path):
                     full_img_name = (str(N)+"_"+folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name)
                     
+                    # grandjean patch
+
+                    # Use the same per-scan basename as manual slice inspection for sphere overlays
+                    current_dd = dd
+                    QC.set_qc_name_prefix(f"{N}_{img_name}_{current_dd}")
+
                     # grandjean patch to output ortho representation of the image in manual slice inspection
                     svg_path = os.path.join(qc_path,str(N)+"_"+ img_name+"_"+ str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
@@ -402,7 +421,7 @@ def CheckingNiftiFeatures(Path):
                     if N == "anat":
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         
                         LMV_all = np.nan
                         GMV_all = np.nan
@@ -414,7 +433,7 @@ def CheckingNiftiFeatures(Path):
                         # Signal 2 noise ratio
                         
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         GMV_all.append(GMV)

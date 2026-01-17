@@ -29,6 +29,7 @@ import changSNR as ch
 from matplotlib.ticker import MaxNLocator
 from matplotlib import font_manager as fm
 from matplotlib.font_manager import FontProperties
+import re
 #%% Tic Toc Timer
 
 
@@ -297,7 +298,16 @@ def snrCalclualtor_chang(input_file):
     return snrCh
 
 #%% SNR function 2
-def snrCalclualtor_normal(input_file):
+def snrCalclualtor_normal(
+    input_file,
+    output_dir=None,
+    save_sphere_png=True,
+    sphere_png_name=None,
+    sphere_radius_scale=1.0,
+    sphere_radius_factor=0.20,
+    use_ellipsoid_if_needed=True,
+    ellipsoid_z_scale=0.5,
+):
     
     
     
@@ -331,12 +341,28 @@ def snrCalclualtor_normal(input_file):
 # =============================================================================
     
     COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData))]
-    r = np.floor(0.10*(np.mean(S)))
-    
-    if r > S[2]:
-        r = S[2]
-    
-    Mask = sphere(S, int(r) , COM)
+    # Sphere radius in voxels (dynamic, based on in-plane size).
+    # For thin stacks (small Z), a true 3D sphere is limited by Z.
+    # If use_ellipsoid_if_needed=True, we keep a large in-plane radius and
+    # limit only the Z semisize (ellipsoid/spheroid).
+    base_dim = float(np.mean(S[0:2]))
+    r_xy = np.floor(float(sphere_radius_factor) * base_dim * float(sphere_radius_scale))
+    r_xy = int(max(1, r_xy))
+
+    # maximum possible *sphere* radius that fits in all dimensions
+    max_r_sphere = max(1, int(np.floor(min(S) / 2)))
+    r_sphere = int(min(r_xy, max_r_sphere))
+
+    if use_ellipsoid_if_needed and r_sphere < r_xy:
+        # Thin volume: allow a larger in-plane ROI, limit Z thickness
+        max_rz = max(1, int(np.floor(S[2] / 2)))
+        rz = int(np.ceil(r_xy * float(ellipsoid_z_scale)))
+        rz = int(max(1, min(max_rz, rz)))
+        Mask = sphere(S, r_xy, COM, semisizes=(r_xy, r_xy, rz))
+        r_used_for_meta = r_xy
+    else:
+        Mask = sphere(S, r_sphere, COM)
+        r_used_for_meta = r_sphere
     Singal = np.mean(imgData[Mask])
     
     
@@ -353,6 +379,45 @@ def snrCalclualtor_normal(input_file):
     MaskN[:x,-y:,-z:] = 2
     MaskN[-x:,:y,-z:] = 2
     MaskN[-x:,-y:,-z:] = 2
+
+
+    # Save the sphere mask + overlay (including edge/corner noise ROIs) to manual_slice_inspection
+    # Enabled by default. If output_dir is not provided, it is inferred from the input file path.
+    if save_sphere_png:
+        output_dir = _resolve_output_dir(output_dir, input_file)
+
+        # Use the same naming logic as manual slice inspection: derive from the input filename
+        if sphere_png_name is None:
+            stem = _infer_image_stem(input_file)
+            sphere_png_name = f"{stem}_sphere_mask_snr_normal.png"
+
+        base, ext = os.path.splitext(sphere_png_name)
+        overlay_name = (base.replace('mask', 'overlay') + ext) if ext else (base.replace('mask', 'overlay') + '.png')
+
+        try:
+            sphere_dir = _manual_slice_dir(output_dir)
+            os.makedirs(sphere_dir, exist_ok=True)
+
+            # avoid overwriting when multiple scans are processed
+            sphere_png_name = _make_unique_filename(sphere_dir, sphere_png_name)
+            base, ext = os.path.splitext(sphere_png_name)
+            overlay_name = (base.replace('mask', 'overlay') + ext) if ext else (base.replace('mask', 'overlay') + '.png')
+            overlay_name = _make_unique_filename(sphere_dir, overlay_name)
+
+            # Edge/corner ROIs used for noise estimation
+            edge_bool = (MaskN > 0)
+
+            save_sphere_mask_png(Mask, sphere_dir, filename=sphere_png_name, center=COM, radius=int(r_used_for_meta))
+            # Additional overlay on anatomical middle slices (orthogonal views)
+            save_sphere_overlay_png(
+                imgData,
+                Mask,
+                sphere_dir,
+                filename=overlay_name,
+                edge_mask=edge_bool
+            )
+        except Exception as e:
+            print(f'Warning: could not save sphere mask/overlay PNG: {e}')
     
     
     
@@ -386,14 +451,17 @@ def show_slices(slices):
        axes[i].imshow(Slice.T, cmap="gray", origin="lower")
        
 
-def sphere(shape, radius, position):
+def sphere(shape, radius, position, semisizes=None):
     """Generate an n-dimensional spherical mask."""
     # assume shape and position have the same length and contain ints
     # the units are pixels / voxels (px for short)
     # radius is a int or float in px
     assert len(position) == len(shape)
     n = len(shape)
-    semisizes = (radius,) * len(shape)
+    if semisizes is None:
+        semisizes = (radius,) * len(shape)
+    else:
+        assert len(semisizes) == len(shape)
 
     # genereate the grid for the support points
     # centered at the position indicated by position
@@ -411,9 +479,351 @@ def sphere(shape, radius, position):
     # the inner part of the sphere will have distance below or equal to 1
     return arr <= 1.0
 
+
+
+
+def _infer_image_stem(input_file):
+    """Infer a stable stem/name for the current image for file naming.
+
+    Tries nibabel-style get_filename(); falls back to 'image'.
+    Returns a filesystem-safe stem (no extension).
+    """
+    if QC_DEFAULT_NAME_PREFIX:
+        return re.sub(r"[^A-Za-z0-9._-]+", "_", str(QC_DEFAULT_NAME_PREFIX)).strip("._-") or "image"
+
+    path = None
+    try:
+        if hasattr(input_file, 'get_filename') and callable(getattr(input_file, 'get_filename')):
+            path = input_file.get_filename()
+    except Exception:
+        path = None
+
+    if not path:
+        # Some nibabel objects may store filename differently
+        for attr in ('filename', '_filename'):
+            try:
+                v = getattr(input_file, attr, None)
+                if isinstance(v, str) and v:
+                    path = v
+                    break
+            except Exception:
+                pass
+
+    if not path:
+        stem = 'image'
+    else:
+        base = os.path.basename(str(path))
+        # handle .nii.gz explicitly
+        if base.lower().endswith('.nii.gz'):
+            stem = base[:-7]
+        else:
+            stem = os.path.splitext(base)[0]
+
+    # make filesystem safe
+    stem = re.sub(r'[^A-Za-z0-9._-]+', '_', stem).strip('._-')
+    return stem or 'image'
+
+
+def _infer_output_dir(input_file):
+    """Infer an output directory from the input file.
+
+    If the image is loaded from disk (nibabel), we use the directory containing the NIfTI.
+    Returns None if it cannot be inferred.
+    """
+    path = None
+    try:
+        if hasattr(input_file, 'get_filename') and callable(getattr(input_file, 'get_filename')):
+            path = input_file.get_filename()
+    except Exception:
+        path = None
+
+    if not path:
+        # Some nibabel objects may store filename differently
+        for attr in ('filename', '_filename'):
+            try:
+                v = getattr(input_file, attr, None)
+                if isinstance(v, str) and v:
+                    path = v
+                    break
+            except Exception:
+                pass
+
+    if not path:
+        return None
+    try:
+        d = os.path.dirname(str(path))
+        return d if d else None
+    except Exception:
+        return None
+
+
+def _make_unique_filename(folder, filename):
+    """If filename exists in folder, append _02, _03, ..."""
+    folder = str(folder)
+    base, ext = os.path.splitext(filename)
+    candidate = filename
+    i = 2
+    while os.path.exists(os.path.join(folder, candidate)):
+        candidate = f"{base}_{i:02d}{ext}"
+        i += 1
+    return candidate
+
+
+# --- Default output directory handling (for sphere PNG exports) ---
+# If your pipeline writes calculated_features*.csv into a specific output folder,
+# call set_qc_output_dir(<that folder>) ONCE before processing to make sure all
+# sphere PNG exports go there as well.
+QC_DEFAULT_OUTPUT_DIR = None
+QC_DEFAULT_NAME_PREFIX = None  # optional, set by pipeline for consistent per-scan naming
+
+def set_qc_name_prefix(prefix):
+    """Set a filename prefix used for sphere PNG outputs (without extension).
+
+    This is useful when input_file has no on-disk filename (e.g., created in-memory),
+    and you want the sphere PNGs to match the manual_slice_inspection naming scheme.
+    """
+    global QC_DEFAULT_NAME_PREFIX
+    QC_DEFAULT_NAME_PREFIX = str(prefix) if prefix else None
+
+
+def set_qc_output_dir(path):
+    """Set a default output directory used for QC PNG exports."""
+    global QC_DEFAULT_OUTPUT_DIR
+    QC_DEFAULT_OUTPUT_DIR = str(path) if path is not None else None
+
+
+def _resolve_output_dir(output_dir, input_file):
+    """Resolve output directory for PNG exports.
+
+    Priority:
+      1) explicit output_dir argument
+      2) QC_DEFAULT_OUTPUT_DIR set via set_qc_output_dir(...)
+      3) infer from input_file filename (directory containing NIfTI)
+      4) current working directory (last resort)
+    """
+    if output_dir is not None:
+        return str(output_dir)
+    if QC_DEFAULT_OUTPUT_DIR is not None:
+        return str(QC_DEFAULT_OUTPUT_DIR)
+    inferred = _infer_output_dir(input_file)
+    if inferred is not None:
+        return str(inferred)
+    return os.getcwd()
+
+
+def _manual_slice_dir(base_dir):
+    """Return manual_slice_inspection directory under base_dir (or base_dir if already that folder)."""
+    base_dir = str(base_dir)
+    if os.path.basename(os.path.normpath(base_dir)) == 'manual_slice_inspection':
+        return base_dir
+    return os.path.join(base_dir, 'manual_slice_inspection')
+
+def save_sphere_mask_png(mask, output_dir, filename='sphere_mask.png', center=None, radius=None, dpi=200):
+    """Save a 3D spherical boolean mask as a PNG (3 orthogonal slices).
+
+    Parameters
+    ----------
+    mask : ndarray (3D, bool or 0/1)
+        The spherical mask returned by `sphere(...)`.
+    output_dir : str or path-like
+        Folder where the PNG will be saved (e.g., the same folder as calculated_features*.csv).
+    filename : str
+        Output PNG filename.
+    center : tuple of 3 ints, optional
+        Sphere center (x, y, z). If None, uses the middle of the volume.
+    radius : int or float, optional
+        Sphere radius (voxels). Only used for the figure title.
+    dpi : int
+        PNG resolution.
+
+    Returns
+    -------
+    str
+        Full path to the written PNG file.
+    """
+    if output_dir is None:
+        raise ValueError('output_dir must be provided to save the sphere mask PNG.')
+
+    mask = np.asarray(mask)
+    if mask.ndim != 3:
+        raise ValueError(f'mask must be 3D, got shape {mask.shape}')
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Choose a center slice for display
+    if center is None:
+        center = tuple(int(s // 2) for s in mask.shape)
+    cx, cy, cz = (int(center[0]), int(center[1]), int(center[2]))
+    cx = max(0, min(cx, mask.shape[0] - 1))
+    cy = max(0, min(cy, mask.shape[1] - 1))
+    cz = max(0, min(cz, mask.shape[2] - 1))
+
+    # Convert to uint8 for clean rendering
+    msk = mask.astype(np.uint8)
+
+    fig, axes = plt.subplots(1, 3, figsize=(9, 3), dpi=dpi)
+    axes[0].imshow(msk[:, :, cz].T, cmap='gray', origin='lower')
+    axes[0].set_title(f'Axial (z={cz})', fontsize=9)
+
+    axes[1].imshow(msk[:, cy, :].T, cmap='gray', origin='lower')
+    axes[1].set_title(f'Coronal (y={cy})', fontsize=9)
+
+    axes[2].imshow(msk[cx, :, :].T, cmap='gray', origin='lower')
+    axes[2].set_title(f'Sagittal (x={cx})', fontsize=9)
+
+    for ax in axes:
+        ax.axis('off')
+
+    title = 'Sphere mask'
+    if radius is not None:
+        title += f' (r={radius} vox)'
+    fig.suptitle(title, fontsize=10)
+    fig.tight_layout()
+
+    out_path = os.path.join(output_dir, filename)
+    fig.savefig(out_path, bbox_inches='tight')
+    plt.close(fig)
+    return out_path
+
+
+def save_sphere_overlay_png(anat_image, mask, output_dir, filename='sphere_overlay.png', dpi=200, edge_mask=None):
+    """Save an overlay PNG (orthogonal anatomical views + ROI contours).
+
+    Requested behavior: show the *middle slices* of the anatomical volume.
+    Practical behavior: if the ROI does not intersect a middle slice in a given view,
+    we fall back to the closest slice that *does* intersect the ROI (so the contour
+    is visible and you can verify placement).
+
+    Overlays:
+      - `mask` (central ROI) as a solid contour on the selected slice.
+      - `edge_mask` (edge/corner noise ROIs) as a dashed contour.
+
+    Note on `edge_mask` visualization:
+      The noise ROIs live in the *corners* of the volume and often only exist
+      in the first/last few slices. If we draw them only on the same slice
+      index used for the central ROI, they frequently won't intersect that
+      slice and the contour will be empty (especially for thin-Z anat stacks).
+      To make them reliably visible, we plot edge ROIs using a projection
+      (any-voxel) along the viewing axis.
+    """
+
+    if output_dir is None:
+        raise ValueError('output_dir must be provided to save the sphere overlay PNG.')
+
+    anat = np.asarray(anat_image)
+    msk = np.asarray(mask).astype(bool)
+    if anat.ndim != 3:
+        raise ValueError(f'anat_image must be 3D, got shape {anat.shape}')
+    if msk.ndim != 3:
+        raise ValueError(f'mask must be 3D, got shape {msk.shape}')
+    if anat.shape != msk.shape:
+        raise ValueError(f'anat_image and mask shapes must match. Got {anat.shape} vs {msk.shape}')
+
+    edge = None
+    if edge_mask is not None:
+        edge = np.asarray(edge_mask).astype(bool)
+        if edge.ndim != 3:
+            raise ValueError(f'edge_mask must be 3D, got shape {edge.shape}')
+        if edge.shape != anat.shape:
+            raise ValueError(f'edge_mask shape must match anat_image. Got {edge.shape} vs {anat.shape}')
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Preferred (middle) slice indices
+    mid_x, mid_y, mid_z = (anat.shape[0] // 2, anat.shape[1] // 2, anat.shape[2] // 2)
+
+    def _choose_slice(mask3d, axis, preferred):
+        """Prefer `preferred`, else choose closest slice with any mask voxels."""
+        if axis == 0:
+            proj = mask3d.any(axis=(1, 2))
+        elif axis == 1:
+            proj = mask3d.any(axis=(0, 2))
+        else:
+            proj = mask3d.any(axis=(0, 1))
+
+        preferred = int(max(0, min(preferred, len(proj) - 1)))
+        if proj[preferred]:
+            return preferred, True
+        idxs = np.where(proj)[0]
+        if idxs.size == 0:
+            return preferred, False
+        best = int(idxs[np.argmin(np.abs(idxs - preferred))])
+        return best, False
+
+    # Choose slice indices (prefer middle; fall back if needed)
+    mx, used_mid_x = _choose_slice(msk, axis=0, preferred=mid_x)
+    my, used_mid_y = _choose_slice(msk, axis=1, preferred=mid_y)
+    mz, used_mid_z = _choose_slice(msk, axis=2, preferred=mid_z)
+
+    # Prepare slices (transpose for display like your other viewers)
+    ax_img = anat[:, :, mz].T
+    ax_msk = msk[:, :, mz].T
+    co_img = anat[:, my, :].T
+    co_msk = msk[:, my, :].T
+    sa_img = anat[mx, :, :].T
+    sa_msk = msk[mx, :, :].T
+
+    if edge is not None:
+        # Use projections so corner/cubicle ROIs are visible even if they
+        # don't intersect the selected slice index.
+        # Axial view shows X-Y plane -> project over Z
+        ax_edge = edge.any(axis=2).T
+        # Coronal view shows X-Z plane -> project over Y
+        co_edge = edge.any(axis=1).T
+        # Sagittal view shows Y-Z plane -> project over X
+        sa_edge = edge.any(axis=0).T
+    else:
+        ax_edge = co_edge = sa_edge = None
+
+    fig, axes = plt.subplots(1, 3, figsize=(9, 3), dpi=dpi)
+
+    # Axial
+    axes[0].imshow(ax_img, cmap='gray', origin='lower')
+    if ax_msk.any():
+        axes[0].contour(ax_msk.astype(float), levels=[0.5], colors='r', linewidths=1.0)
+    if ax_edge is not None and ax_edge.any():
+        axes[0].contour(ax_edge.astype(float), levels=[0.5], colors='y', linewidths=1.2, linestyles='--')
+    axes[0].set_title(f'Axial z={mz}' + (' (mid)' if used_mid_z else ' (nearest ROI)'), fontsize=9)
+
+    # Coronal
+    axes[1].imshow(co_img, cmap='gray', origin='lower')
+    if co_msk.any():
+        axes[1].contour(co_msk.astype(float), levels=[0.5], colors='r', linewidths=1.0)
+    if co_edge is not None and co_edge.any():
+        axes[1].contour(co_edge.astype(float), levels=[0.5], colors='y', linewidths=1.2, linestyles='--')
+    axes[1].set_title(f'Coronal y={my}' + (' (mid)' if used_mid_y else ' (nearest ROI)'), fontsize=9)
+
+    # Sagittal
+    axes[2].imshow(sa_img, cmap='gray', origin='lower')
+    if sa_msk.any():
+        axes[2].contour(sa_msk.astype(float), levels=[0.5], colors='r', linewidths=1.0)
+    if sa_edge is not None and sa_edge.any():
+        axes[2].contour(sa_edge.astype(float), levels=[0.5], colors='y', linewidths=1.2, linestyles='--')
+    axes[2].set_title(f'Sagittal x={mx}' + (' (mid)' if used_mid_x else ' (nearest ROI)'), fontsize=9)
+
+    for ax in axes:
+        ax.axis('off')
+
+    fig.suptitle('Sphere overlay (mid slices with ROI fallback)', fontsize=10)
+    fig.tight_layout()
+
+    out_path = os.path.join(output_dir, filename)
+    fig.savefig(out_path, bbox_inches='tight')
+    plt.close(fig)
+    return out_path
+
 #%% TSNR function
 
-def TsnrCalclualtor(input_file):
+def TsnrCalclualtor(
+    input_file,
+    output_dir=None,
+    save_sphere_png=True,
+    sphere_png_name=None,
+    sphere_radius_scale=1.0,
+    sphere_radius_factor=0.20,
+    use_ellipsoid_if_needed=True,
+    ellipsoid_z_scale=0.5,
+):
     imgData = input_file
     IM = np.asanyarray(imgData.dataobj)
     S=IM.shape
@@ -445,8 +855,55 @@ def TsnrCalclualtor(input_file):
 # =============================================================================
     
     COM=[int(i) for i in (ndimage.measurements.center_of_mass(imgData_average))]
-    r = np.floor(0.10*(np.mean([S[0:2]])))
-    Mask = sphere(S[0:3], int(r) , COM)
+    # Sphere radius in voxels (dynamic, based on in-plane size).
+    base_dim = float(np.mean(S[0:2]))
+    r_xy = np.floor(float(sphere_radius_factor) * base_dim * float(sphere_radius_scale))
+    r_xy = int(max(1, r_xy))
+
+    max_r_sphere = max(1, int(np.floor(min(S[0:3]) / 2)))
+    r_sphere = int(min(r_xy, max_r_sphere))
+
+    if use_ellipsoid_if_needed and r_sphere < r_xy:
+        max_rz = max(1, int(np.floor(S[2] / 2)))
+        rz = int(np.ceil(r_xy * float(ellipsoid_z_scale)))
+        rz = int(max(1, min(max_rz, rz)))
+        Mask = sphere(S[0:3], r_xy, COM, semisizes=(r_xy, r_xy, rz))
+        r_used_for_meta = r_xy
+    else:
+        Mask = sphere(S[0:3], r_sphere, COM)
+        r_used_for_meta = r_sphere
+
+    # Save the sphere mask + overlay to manual_slice_inspection
+    # Enabled by default. If output_dir is not provided, it is inferred from the input file path.
+    if save_sphere_png:
+        output_dir = _resolve_output_dir(output_dir, input_file)
+
+        # Use the same naming logic as manual slice inspection: derive from the input filename
+        if sphere_png_name is None:
+            stem = _infer_image_stem(input_file)
+            sphere_png_name = f"{stem}_sphere_mask_tsnr.png"
+        base, ext = os.path.splitext(sphere_png_name)
+        overlay_name = (base.replace('mask', 'overlay') + ext) if ext else (base.replace('mask', 'overlay') + '.png')
+        try:
+            sphere_dir = _manual_slice_dir(output_dir)
+            os.makedirs(sphere_dir, exist_ok=True)
+
+            # avoid overwriting when multiple scans are processed
+            sphere_png_name = _make_unique_filename(sphere_dir, sphere_png_name)
+            base, ext = os.path.splitext(sphere_png_name)
+            overlay_name = (base.replace('mask', 'overlay') + ext) if ext else (base.replace('mask', 'overlay') + '.png')
+            overlay_name = _make_unique_filename(sphere_dir, overlay_name)
+
+            save_sphere_mask_png(Mask, sphere_dir, filename=sphere_png_name, center=COM, radius=int(r_used_for_meta))
+            # Additional overlay on anatomical middle slices (orthogonal views)
+            save_sphere_overlay_png(
+                imgData_average,
+                Mask,
+                sphere_dir,
+                filename=overlay_name
+            )
+        except Exception as e:
+            print(f'Warning: could not save sphere mask PNG: {e}')
     tSNR = np.mean(tSNR_map[Mask])
     
     return tSNR
