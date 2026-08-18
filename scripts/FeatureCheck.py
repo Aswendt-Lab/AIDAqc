@@ -10,6 +10,7 @@ import pv_conv2Nifti as pr
 import alive_progress as ap
 import pv_parser as par
 from QC import *
+import QC
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline     
 def CheckingRawFeatures(Path):
     #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
@@ -38,6 +39,9 @@ def CheckingRawFeatures(Path):
     saving_path = Path
     
 
+
+    # ensure QC sphere overlays are written to the same output folder
+    QC.set_qc_output_dir(saving_path)
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
@@ -70,6 +74,7 @@ def CheckingRawFeatures(Path):
             img_names_new = []
             keys = []
             GMetric_vec =  []
+            GValue_vec =  []
             kk = 0
             i=1
            
@@ -149,6 +154,12 @@ def CheckingRawFeatures(Path):
                     full_img_name = str(N)+"_" + img_name+"_"+ str(dd)+".png".replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name) 
                     
+                    # grandjean patch
+
+                    # Use the same per-scan basename as manual slice inspection for sphere overlays
+                    current_dd = dd
+                    QC.set_qc_name_prefix(f"{N}_{img_name}_{current_dd}")
+
                     # grandjean patch to output ortho representation of the image in manual slice inspection
                     svg_path = os.path.join(qc_path,str(N)+"_"+ img_name+"_"+ str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
@@ -161,13 +172,18 @@ def CheckingRawFeatures(Path):
                     # other Features
                     SpatRes = ResCalculator(input_file)
                     GMetric = GhostCheck(input_file)
+                    # Numeric ghosting score (intensity-based GSR; used only for the MI_* extra outputs)
+                    try:
+                        GValue = GhostGSRValue(input_file)
+                    except Exception:
+                        GValue = np.nan
                     
                     
                     if N == 'anat':
                         
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         
                         LMV_all = np.nan
                         GMV_all = np.nan
@@ -179,7 +195,7 @@ def CheckingRawFeatures(Path):
                         # Signal 2 noise ratio
                         #print(tf)
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         
@@ -210,6 +226,7 @@ def CheckingRawFeatures(Path):
                     text_files_new.append(tf)
                     SpatRes_vec.append(SpatRes)
                     GMetric_vec.append(GMetric)
+                    GValue_vec.append(GValue)
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
@@ -235,17 +252,35 @@ def CheckingRawFeatures(Path):
                  df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
-                 
+
+            # --- Additional output: MI_<sequence>.csv ---
+            # Contains (index, FileAddress) + per-scan Motion and Ghosting metrics.
+            #   - Motion: LMV (= std of Mutual Information vector) returned by Ismotion()
+            #   - Ghosting: boolean returned by GhostCheck()
+            # Note: the main CSVs are written with an index column, so the first two columns in the CSV file are:
+            #   (1) index, (2) FileAddress
+            motion_src_col = 'Displacement factor (std of Mutual information)'
+            mi_motion_col = 'Motion'
+            mi_ghost_col = 'Ghosting'
+
+            mi_df = df[['FileAddress']].copy()
+            mi_df[mi_motion_col] = df[motion_src_col] if motion_src_col in df.columns else np.nan
+            # Expose numeric ghosting score in MI_* extra outputs
+            mi_df[mi_ghost_col] = np.array(GValue_vec)
+
+            mi_out = os.path.join(Path, f"MI_{N}.csv")
+            mi_df.to_csv(mi_out)
+
             if N=="anat":
-                t2w_result= os.path.join(Path,"caculated_features_anat.csv")
+                t2w_result= os.path.join(Path,"calculated_features_anat.csv")
                 df.to_csv( t2w_result)
 
             elif N=="diff":    
-                dti_result= os.path.join(Path,"caculated_features_diff.csv")
+                dti_result= os.path.join(Path,"calculated_features_diff.csv")
                 df.to_csv( dti_result)   
 
             elif N=="func":
-                fmri_result= os.path.join(Path,"caculated_features_func.csv")
+                fmri_result= os.path.join(Path,"calculated_features_func.csv")
                 df.to_csv(fmri_result)
 
     if ErorrList:            
@@ -285,6 +320,9 @@ def CheckingNiftiFeatures(Path):
     saving_path = os.path.dirname(Path) 
     
 
+
+    # ensure QC sphere overlays are written to the same output folder
+    QC.set_qc_output_dir(Path)
     C = np.array([not Check.empty for Check in Abook])
     Names = np.array(Names)[C].tolist()
     Names.append('ErrorData')
@@ -319,6 +357,7 @@ def CheckingNiftiFeatures(Path):
             text_files_new = []
             img_names_new = []
             GMetric_vec =  []
+            GValue_vec =  []
             kk = 0
             i=1
             
@@ -355,6 +394,12 @@ def CheckingNiftiFeatures(Path):
                     full_img_name = (str(N)+"_"+folder_name+"_"+img_name+"_"+str(dd)+".png").replace(".nii","").replace(".gz","")
                     img_names_new.append(full_img_name)
                     
+                    # grandjean patch
+
+                    # Use the same per-scan basename as manual slice inspection for sphere overlays
+                    current_dd = dd
+                    QC.set_qc_name_prefix(f"{N}_{img_name}_{current_dd}")
+
                     # grandjean patch to output ortho representation of the image in manual slice inspection
                     svg_path = os.path.join(qc_path,str(N)+"_"+ img_name+"_"+ str(dd)+".png").replace(".nii","").replace(".gz","")
                     dd = dd +1
@@ -367,11 +412,16 @@ def CheckingNiftiFeatures(Path):
                     # other Features
                     SpatRes = ResCalculator(input_file)
                     GMetric = GhostCheck(input_file)
+                    # Numeric ghosting score (intensity-based GSR; used only for the MI_* extra outputs)
+                    try:
+                        GValue = GhostGSRValue(input_file)
+                    except Exception:
+                        GValue = np.nan
                     
                     if N == "anat":
                         # Signal 2 noise ratio
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         
                         LMV_all = np.nan
                         GMV_all = np.nan
@@ -383,7 +433,7 @@ def CheckingNiftiFeatures(Path):
                         # Signal 2 noise ratio
                         
                         snrCh = snrCalclualtor_chang(input_file)
-                        snr_normal = snrCalclualtor_normal(input_file)   
+                        snr_normal = snrCalclualtor_normal(input_file, use_ellipsoid_if_needed=(N=='anat'))   
                         Final,Max_mov_between,GMV,LMV = Ismotion(input_file)
                         
                         GMV_all.append(GMV)
@@ -412,6 +462,7 @@ def CheckingNiftiFeatures(Path):
                     text_files_new.append(tf)
                     SpatRes_vec.append(SpatRes)
                     GMetric_vec.append(GMetric)
+                    GValue_vec.append(GValue)
                     
                      
                      
@@ -446,17 +497,35 @@ def CheckingNiftiFeatures(Path):
                  df['tSNR (Averaged Brain ROI)'] = np.array(tsnr_vec)
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
-                 
+
+            # --- Additional output: MI_<sequence>.csv ---
+            # Contains (index, FileAddress) + per-scan Motion and Ghosting metrics.
+            #   - Motion: LMV (= std of Mutual Information vector) returned by Ismotion()
+            #   - Ghosting: boolean returned by GhostCheck()
+            # Note: the main CSVs are written with an index column, so the first two columns in the CSV file are:
+            #   (1) index, (2) FileAddress
+            motion_src_col = 'Displacement factor (std of Mutual information)'
+            mi_motion_col = 'Motion'
+            mi_ghost_col = 'Ghosting'
+
+            mi_df = df[['FileAddress']].copy()
+            mi_df[mi_motion_col] = df[motion_src_col] if motion_src_col in df.columns else np.nan
+            # Expose numeric ghosting score in MI_* extra outputs
+            mi_df[mi_ghost_col] = np.array(GValue_vec)
+
+            mi_out = os.path.join(Path, f"MI_{N}.csv")
+            mi_df.to_csv(mi_out)
+
             if N=="anat":
-                t2w_result= os.path.join(Path,"caculated_features_anat.csv")
+                t2w_result= os.path.join(Path,"calculated_features_anat.csv")
                 df.to_csv( t2w_result)
 
             elif N=="diff":    
-                dti_result= os.path.join(Path,"caculated_features_diff.csv")
+                dti_result= os.path.join(Path,"calculated_features_diff.csv")
                 df.to_csv( dti_result)   
 
             elif N=="func":
-                fmri_result= os.path.join(Path,"caculated_features_func.csv")
+                fmri_result= os.path.join(Path,"calculated_features_func.csv")
                 df.to_csv(fmri_result)
 
     if ErorrList:            
