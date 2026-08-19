@@ -1,37 +1,36 @@
-# Use the official Python 3.6 image as the base
-FROM python:3.6-slim
+# Multi-architecture AIDAqc Docker image
+# linux/amd64 -> aidaqc-intel.yaml
+# linux/arm64 -> aidaqc-arm64.yaml
 
-# Set environment variables
-ENV PATH /opt/conda/bin:$PATH
+FROM condaforge/miniforge3:latest
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    bzip2 \
-    && rm -rf /var/lib/apt/lists/*
+ARG TARGETARCH
 
-FROM continuumio/miniconda:latest
+COPY aidaqc-arm64.yaml /opt/aidaqc-arm64.yaml
+COPY aidaqc-intel.yaml /opt/aidaqc-intel.yaml
 
-COPY aidaqc.yaml /opt/aidaqc.yaml
+SHELL ["/bin/bash", "-lc"]
 
-SHELL ["/bin/bash", "-l", "-c"]
-# Create the conda environment
-RUN conda create -n aidaqc python=3.6 && \
-    conda env update -n aidaqc --file /opt/aidaqc.yaml
+RUN if [ "${TARGETARCH}" = "arm64" ]; then \
+        echo "Building AIDAqc ARM64 environment"; \
+        mamba env create -n aidaqc -f /opt/aidaqc-arm64.yaml; \
+    elif [ "${TARGETARCH}" = "amd64" ]; then \
+        echo "Building AIDAqc AMD64 environment"; \
+        mamba env create -n aidaqc -f /opt/aidaqc-intel.yaml; \
+    else \
+        echo "Unsupported architecture: ${TARGETARCH}"; \
+        exit 1; \
+    fi && \
+    conda clean -afy
 
-RUN useradd -ms /bin/bash aida
-USER aida
-SHELL ["conda", "run", "-n", "aidaqc", "/bin/bash", "-c"]
+ENV PATH=/opt/conda/envs/aidaqc/bin:$PATH
 
-# Activate the environment and ensure it's activated
-RUN echo "source activate aidaqc" > /home/aida/.bashrc
-ENV PATH /opt/condaenvs/aidaqc/bin:$PATH
-RUN /bin/bash -c "source activate aidaqc"
+RUN useradd -m -s /bin/bash aida
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the rest of the application code to the container
-COPY . /app
+COPY --chown=aida:aida . /app
 
-ENTRYPOINT ["conda", "run", "-n", "aidaqc", "python", "/app/scripts/ParsingData.py"]
+USER aida
+
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "aidaqc", "python", "/app/scripts/ParsingData.py"]

@@ -1,19 +1,25 @@
-packaging
+# AIDAqc runtime dependencies for pip-based installation
+# Install with: pip install -r requirements.txt
+
+# Scientific computing and data handling
 numpy
 scipy
-nibabel
-alive-progress
-scikit-learn
-scikit-image
-matplotlib
-lmfit
-progressbar
 pandas
+
+# MRI / neuroimaging
+nibabel
 nilearn
-seaborn
-#Not needed for now
-#joblib
-#natsort
-#pydicom
-#nipype
-#dipy
+
+# Quality-control and outlier detection
+scikit-learn
+
+# Plotting and progress reporting
+matplotlib
+alive-progress
+progressbar
+
+# T2 fitting
+lmfit
+
+# QA PDF report generation
+reportlab

@@ -38,6 +38,7 @@ dependencies:
   - rdflib
   - xlrd
   - xlsxwriter
+  - reportlab
 
   # Notebooks (optional but convenient)
   - jupyterlab
@@ -46,6 +47,7 @@ dependencies:
   # Packages that are often easiest to install via pip on macOS arm64
   - pip:
       - alive-progress
+      - progressbar2
       - raster-geometry
       - svg-stack
       - svgutils

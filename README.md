@@ -22,45 +22,90 @@ Download the repository => Install Python 3.6 (Anaconda) => Import AIDAqc conda 
 
 Main function: *ParsingData*
 
-See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
+See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_2.pdf).
 
 <h3>Docker/Apptainer Usage</h3>
 
-```{bash}
-#Build
+AIDAqc provides a multi-architecture Docker image supporting AMD64 
+(Intel/AMD Linux) and ARM64 (e.g., Apple Silicon).
 
-docker build aidaqc:2.1 .
+<details>
+<summary><b>Build the Docker image</b></summary>
 
-# Running the main ParsingData.py:
-
-docker run -v /your/project/data:/data -v /your/project/qc aidaqc:2.1 -i /data -o /qc -f raw
-
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t aswendtlab/aidaqc:2.2 \
+  -t aswendtlab/aidaqc:latest \
+  --push .
 ```
 
-For installation in a [apptainer](https://apptainer.org/) container for GNU/Linux:
-```{bash}
-# Download the repository
+The appropriate Conda environment is selected automatically:
+
+- `linux/amd64` → `aidaqc-intel.yaml`
+- `linux/arm64` → `aidaqc-arm64.yaml`
+
+</details>
+
+<details>
+<summary><b>Check available options</b></summary>
+
+```bash
+docker run --rm aswendtlab/aidaqc:2.2 -h
+```
+
+</details>
+
+<details>
+<summary><b>Run AIDAqc with NIfTI data</b></summary>
+
+```bash
+docker run --rm \
+  -v /your/project/data:/data \
+  -v /your/project/qc:/qc \
+  aswendtlab/aidaqc:2.2 \
+  -i /data \
+  -o /qc \
+  -f nifti
+```
+
+</details>
+
+<details>
+<summary><b>Run AIDAqc with Bruker raw data</b></summary>
+
+```bash
+docker run --rm \
+  -v /your/project/data:/data \
+  -v /your/project/qc:/qc \
+  aswendtlab/aidaqc:2.2 \
+  -i /data \
+  -o /qc \
+  -f raw
+```
+
+</details>
+
+All generated AIDAqc outputs, including calculated feature tables, 
+outlier-detection results, QC figures, ROI-placement figures, and 
+`AIDAqc_QA_Report.pdf`, are written to the mounted `/qc` directory.
+
+<details>
+<summary><b>Apptainer</b></summary>
+
+```bash
 git clone https://github.com/Aswendt-Lab/AIDAqc.git
 cd AIDAqc
 
-# Create a new apptainer container
 apptainer build aidaqc.sif apptainer.def
-
-# Get into a bash shell in the container
 apptainer shell aidaqc.sif
-
 ```
-<h3>Branches</h3>
 
-AIDAqc is organized into multiple branches to support development:
-
-- **`main`** – the stable branch containing officially released and validated versions of AIDAqc.  
-- **`open-dev`** – the public development branch that can be used by external contributors to implement code modifications, enhancements, or bug fixes.  
-  *Researchers and developers are welcome to fork the repository, work within the `open-dev` branch, and submit pull requests for review.*   
+</details>
 
 <h3>Tutorial</h3>
 
-To guide you through running the pipeline, please watch the [YouTube tutorial](https://youtu.be/SP4sWW313DQ?si=4WaTI544FzAkBVbY).
+The [YouTube tutorial](https://youtu.be/SP4sWW313DQ?si=4WaTI544FzAkBVbY) guides you through the workflow (note: this is for v1.0).
 
 <h3>The story behind this tool</h3> 
 
@@ -76,11 +121,9 @@ A total of 23 datasets from various institutes were used for validation and test
 
 [Dataset Link](https://gin.g-node.org/Aswendt_Lab/testdata_aida)
 
-<h3><b>CONTACT</h3></b>
- 
 If you encounter problems, report directly in [![Gitter](https://badges.gitter.im/AIDA_tools/community.svg)](https://gitter.im/AIDA_tools/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 or 
-join our Open Office Hour - each Thursday 3:00 pm (UTC+2) [![Google Meet](https://img.shields.io/badge/Google%20Meet-00897B?style=for-the-badge&logo=google-meet&logoColor=white)](https://meet.google.com/hsk-bmpj-meg)
+join our Open Office Hour - each Thursday 3:00 pm (UTC+2) [![Zoom](https://img.shields.io/badge/Zoom-2D8CFF?style=for-the-badge&logo=zoom&logoColor=white)](https://uni-frankfurt.zoom-x.de/j/63112745009?pwd=JBTjMVbuaTw9cZvFnppTwCPjGdQEyx.1)
 
 
 For all other inquiries: Markus Aswendt (aswendtATmed.uni-frankfurt.de)
