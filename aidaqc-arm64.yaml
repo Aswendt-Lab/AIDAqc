@@ -32,6 +32,7 @@ dependencies:
   - requests
   - pypdf2
   - fpdf
+  - reportlab
   - lmfit
   - uncertainties
   - pydot

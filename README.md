@@ -22,7 +22,7 @@ Download the repository => Install Python 3.6 (Anaconda) => Import AIDAqc conda 
 
 Main function: *ParsingData*
 
-See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
+See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/open-dev/docs/AIDAqc_open_dev.pdf).
 
 <h3>Docker/Apptainer Usage</h3>
 

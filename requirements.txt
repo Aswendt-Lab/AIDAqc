@@ -11,6 +11,7 @@ progressbar
 pandas
 nilearn
 seaborn
+reportlab
 #Not needed for now
 #joblib
 #natsort
