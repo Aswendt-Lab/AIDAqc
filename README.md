@@ -52,11 +52,13 @@ apptainer shell aidaqc.sif
 ```
 <h3>Branches</h3>
 
-AIDAqc is organized into multiple branches to support development:
+AIDAqc provides separate workflows for animal MRI and MRI phantom data:
 
-- **`main`** – the stable branch containing officially released and validated versions of AIDAqc.  
-- **`open-dev`** – the public development branch that can be used by external contributors to implement code modifications, enhancements, or bug fixes.  
-  *Researchers and developers are welcome to fork the repository, work within the `open-dev` branch, and submit pull requests for review.*   
+- [**`main`**](https://github.com/Aswendt-Lab/AIDAqc/tree/main) – the stable animal MRI workflow.
+- [**`phantom`**](https://github.com/Aswendt-Lab/AIDAqc/tree/phantom) – specifically for **MRI phantom data only**. The former `open-dev` implementation has moved here, including phantom-specific ROI analysis, additional motion and ghosting outputs, and the PDF QA report. See the [phantom README](https://github.com/Aswendt-Lab/AIDAqc/blob/phantom/README.md) for setup and usage, and the [updated manual](https://github.com/Aswendt-Lab/AIDAqc/blob/phantom/docs/AIDAqc_open_dev.pdf) for the workflow details.
+- [**`open-dev`**](https://github.com/Aswendt-Lab/AIDAqc/tree/open-dev) – general development, aligned with `main` after moving the phantom workflow. PDF export will be ported to this baseline in a later change; the phantom-specific analysis stays in `phantom`.
+
+Researchers and developers are welcome to fork the repository and submit pull requests against the branch appropriate to their workflow.
 
 <h3>Tutorial</h3>
 
