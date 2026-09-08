@@ -22,7 +22,7 @@ Download the repository => Install Python 3.6 (Anaconda) => Import AIDAqc conda 
 
 Main function: *ParsingData*
 
-See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/open-dev/docs/AIDAqc_open_dev.pdf).
+See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
 
 <h3>Docker/Apptainer Usage</h3>
 
@@ -52,11 +52,13 @@ apptainer shell aidaqc.sif
 ```
 <h3>Branches</h3>
 
-AIDAqc is organized into multiple branches to support development:
+AIDAqc provides separate workflows for animal MRI and MRI phantom data:
 
-- **`main`** – the stable branch containing officially released and validated versions of AIDAqc.  
-- **`open-dev`** – the public development branch that can be used by external contributors to implement code modifications, enhancements, or bug fixes.  
-  *Researchers and developers are welcome to fork the repository, work within the `open-dev` branch, and submit pull requests for review.*   
+- [**`main`**](https://github.com/Aswendt-Lab/AIDAqc/tree/main) – the stable animal MRI workflow.
+- [**`phantom`**](https://github.com/Aswendt-Lab/AIDAqc/tree/phantom) – specifically for **MRI phantom data only**. The former `open-dev` implementation has moved here, including phantom-specific ROI analysis, additional motion and ghosting outputs, and the PDF QA report. See the [phantom README](https://github.com/Aswendt-Lab/AIDAqc/blob/phantom/README.md) for setup and usage, and the [updated manual](https://github.com/Aswendt-Lab/AIDAqc/blob/phantom/docs/AIDAqc_open_dev.pdf) for the workflow details.
+- [**`open-dev`**](https://github.com/Aswendt-Lab/AIDAqc/tree/open-dev) – general development, aligned with `main` after moving the phantom workflow. PDF export will be ported to this baseline in a later change; the phantom-specific analysis stays in `phantom`.
+
+Researchers and developers are welcome to fork the repository and submit pull requests against the branch appropriate to their workflow.
 
 <h3>Tutorial</h3>
 
@@ -80,7 +82,7 @@ A total of 23 datasets from various institutes were used for validation and test
  
 If you encounter problems, report directly in [![Gitter](https://badges.gitter.im/AIDA_tools/community.svg)](https://gitter.im/AIDA_tools/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 or 
-join our Open Office Hour - each Thursday 3:00 pm (UTC+2) [![Google Meet](https://img.shields.io/badge/Google%20Meet-00897B?style=for-the-badge&logo=google-meet&logoColor=white)](https://meet.google.com/hsk-bmpj-meg)
+join our Open Office Hour - each Thursday 3:00 pm (UTC+2) [![Zoom](https://img.shields.io/badge/Zoom-2D8CFF?style=for-the-badge&logo=zoom&logoColor=white)](https://uni-frankfurt.zoom-x.de/j/63112745009?pwd=JBTjMVbuaTw9cZvFnppTwCPjGdQEyx.1)
 
 
 For all other inquiries: Markus Aswendt (aswendtATmed.uni-frankfurt.de)

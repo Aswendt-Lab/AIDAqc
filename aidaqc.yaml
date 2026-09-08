@@ -189,7 +189,6 @@ dependencies:
     - prov==2.0.0
     - pydot==1.4.2
     - pypdf2==3.0.1
-    - reportlab==3.6.12
     - pywavelets==1.1.1
     - pyxnat==1.5
     - raster-geometry==0.1.4.1
