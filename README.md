@@ -1,4 +1,4 @@
-<img align="right" src="docs/AIDA_Logo_wide.001.png" width="500">
+<img align="right" src="docs/AIDA_Logo_wide_phantom.png" width="500">
 <h1>AIDA<i>qc</i> — MRI phantom analysis</h1>
 
 This branch is specifically for **MRI phantom data only**. It preserves the phantom-specific analysis previously developed in `open-dev`, including sphere/ROI overlays, additional motion and ghosting metrics, and the PDF QA report. For animal MRI data, use the [main branch](https://github.com/Aswendt-Lab/AIDAqc/tree/main).
