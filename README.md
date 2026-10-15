@@ -1,5 +1,5 @@
-<img align="right" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDA_Logo_wide.001.png" width="500">
 <h1>AIDA<i>qc</i></h1>
+<img align="right" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDA_Logo_wide.001.png" width="500">
 
 *An automated and simple tool for fast quality analysis of animal MRI*
 <br/>
