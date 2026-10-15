@@ -10,6 +10,19 @@ import pv_conv2Nifti as pr
 import alive_progress as ap
 import pv_parser as par
 from QC import *
+
+def WriteAuxiliaryMetrics(features, ghost_values, output_path, modality):
+    """Write the phantom-compatible descriptive MI/GSR output without changing features.
+
+    Motion is the existing standard deviation of mutual information (NaN for anatomy).
+    The auxiliary Ghosting column contains continuous GSR, not the main boolean flag.
+    """
+    motion_col = 'Displacement factor (std of Mutual information)'
+    metrics = features[['FileAddress']].copy()
+    metrics['Motion'] = features[motion_col] if motion_col in features else np.nan
+    metrics['Ghosting'] = np.asarray(ghost_values)
+    metrics.to_csv(os.path.join(output_path, 'MI_{}.csv'.format(modality)))
+
 #%% Feature calculation of the pipeline. Core Unit of the Pipeline     
 def CheckingRawFeatures(Path):
     #Path=r"C:\Users\Erfan\Downloads\Compressed\proc_data\P5"  
@@ -70,6 +83,7 @@ def CheckingRawFeatures(Path):
             img_names_new = []
             keys = []
             GMetric_vec =  []
+            GValue_vec = []
             kk = 0
             i=1
            
@@ -161,6 +175,12 @@ def CheckingRawFeatures(Path):
                     # other Features
                     SpatRes = ResCalculator(input_file)
                     GMetric = GhostCheck(input_file)
+                    # Additional descriptive metric; never part of the outlier feature matrix.
+                    try:
+                        GValue = GhostGSRValue(input_file)
+                    except Exception as ghost_error:
+                        print("Warning: GSR unavailable for {}: {}".format(tf, ghost_error))
+                        GValue = np.nan
                     
                     
                     if N == 'anat':
@@ -210,6 +230,7 @@ def CheckingRawFeatures(Path):
                     text_files_new.append(tf)
                     SpatRes_vec.append(SpatRes)
                     GMetric_vec.append(GMetric)
+                    GValue_vec.append(GValue)
             
             df = pd.DataFrame()
             df['FileAddress'] = text_files_new
@@ -236,6 +257,8 @@ def CheckingRawFeatures(Path):
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
                  
+            WriteAuxiliaryMetrics(df, GValue_vec, Path, N)
+
             if N=="anat":
                 t2w_result= os.path.join(Path,"caculated_features_anat.csv")
                 df.to_csv( t2w_result)
@@ -319,6 +342,7 @@ def CheckingNiftiFeatures(Path):
             text_files_new = []
             img_names_new = []
             GMetric_vec =  []
+            GValue_vec = []
             kk = 0
             i=1
             
@@ -367,6 +391,12 @@ def CheckingNiftiFeatures(Path):
                     # other Features
                     SpatRes = ResCalculator(input_file)
                     GMetric = GhostCheck(input_file)
+                    # Additional descriptive metric; never part of the outlier feature matrix.
+                    try:
+                        GValue = GhostGSRValue(input_file)
+                    except Exception as ghost_error:
+                        print("Warning: GSR unavailable for {}: {}".format(tf, ghost_error))
+                        GValue = np.nan
                     
                     if N == "anat":
                         # Signal 2 noise ratio
@@ -412,6 +442,7 @@ def CheckingNiftiFeatures(Path):
                     text_files_new.append(tf)
                     SpatRes_vec.append(SpatRes)
                     GMetric_vec.append(GMetric)
+                    GValue_vec.append(GValue)
                     
                      
                      
@@ -447,6 +478,8 @@ def CheckingNiftiFeatures(Path):
                  df['Displacement factor (std of Mutual information)']=np.array(LMV_all)
                  #df['Maximal displacement']=AR[4]
                  
+            WriteAuxiliaryMetrics(df, GValue_vec, Path, N)
+
             if N=="anat":
                 t2w_result= os.path.join(Path,"caculated_features_anat.csv")
                 df.to_csv( t2w_result)

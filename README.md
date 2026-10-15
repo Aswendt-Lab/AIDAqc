@@ -1,5 +1,5 @@
-<img align="right" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDA_Logo_wide.001.png" width="500">
 <h1>AIDA<i>qc</i></h1>
+<img align="right" src="https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDA_Logo_wide.001.png" width="500">
 
 *An automated and simple tool for fast quality analysis of animal MRI*
 <br/>
@@ -22,7 +22,19 @@ Download the repository => Install Python 3.6 (Anaconda) => Import AIDAqc conda 
 
 Main function: *ParsingData*
 
-See the full manual [here](https://github.com/Aswendt-Lab/AIDAqc/blob/main/docs/AIDAqc_v2_1.pdf).
+See the full manual [here](docs/AIDAqc_v2_1.md).
+
+<h3>Additional QA outputs on open-dev</h3>
+
+After Stage III writes `votings.csv`, the pipeline generates `AIDAqc_QA_Report.pdf` with a run summary, QC figures, per-scan metrics, outlier votes, and input-file hashes. Report generation reads existing results; a report failure leaves the completed QC results available.
+
+`MI_anat.csv`, `MI_diff.csv`, and `MI_func.csv` contain descriptive metrics for each available modality. `Motion` is the existing standard deviation of mutual information (not displacement in millimetres; unavailable for anatomical scans). The auxiliary `Ghosting` column holds the continuous ghost-to-signal ratio (GSR), while `Ghosting` in the main feature tables remains the existing boolean flag. These additional outputs do not enter the outlier detectors.
+
+GSR uses the mean image for 4D scans and a central slice, with a foreground percentile mask shifted by half the field of view along image axis 1. This assumes axis 1 is the phase-encoding direction; verify that assumption for your acquisition. GSR is descriptive and has no fixed exclusion threshold.
+
+Existing `caculated_features_*.csv` filenames and animal-MRI SNR/tSNR ROIs are retained. The report also accepts the corrected `calculated_features_*.csv` spelling and can read tables archived in `calculated_features/`. The report dependency, `reportlab`, is included in `requirements.txt` and `aidaqc.yaml`.
+
+For the branch comparison and transfer scope, see [the porting notes](docs/phantom_port.md).
 
 <h3>Docker/Apptainer Usage</h3>
 
@@ -56,7 +68,7 @@ AIDAqc provides separate workflows for animal MRI and MRI phantom data:
 
 - [**`main`**](https://github.com/Aswendt-Lab/AIDAqc/tree/main) – the stable animal MRI workflow.
 - [**`phantom`**](https://github.com/Aswendt-Lab/AIDAqc/tree/phantom) – specifically for **MRI phantom data only**. The former `open-dev` implementation has moved here, including phantom-specific ROI analysis, additional motion and ghosting outputs, and the PDF QA report. See the [phantom README](https://github.com/Aswendt-Lab/AIDAqc/blob/phantom/README.md) for setup and usage, and the [updated manual](https://github.com/Aswendt-Lab/AIDAqc/blob/phantom/docs/AIDAqc_open_dev.pdf) for the workflow details.
-- [**`open-dev`**](https://github.com/Aswendt-Lab/AIDAqc/tree/open-dev) – general development, aligned with `main` after moving the phantom workflow. PDF export will be ported to this baseline in a later change; the phantom-specific analysis stays in `phantom`.
+- [**`open-dev`**](https://github.com/Aswendt-Lab/AIDAqc/tree/open-dev) – general development, aligned with `main` after moving the phantom workflow. Includes the PDF QA report and auxiliary motion/GSR outputs while retaining the animal-MRI SNR/tSNR calculations. The phantom-specific ROI analysis stays in `phantom`.
 
 Researchers and developers are welcome to fork the repository and submit pull requests against the branch appropriate to their workflow.
 
@@ -78,14 +90,11 @@ A total of 23 datasets from various institutes were used for validation and test
 
 [Dataset Link](https://gin.g-node.org/Aswendt_Lab/testdata_aida)
 
-<h3><b>CONTACT</h3></b>
- 
-If you encounter problems, report directly in [![Gitter](https://badges.gitter.im/AIDA_tools/community.svg)](https://gitter.im/AIDA_tools/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-or 
-join our Open Office Hour - each Thursday 3:00 pm (UTC+2) [![Zoom](https://img.shields.io/badge/Zoom-2D8CFF?style=for-the-badge&logo=zoom&logoColor=white)](https://uni-frankfurt.zoom-x.de/j/63112745009?pwd=JBTjMVbuaTw9cZvFnppTwCPjGdQEyx.1)
+<h3>Contact</h3>
 
+Please report bugs and technical issues directly in [GitHub Issues](https://github.com/Aswendt-Lab/AIDAqc/issues).
 
-For all other inquiries: Markus Aswendt (aswendtATmed.uni-frankfurt.de)
+For all other requests, email [aswendtlab@gmail.com](mailto:aswendtlab@gmail.com).
 
 <h3><b>LICENSE</h3></b>
 

@@ -2,13 +2,14 @@
 """
 Version 1.0
 Name: Aref Kalantari
-Email: aref.kalantari-sarcheshmeh@uk-koeln.de
+Issues: https://github.com/Aswendt-Lab/AIDAqc/issues
+Other requests: aswendtlab@gmail.com
 Date: 24.08.2021 - 02.03.2022
 -----------------------------
 Code Describtion: Quality Control Toolbox. Every tool (function) needed can be found here and be modified.
 -----------------------------
 Lab: AG Neuroimaging and neuroengineering of experimental stroke 
-Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
+Supervisor: Dr. rer. nat. Markus Aswendt
 """
 
 #%% Loading nececcery libraries
@@ -20,6 +21,7 @@ import numpy as np
 import os
 import pandas as pd
 import glob
+from qa_report import GenerateQAReport
 import matplotlib.patches as mpatches
 import time
 import matplotlib.pyplot as plt
@@ -93,6 +95,78 @@ def GhostCheck(input_file):
     
     return GMetric
   
+
+def GhostGSRValue(input_file, percentile=70, ghost_shift_fraction=0.5, phase_axis=1):
+    """Return a continuous ghosting score using an intensity-based Ghost-to-Signal Ratio (GSR).
+
+    This is designed for reporting in the MI_* extra outputs only (does not affect the main pipeline logic).
+
+    Method (single mid-slice):
+      1) Create a foreground/object mask using a percentile threshold on positive intensities.
+      2) Shift that mask by ~half FOV along the phase-encode axis to where EPI-like ghosts appear.
+      3) Measure mean background-corrected absolute intensity in the shifted (ghost-only) region
+         relative to the mean object intensity.
+
+    Returns:
+      GhostingScore = mean(|I_ghost - median(I_bg)|) / (mean(I_obj) + eps)
+
+    Notes:
+      - For 4D data, uses the temporal mean image (same as GhostCheck).
+      - phase_axis defaults to 1 to match the original GhostCheck loop over img_shape[1].
+    """
+
+    img = input_file
+    img_data = img.get_fdata()
+    img_shape = np.shape(img_data)
+
+    if len(img_shape) > 3:
+        img_data = np.mean(img_data, axis=-1)
+
+    # Mid-slice
+    slc = img_data[:, :, int(img_shape[2] / 2)]
+    slc = np.asarray(slc, dtype=np.float64)
+
+    pos = slc[slc > 0]
+    if pos.size < 10:
+        return np.nan
+
+    thr = np.percentile(pos, percentile)
+    obj_mask = slc > thr
+
+    # Fallback if the mask is too small
+    if np.sum(obj_mask) < 10:
+        thr = np.percentile(pos, 50)
+        obj_mask = slc > thr
+
+    if np.sum(obj_mask) < 10:
+        return np.nan
+
+    # Determine shift (half FOV by default)
+    try:
+        n_phase = slc.shape[phase_axis]
+    except Exception:
+        return np.nan
+
+    shift = int(round(n_phase * ghost_shift_fraction))
+    if shift == 0:
+        shift = n_phase // 2
+
+    ghost_mask = np.roll(obj_mask, shift=shift, axis=phase_axis)
+    ghost_only = ghost_mask & (~obj_mask)
+
+    if np.sum(ghost_only) < 10:
+        # No valid ghost-only region
+        return 0.0
+
+    bg = slc[~obj_mask]
+    bg_med = float(np.median(bg)) if bg.size else 0.0
+
+    s = float(np.mean(slc[obj_mask]))
+    g = float(np.mean(np.abs(slc[ghost_only] - bg_med)))
+
+    eps = 1e-12
+    return g / (s + eps)
+
 
 #%% Res function
 
@@ -770,7 +844,16 @@ def QCtable(Path, format_type):
     ML_algorythms["Voting outliers (from 5)"]=   ML_number 
     ML_algorythms= ML_algorythms[ML_algorythms["Voting outliers (from 5)"]>=1]
     final_result = os.path.join(Path,"votings.csv")
-    ML_algorythms.to_csv( final_result)
+    ML_algorythms.to_csv(final_result)
+
+    # Reporting follows completed Stage III and must not invalidate its results.
+    try:
+        report_path = GenerateQAReport(Path, format_type)
+        print("AIDAqc QA report saved to:")
+        print(report_path)
+    except Exception as report_error:
+        print("Warning: AIDAqc QA PDF report could not be generated:")
+        print(report_error)
 
 
     
@@ -785,7 +868,8 @@ def QCtable(Path, format_type):
 
 
 
-#%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
+#%% Report bugs and technical issues: https://github.com/Aswendt-Lab/AIDAqc/issues
+# For all other requests: aswendtlab@gmail.com
 
 
 

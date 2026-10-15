@@ -165,6 +165,7 @@ dependencies:
     - fitz==0.0.1.dev2
     - flyingcircus==0.1.4.0
     - flyingcircus-numeric==0.1.1.2
+    - reportlab
     - fpdf==1.7.2
     - grapheme==0.6.0
     - httplib2==0.21.0
