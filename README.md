@@ -5,7 +5,7 @@ This branch is specifically for **MRI phantom data only**. It preserves the phan
 
 ## Manual
 
-Use the [updated phantom workflow manual](docs/AIDAqc_open_dev.pdf). The filename retains its former `open-dev` name; this is the manual bundled with the phantom implementation.
+Use the [updated phantom workflow manual](docs/AIDAqc_open_dev.md). The filename retains its former `open-dev` name; this is the manual bundled with the phantom implementation.
 
 ## Installation
 
@@ -63,7 +63,7 @@ Review the QC images alongside the quantitative results. The animal MRI validati
 
 Report problems through the [issue tracker](https://github.com/Aswendt-Lab/AIDAqc/issues) and specify that you are using `phantom`. See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance.
 
-For other inquiries: Markus Aswendt (aswendtATmed.uni-frankfurt.de).
+For all other requests, email [aswendtlab@gmail.com](mailto:aswendtlab@gmail.com).
 
 ## License
 
