@@ -78,14 +78,11 @@ A total of 23 datasets from various institutes were used for validation and test
 
 [Dataset Link](https://gin.g-node.org/Aswendt_Lab/testdata_aida)
 
-<h3><b>CONTACT</h3></b>
- 
-If you encounter problems, report directly in [![Gitter](https://badges.gitter.im/AIDA_tools/community.svg)](https://gitter.im/AIDA_tools/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-or 
-join our Open Office Hour - each Thursday 3:00 pm (UTC+2) [![Zoom](https://img.shields.io/badge/Zoom-2D8CFF?style=for-the-badge&logo=zoom&logoColor=white)](https://uni-frankfurt.zoom-x.de/j/63112745009?pwd=JBTjMVbuaTw9cZvFnppTwCPjGdQEyx.1)
+<h3>Contact</h3>
 
+Please report bugs and technical issues directly in [GitHub Issues](https://github.com/Aswendt-Lab/AIDAqc/issues).
 
-For all other inquiries: Markus Aswendt (aswendtATmed.uni-frankfurt.de)
+For all other requests, email [aswendtlab@gmail.com](mailto:aswendtlab@gmail.com).
 
 <h3><b>LICENSE</h3></b>
 

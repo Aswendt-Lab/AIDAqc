@@ -7,7 +7,7 @@ Atlas-based Imaging Data Analysis pipeline for Quality Control of Animal MRI Dat
 **April 2023**  
 Department of Neurology, University Hospital Cologne
 
-*Converted from the [original PDF manual](AIDAqc_v2_1.pdf). Figure numbering and the original instructions are retained.*
+*Converted from the [original PDF manual](AIDAqc_v2_1.pdf). Figure numbering and the original instructions are retained; contact information has been updated.*
 
 ![AIDAqc cover illustration](AIDAqc_v2_1_images/cover.png)
 
@@ -242,9 +242,13 @@ The -i and -o are self-explanatory. -f can be used if it should check raw Bruker
 
 ## Author
 
-I have designed this pipeline to help me validate all the MR data that I use for further processing in my project. I was searching for a kind of standardization to dichotomize MR data into good and bad data. Over time I found out that this can’t be done as easily as thought. The key point of this standardization tool is that one realizes good and bad can not be set with fixed global values of any kind of features like the SNR and as everything in life is, it should be looked at relatively. If you have any questions regarding this pipeline, feel free to contact me at:
+I have designed this pipeline to help me validate all the MR data that I use for further processing in my project. I was searching for a kind of standardization to dichotomize MR data into good and bad data. Over time I found out that this can’t be done as easily as thought. The key point of this standardization tool is that one realizes good and bad can not be set with fixed global values of any kind of features like the SNR and as everything in life is, it should be looked at relatively.
 
-[aref.kalantari-sarcheshmeh@uk-koeln.de](mailto:aref.kalantari-sarcheshmeh@uk-koeln.de)
+## Contact
+
+Please report bugs and technical issues directly in [GitHub Issues](https://github.com/Aswendt-Lab/AIDAqc/issues).
+
+For all other requests, email [aswendtlab@gmail.com](mailto:aswendtlab@gmail.com).
 
 The end
 

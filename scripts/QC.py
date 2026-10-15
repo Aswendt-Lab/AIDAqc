@@ -2,13 +2,14 @@
 """
 Version 1.0
 Name: Aref Kalantari
-Email: aref.kalantari-sarcheshmeh@uk-koeln.de
+Issues: https://github.com/Aswendt-Lab/AIDAqc/issues
+Other requests: aswendtlab@gmail.com
 Date: 24.08.2021 - 02.03.2022
 -----------------------------
 Code Describtion: Quality Control Toolbox. Every tool (function) needed can be found here and be modified.
 -----------------------------
 Lab: AG Neuroimaging and neuroengineering of experimental stroke 
-Supervisor: Dr. rer. nat. Markus Aswendt (markus.aswendt@uk-koeln.de)
+Supervisor: Dr. rer. nat. Markus Aswendt
 """
 
 #%% Loading nececcery libraries
@@ -785,7 +786,8 @@ def QCtable(Path, format_type):
 
 
 
-#%% For Questions please Contact: aref.kalantari-sarcheshmeh@uk-koeln.de
+#%% Report bugs and technical issues: https://github.com/Aswendt-Lab/AIDAqc/issues
+# For all other requests: aswendtlab@gmail.com
 
 
 
