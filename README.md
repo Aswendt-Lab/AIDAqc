@@ -26,16 +26,26 @@ See the full manual [here](docs/AIDAqc_v2_1.md).
 
 <h3>Docker/Apptainer Usage</h3>
 
-```{bash}
-#Build
+```bash
+# Build the Linux/AMD64 image
+docker build --platform linux/amd64 -t aidaqc:2.1 .
 
-docker build aidaqc:2.1 .
+# Check the CLI and imports
+docker run --rm --platform linux/amd64 aidaqc:2.1 --help
 
-# Running the main ParsingData.py:
-
-docker run -v /your/project/data:/data -v /your/project/qc aidaqc:2.1 -i /data -o /qc -f raw
+# Run ParsingData.py with your input and output directories
+docker run --rm --platform linux/amd64 \
+  -v "/your/project/data:/data" \
+  -v "/your/project/qc:/qc" \
+  aidaqc:2.1 -i /data -o /qc -f raw
 
 ```
+
+Replace the host paths before the colons with your own directories. Use absolute
+Windows paths when running these commands from Windows PowerShell; the container
+paths `/data` and `/qc` stay the same. The multiline command above uses Bash line
+continuations; in PowerShell, enter it on one line or use PowerShell's backtick
+line continuation.
 
 For installation in a [apptainer](https://apptainer.org/) container for GNU/Linux:
 ```{bash}

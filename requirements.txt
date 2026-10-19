@@ -1,16 +1,16 @@
-packaging
+#packaging
 numpy
 scipy
 nibabel
 alive-progress
 scikit-learn
-scikit-image
+#scikit-image
 matplotlib
 lmfit
 progressbar
 pandas
 nilearn
-seaborn
+#seaborn
 #Not needed for now
 #joblib
 #natsort
