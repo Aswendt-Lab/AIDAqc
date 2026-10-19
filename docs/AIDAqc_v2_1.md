@@ -69,7 +69,7 @@ You can also directly use the Anaconda terminal and type in the following comman
 
 ```bash
 cd aidaqc
-conda env create --name aidaqc --file=aidaqc.yml
+conda env create --name aidaqc --file=aidaqc.yaml
 ```
 
 An alternative approach is to create a new environment (for example aidamri) with anaconda terminal and then to run the requirements.txt in the environment.

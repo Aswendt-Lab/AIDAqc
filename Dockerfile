@@ -1,5 +1,7 @@
+ARG BASE_IMAGE_PLATFORM=linux/amd64
+
 # Use the official Python 3.6 image as the base
-FROM python:3.6-slim
+FROM --platform=${BASE_IMAGE_PLATFORM} python:3.6-slim
 
 # Set environment variables
 ENV PATH /opt/conda/bin:$PATH
@@ -10,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
-FROM continuumio/miniconda:latest
+FROM --platform=${BASE_IMAGE_PLATFORM} continuumio/miniconda:latest
 
 COPY aidaqc.yaml /opt/aidaqc.yaml
 
@@ -25,7 +27,7 @@ SHELL ["conda", "run", "-n", "aidaqc", "/bin/bash", "-c"]
 
 # Activate the environment and ensure it's activated
 RUN echo "source activate aidaqc" > /home/aida/.bashrc
-ENV PATH /opt/condaenvs/aidaqc/bin:$PATH
+ENV PATH=/opt/conda/envs/aidaqc/bin:$PATH
 RUN /bin/bash -c "source activate aidaqc"
 
 # Set the working directory
