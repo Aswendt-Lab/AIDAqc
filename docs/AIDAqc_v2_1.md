@@ -7,7 +7,6 @@ Atlas-based Imaging Data Analysis pipeline for Quality Control of Animal MRI Dat
 **April 2023**  
 Department of Neurology, University Hospital Cologne
 
-*Converted from the [original PDF manual](AIDAqc_v2_1.pdf). Figure numbering and the original instructions are retained; contact information has been updated.*
 
 ![AIDAqc cover illustration](AIDAqc_v2_1_images/cover.png)
 
