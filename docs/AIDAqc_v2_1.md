@@ -7,7 +7,6 @@ Atlas-based Imaging Data Analysis pipeline for Quality Control of Animal MRI Dat
 **April 2023**  
 Department of Neurology, University Hospital Cologne
 
-*Converted from the [original PDF manual](AIDAqc_v2_1.pdf). Figure numbering and the original instructions are retained; contact information has been updated.*
 
 ![AIDAqc cover illustration](AIDAqc_v2_1_images/cover.png)
 
@@ -40,6 +39,21 @@ In this step, SNR is calculated for T2w and DTI images, tSNR, and movement sever
 ### III) Outlier detection
 
 In this step, all of the calculated features will be statistically analyzed with the help of five methods to identify outliers: One class SVM, Isolation Forest, Local Outlier Factor, and Elliptic Envelope. In addition to these, a normal statistical definition of outliers based on the interquartile range is also used.
+
+#### Sample size considerations
+> **For exploratory analyses, we suggest using at least 30 comparable scans per sequence type as a practical rule of thumb.
+> This threshold has not been validated and does not guarantee reliable outlier detection.
+> With fewer than 30 scans per sequence type, use the combined ML voting only as supplementary guidance alongside manual quality control.
+> Regardless of sample size, outlier votes should not be the sole basis for excluding scans. See the table below for method-specific considerations.**
+
+Sample counts refer to complete rows remaining in each feature CSV after rows with missing values have been removed. Anatomical, diffusion, and functional scans are evaluated separately. Individual slices and time points do not count as separate training samples.
+
+| Method | Sample-size considerations |
+|---|---|
+| [Local Outlier Factor](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.LocalOutlierFactor.html) | The current configuration uses 20 neighbors, requiring at least 21 scans to retain that neighborhood size. With only 21 scans, each neighborhood includes all other scans. |
+| [Elliptic Envelope](https://scikit-learn.org/stable/modules/generated/sklearn.covariance.EllipticEnvelope.html) | scikit-learn recommends `n_samples > n_features²`. With the default feature tables, this corresponds to at least 10 scans for anatomical and functional data (3 features), or 17 scans for diffusion data (4 features). Meeting this condition alone does not ensure reliable detection. |
+| Isolation Forest | No generally applicable minimum sample size can be specified; reliability depends on the dataset and model settings. |
+| One-Class SVM | No generally applicable minimum sample size can be specified; reliability depends on the dataset and model settings. |
 
 <a id="figure-1"></a>
 
